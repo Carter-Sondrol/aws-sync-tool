@@ -5,7 +5,7 @@ import argcomplete
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="firstfire-sync",
+        prog="aws-sync",
         description="Sync AWS resources and export to CDK/CloudFormation."
     )
 

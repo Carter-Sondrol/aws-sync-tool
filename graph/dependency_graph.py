@@ -55,6 +55,21 @@ class DependencyGraph:
         if lid:
             return self._nodes.get(lid)
         return None
+    
+    def find_by_property(
+        self,
+        service: str | None = None,
+        property_name: str = "",
+        value: Any = None,
+    ) -> Optional[ResourceNode]:
+        """Return the first node matching a given service/property/value trio."""
+
+        for node in self._nodes.values():
+            if service and node.service != service:
+                continue
+            if node.properties.get(property_name) == value:
+                return node
+        return None
 
     def topological_sort(self) -> list[str]:
         return list(nx.topological_sort(self._g))

@@ -28,16 +28,16 @@ logger = logging.getLogger(__name__)
 def install_completion(shell: str):
     """Install shell completions for this CLI."""
     try:
-        cmd = f"register-python-argcomplete firstfire-sync > ~/.config/{shell}/completions/firstfire-sync.{shell}"
+        cmd = f"register-python-argcomplete aws-sync > ~/.config/{shell}/completions/aws-sync.{shell}"
         if shell == "fish":
-            out_file = Path.home() / ".config" / "fish" / "completions" / "firstfire-sync.fish"
+            out_file = Path.home() / ".config" / "fish" / "completions" / "aws-sync.fish"
         elif shell == "zsh":
-            out_file = Path.home() / ".zfunc" / "_firstfire-sync"
+            out_file = Path.home() / ".zfunc" / "_aws-sync"
         else:  # bash
-            out_file = Path.home() / ".bash_completion.d" / "firstfire-sync"
+            out_file = Path.home() / ".bash_completion.d" / "aws-sync"
         out_file.parent.mkdir(parents=True, exist_ok=True)
         subprocess.run(
-            f"register-python-argcomplete --shell {shell} firstfire-sync > {out_file}",
+            f"register-python-argcomplete --shell {shell} aws-sync > {out_file}",
             shell=True,
             check=True,
         )
