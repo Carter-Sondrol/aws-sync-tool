@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "firstfire-aws-sync"
+version = "0.8.0"
+description = "AWS resource sync and dependency graph generator for multi-account CDK/CloudFormation deployment."
+authors = [
+    { name = "Carter", email = "you@example.com" }
+]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.10"
+
+dependencies = [
+    "boto3>=1.26",
+    "botocore>=1.29",
+    "networkx>=3.1",
+    "argcomplete>=3.1",
+    "pygraphviz>=1.10",
+    "jinja2>=3.1",
+    "typing-extensions>=4.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+    "ruff",
+]
+
+# ✅ CLI entrypoint (installs a `firstfire-sync` command)
+[project.scripts]
+firstfire-sync = "cli.main:main"
+
+[tool.setuptools]
+# 👇 tell setuptools to treat *current directory* as the root package
+packages = ["cli", "builder", "graph", "utils"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+# include CDK templates and other static files
+builder = ["cdk/templates/*.tpl"]

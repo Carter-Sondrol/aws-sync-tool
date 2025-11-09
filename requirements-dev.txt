@@ -1,0 +1,5 @@
+pytest==6.2.5
+plotly
+argcomplete
+networkx
+boto3-stubs[essential,connect,iam, lexv2-models, lexv2-runtime]

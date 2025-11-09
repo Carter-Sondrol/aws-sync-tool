@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>AWS Resource Graph</title>
+  <style>
+__STYLE__
+  </style>
+  <script src="https://unpkg.com/force-graph@1.45.0/dist/force-graph.min.js"></script>
+</head>
+<body>
+  <!-- Controls -->
+  <div id="controls">
+    <input id="searchBox" type="text" placeholder="Search nodes..." />
+    <button id="resetBtn" title="Clear search & re-enable all groups">Reset</button>
+    <button id="editToggleBtn" title="Toggle Edit Mode (Ctrl+E)">Edit: Off</button>
+    <button id="exportBtn" title="Download current graph JSON">Export</button>
+  </div>
+
+  <!-- Legend -->
+  <div id="legend"></div>
+
+  <!-- Info panel -->
+  <div id="infoPanel">
+    <div id="closeBtn">✕</div>
+    <h2 id="nodeTitle">Select a node</h2>
+    <div id="nodeDetails"></div>
+  </div>
+
+  <!-- Graph -->
+  <div id="graph"></div>
+
+  <script>
+    const data = __GRAPH_DATA__;
+    const colorMap = __COLOR_MAP__;
+__SCRIPT__
+  </script>
+</body>
+</html>

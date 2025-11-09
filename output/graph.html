@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>AWS Resource Graph</title>
+  <style>
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #0e1117;
+  color: #fff;
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+#graph {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* --- Controls --- */
+#controls {
+  position: fixed;
+  top: 10px; right: 10px;
+  background: rgba(25,25,30,0.85);
+  padding: 6px 8px;
+  border-radius: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 30;
+}
+#controls input {
+  background: #1a1d25;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 8px;
+  color: #ddd;
+  width: 160px;
+}
+#controls button {
+  background: #333;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 6px 10px;
+}
+#controls button:hover { background: #444; }
+
+/* --- Legend --- */
+#legend {
+  position: fixed;
+  top: 10px; left: 10px;
+  background: rgba(20,20,25,0.85);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 12px;
+  color: #ddd;
+  max-height: 90vh;
+  overflow-y: auto;
+  z-index: 20;
+}
+.legend-group { margin-bottom: 6px; }
+.legend-service {
+  font-weight: 600;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s ease, filter 0.2s ease;
+  opacity: 1;
+}
+.legend-item:hover { opacity: 0.8; }
+.legend-item.inactive { opacity: 0.35; }
+.color-box {
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  border-radius: 3px;
+}
+
+/* --- Info panel --- */
+#infoPanel {
+  position: fixed;
+  top: 0; right: 0;
+  width: 380px;
+  height: 100vh;
+  background: rgba(20,22,30,0.95);
+  color: #eee;
+  overflow-y: auto;
+  padding: 16px;
+  box-shadow: -3px 0 10px rgba(0,0,0,0.4);
+  transform: translateX(100%);
+  transition: transform 0.28s ease;
+  z-index: 25;
+}
+#infoPanel.visible { transform: translateX(0); }
+#infoPanel h2 { font-size: 18px; margin: 0 0 12px 0; color: #fff; }
+#infoPanel hr { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 10px 0; }
+
+#closeBtn {
+  position: absolute;
+  top: 10px; right: 12px;
+  font-size: 18px;
+  cursor: pointer;
+  color: #aaa;
+}
+#closeBtn:hover { color: #fff; }
+
+.info-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 4px 0;
+  font-size: 13px;
+}
+.info-row b { min-width: 96px; display: inline-block; color: #cfd8dc; }
+
+.editable-field,
+.editable-textarea {
+  background: #101318;
+  color: #e0e0e0;
+  border: 1px solid #2b2f3a;
+  border-radius: 6px;
+  padding: 6px 8px;
+  width: 100%;
+  font-size: 13px;
+}
+.editable-textarea { min-height: 80px; resize: vertical; }
+
+/* Buttons inside panel */
+.panel-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.panel-actions button {
+  background: #2f3948;
+  border: none;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.panel-actions button:hover { background: #3a4658; }
+
+/* JSON pretty */
+.json-block {
+  background: rgba(0,0,0,0.5);
+  color: #cceeff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  border-radius: 6px;
+  padding: 8px;
+  overflow-x: auto;
+  white-space: pre;
+}
+details summary { cursor: pointer; color: #fff; margin: 6px 0; }
+details summary:hover { color: #0ff; }
+
+/* JSON syntax colors if using highlighter */
+.json-key { color: #66d9ef; }
+.json-string { color: #a6e22e; }
+.json-number { color: #fd971f; }
+.json-boolean { color: #f92672; }
+.json-null { color: #75715e; }
+
+  </style>
+  <script src="https://unpkg.com/force-graph@1.45.0/dist/force-graph.min.js"></script>
+</head>
+<body>
+  <!-- Controls -->
+  <div id="controls">
+    <input id="searchBox" type="text" placeholder="Search nodes..." />
+    <button id="resetBtn" title="Clear search & re-enable all groups">Reset</button>
+    <button id="editToggleBtn" title="Toggle Edit Mode (Ctrl+E)">Edit: Off</button>
+    <button id="exportBtn" title="Download current graph JSON">Export</button>
+  </div>
+
+  <!-- Legend -->
+  <div id="legend"></div>
+
+  <!-- Info panel -->
+  <div id="infoPanel">
+    <div id="closeBtn">✕</div>
+    <h2 id="nodeTitle">Select a node</h2>
+    <div id="nodeDetails"></div>
+  </div>
+
+  <!-- Graph -->
+  <div id="graph"></div>
+
+  <script>
+    const data = {"nodes": [{"id": "ConnectFlow1. Ultimate Entry", "service": "connect", "subtype": "contactflow", "cfn_type": "AWS::Connect::ContactFlow", "properties": {"Name": "1. Ultimate Entry", "Type": "CONTACT_FLOW", "Description": "", "Content": "{\"Version\":\"2019-10-30\",\"StartAction\":\"e7fdf26a-16f9-4ba3-b09f-6d53929455aa\",\"Metadata\":{\"entryPointPosition\":{\"x\":-500,\"y\":39.2},\"ActionMetadata\":{\"73f9abfa-8a06-4562-8370-caf67c51e858\":{\"position\":{\"x\":2440.8,\"y\":-53.6},\"children\":[\"d4a37e38-83b6-45cd-afe9-eab643541c56\"],\"parameters\":{\"TextToSpeechVoice\":{\"languageCode\":\"es-US\"}},\"overrideConsoleVoice\":true,\"fragments\":{\"SetContactData\":\"d4a37e38-83b6-45cd-afe9-eab643541c56\"},\"overrideLanguageAttribute\":true},\"d4a37e38-83b6-45cd-afe9-eab643541c56\":{\"position\":{\"x\":2440.8,\"y\":-53.6},\"dynamicParams\":[]},\"Reporting Attriubtes 2\":{\"position\":{\"x\":3711.2,\"y\":1066.4},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Set Spanish After Hours\":{\"position\":{\"x\":4464,\"y\":1104.8},\"isFriendlyName\":true,\"parameters\":{\"QueueId\":{\"displayName\":\"Ultimate After Hours Spanish\"}},\"queue\":{\"text\":\"Ultimate After Hours Spanish\"}},\"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7\":{\"position\":{\"x\":3955.2,\"y\":1215.2},\"parameters\":{\"Text\":{\"useDynamic\":true}},\"useDynamic\":true},\"Check Language\":{\"position\":{\"x\":4230.4,\"y\":1242.4},\"isFriendlyName\":true,\"conditions\":[],\"conditionMetadata\":[{\"id\":\"372e6748-541d-452a-9ca9-965b4e4c74cb\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"es-US\"}]},\"Error\":{\"position\":{\"x\":3660.8,\"y\":1303.2},\"isFriendlyName\":true,\"dynamicParams\":[]},\"3bf2d950-b306-4b2a-9aeb-bde32f0497b5\":{\"position\":{\"x\":4731.2,\"y\":1308}},\"88f8185b-648c-48a5-9283-d2c0908a7da2\":{\"position\":{\"x\":5017.6,\"y\":1369.6}},\"Set English After Hours\":{\"position\":{\"x\":4469.6,\"y\":1411.2},\"isFriendlyName\":true,\"parameters\":{\"QueueId\":{\"displayName\":\"Ultimate After Hours English\"}},\"queue\":{\"text\":\"Ultimate After Hours English\"}},\"Agent Retry Prompt Spanish\":{\"position\":{\"x\":4581.6,\"y\":103.2},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Agent Retry Prompt English\":{\"position\":{\"x\":4519.2,\"y\":330.4},\"isFriendlyName\":true,\"dynamicParams\":[]},\"No Match Retry English\":{\"position\":{\"x\":4187.2,\"y\":728.8},\"isFriendlyName\":true,\"dynamicParams\":[]},\"No Match Retry Spanish\":{\"position\":{\"x\":4164,\"y\":470.4},\"isFriendlyName\":true,\"dynamicParams\":[]},\"estimatedWaitTimeMinutes\":{\"position\":{\"x\":5789.6,\"y\":421.6},\"isFriendlyName\":true,\"conditions\":[],\"conditionMetadata\":[{\"id\":\"350829e1-cc0a-44fc-8dab-5dd6860472d2\",\"operator\":{\"name\":\"Is greater or equal\",\"value\":\"GreaterThanOrEqualTo\",\"shortDisplay\":\">=\"},\"value\":\"5\"}]},\"a4a72b72-fcc5-48ad-8402-f116ea144447\":{\"position\":{\"x\":5520,\"y\":428},\"parameters\":{\"FlowModuleId\":{\"displayName\":\"Get Estimated Wait Time\"}},\"contactFlowModuleName\":\"Get Estimated Wait Time\"},\"Error Transfer to Queue\":{\"position\":{\"x\":7248.8,\"y\":563.2},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Check Language-copy-1\":{\"position\":{\"x\":4267.2,\"y\":212.8},\"isFriendlyName\":true,\"conditions\":[],\"conditionMetadata\":[{\"id\":\"2d24496a-bf86-492c-b57b-ad1697d419f4\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"es-US\"}]},\"Check Language-copy-1-copy-1\":{\"position\":{\"x\":3936.8,\"y\":612},\"isFriendlyName\":true,\"conditions\":[],\"conditionMetadata\":[{\"id\":\"5066075a-8f98-47de-95f2-9157458d1d1a\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"es-US\"}]},\"1 retry\":{\"position\":{\"x\":5129.6,\"y\":368.8},\"isFriendlyName\":true},\"Reporting Attributes\":{\"position\":{\"x\":3622.4,\"y\":-30.4},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Intent Captured Attribute\":{\"position\":{\"x\":4988,\"y\":-155.2},\"isFriendlyName\":true,\"parameters\":{\"Attributes\":{\"LexIntent\":{\"useDynamic\":true}}},\"dynamicParams\":[\"LexIntent\"]},\"How Can I help Bot\":{\"position\":{\"x\":3980.8,\"y\":-330.4},\"isFriendlyName\":true,\"parameters\":{\"Text\":{\"useDynamic\":true},\"LexV2Bot\":{\"AliasArn\":{\"displayName\":\"PROD\",\"useLexBotDropdown\":true,\"lexV2BotName\":\"Ultimate-Intent-Capture-2\"}}},\"useLexBotDropdown\":true,\"lexV2BotName\":\"Ultimate-Intent-Capture-2\",\"lexV2BotAliasName\":\"PROD\",\"useDynamic\":true,\"conditionMetadata\":[{\"id\":\"7a5d252d-931a-492a-85c9-4c04eca57d5d\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"FlexRideActivation\"},{\"id\":\"6d9ece98-c125-4066-bc87-7486be81e827\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"RescueRide\"},{\"id\":\"d44fb6cd-167b-4023-908c-48685d48b31f\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"CancelRide\"},{\"id\":\"d415c09f-2d0e-4bfa-9354-1771528b646f\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"ModifyRide\"},{\"id\":\"6458334b-d7c8-489a-957d-0c62eabbad62\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"DriverStatus\"},{\"id\":\"14aa4ca4-4866-4d43-b6b6-49c751f29f0e\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"RideStatus\"},{\"id\":\"847035ad-9ee9-4f2e-94e5-136b2254f1d5\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"Reservation\"},{\"id\":\"f313eda3-d833-4837-b03d-3cadcd368218\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"Agent\"}]},\"f38f4510-0a6e-4491-b4b0-67daf98e2753\":{\"position\":{\"x\":7459.2,\"y\":316.8}},\"Return from VM Error\":{\"position\":{\"x\":6896.8,\"y\":316.8},\"isFriendlyName\":true,\"dynamicParams\":[]},\"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964\":{\"position\":{\"x\":6021.6,\"y\":428},\"dynamicParams\":[]},\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\":{\"position\":{\"x\":6992.8,\"y\":522.4}},\"Transfer to VM\":{\"position\":{\"x\":6556,\"y\":288},\"isFriendlyName\":true,\"parameters\":{\"FlowModuleId\":{\"displayName\":\"Voicemail to Task\"}},\"contactFlowModuleName\":\"Voicemail to Task\"},\"Press 1 for VM\":{\"position\":{\"x\":6301.6,\"y\":416.8},\"isFriendlyName\":true,\"parameters\":{\"Text\":{\"useDynamic\":true}},\"useDynamic\":true,\"conditionMetadata\":[{\"id\":\"1a21df5f-1f16-457e-8820-492f911a2d2b\",\"value\":\"1\"}]},\"Spanish Prompts\":{\"position\":{\"x\":2695.2,\"y\":-45.6},\"isFriendlyName\":true,\"dynamicParams\":[]},\"461a49e4-1f40-42c9-a012-94b897f9d75c\":{\"position\":{\"x\":3508,\"y\":376.8}},\"Turn to Spanish\":{\"position\":{\"x\":2936,\"y\":-16.8},\"isFriendlyName\":true},\"Transfer to Ultimate Spanish\":{\"position\":{\"x\":3185.6,\"y\":-16.8},\"isFriendlyName\":true,\"parameters\":{\"QueueId\":{\"displayName\":\"Ultimate Spanish\"}},\"queue\":{\"text\":\"Ultimate Spanish\"}},\"English Dynamic Prompt\":{\"position\":{\"x\":426.4,\"y\":14.4},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Reproting Attributes\":{\"position\":{\"x\":657.6,\"y\":16},\"isFriendlyName\":true,\"dynamicParams\":[]},\"New GEN AI Voice\":{\"position\":{\"x\":157.6,\"y\":9.6},\"isFriendlyName\":true,\"children\":[\"New GEN AI Voice-vxGWeESu6F\"],\"parameters\":{\"TextToSpeechVoice\":{\"languageCode\":\"en-US\"}},\"overrideConsoleVoice\":true,\"fragments\":{\"SetContactData\":\"New GEN AI Voice-vxGWeESu6F\"},\"overrideLanguageAttribute\":true},\"New GEN AI Voice-vxGWeESu6F\":{\"position\":{\"x\":157.6,\"y\":9.6},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Turn on All Features\":{\"position\":{\"x\":-96,\"y\":19.2},\"isFriendlyName\":true},\"e7fdf26a-16f9-4ba3-b09f-6d53929455aa\":{\"position\":{\"x\":-348,\"y\":22.4}},\"MOTD Module\":{\"position\":{\"x\":1239.2,\"y\":14.4},\"isFriendlyName\":true,\"parameters\":{\"FlowModuleId\":{\"displayName\":\"Message of the Day Module\"}},\"contactFlowModuleName\":\"Message of the Day Module\"},\"Menu Selection Invalid\":{\"position\":{\"x\":2138.4,\"y\":759.2},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Menu Selection English\":{\"position\":{\"x\":2368.8,\"y\":242.4},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Transfer to Ultimate Regular hours\":{\"position\":{\"x\":3157.6,\"y\":807.2},\"isFriendlyName\":true,\"parameters\":{\"QueueId\":{\"displayName\":\"Ultimate English\"}},\"queue\":{\"text\":\"Ultimate English\"}},\"Menu Selection Timeout\":{\"position\":{\"x\":2195.2,\"y\":508.8},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Menu Selection Spanish\":{\"position\":{\"x\":2172,\"y\":-64.8},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Press 1 for english\":{\"position\":{\"x\":1901.6,\"y\":49.6},\"isFriendlyName\":true,\"parameters\":{\"PromptId\":{\"displayName\":\"Ultimate Language Selection\"}},\"promptName\":\"Ultimate Language Selection\",\"conditionMetadata\":[{\"id\":\"368a28de-fe44-401d-b1d6-b84b360976ea\",\"value\":\"1\"},{\"id\":\"ca5f1a4b-7ec7-40b3-8441-0b005cd6a9e9\",\"value\":\"2\"}]},\"a26ae266-a056-4e48-9b41-9a0de0c81c3f\":{\"position\":{\"x\":1590.4,\"y\":85.6}},\"Blocked Caller Module\":{\"position\":{\"x\":916.8,\"y\":15.2},\"isFriendlyName\":true,\"parameters\":{\"FlowModuleId\":{\"displayName\":\"Blocked Phone Number\"}},\"contactFlowModuleName\":\"Blocked Phone Number\"},\"Return from Module Error\":{\"position\":{\"x\":1221.6,\"y\":292},\"isFriendlyName\":true,\"dynamicParams\":[]}},\"Annotations\":[]},\"Actions\":[{\"Parameters\":{\"TextToSpeechVoice\":\"Pedro\",\"TextToSpeechEngine\":\"Generative\",\"TextToSpeechStyle\":\"None\"},\"Identifier\":\"73f9abfa-8a06-4562-8370-caf67c51e858\",\"Type\":\"UpdateContactTextToSpeechVoice\",\"Transitions\":{\"NextAction\":\"d4a37e38-83b6-45cd-afe9-eab643541c56\",\"Errors\":[{\"NextAction\":\"Spanish Prompts\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"LanguageCode\":\"es-US\"},\"Identifier\":\"d4a37e38-83b6-45cd-afe9-eab643541c56\",\"Type\":\"UpdateContactData\",\"Transitions\":{\"NextAction\":\"Spanish Prompts\",\"Errors\":[{\"NextAction\":\"Spanish Prompts\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"CustomerJourney\":\"$.Attributes.CustomerJourney - Outside Business Hours\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Reporting Attriubtes 2\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7\",\"Errors\":[{\"NextAction\":\"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"QueueId\":\"arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/43df19c1-ee7f-43de-906e-408152e8ad5f\"},\"Identifier\":\"Set Spanish After Hours\",\"Type\":\"UpdateContactTargetQueue\",\"Transitions\":{\"NextAction\":\"3bf2d950-b306-4b2a-9aeb-bde32f0497b5\",\"Errors\":[{\"NextAction\":\"3bf2d950-b306-4b2a-9aeb-bde32f0497b5\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Text\":\"$.Attributes.Closed\"},\"Identifier\":\"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7\",\"Type\":\"MessageParticipant\",\"Transitions\":{\"NextAction\":\"Check Language\",\"Errors\":[{\"NextAction\":\"Check Language\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"ComparisonValue\":\"$.Attributes.LanguageCode\"},\"Identifier\":\"Check Language\",\"Type\":\"Compare\",\"Transitions\":{\"NextAction\":\"Set English After Hours\",\"Conditions\":[{\"NextAction\":\"Set Spanish After Hours\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"es-US\"]}}],\"Errors\":[{\"NextAction\":\"Set English After Hours\",\"ErrorType\":\"NoMatchingCondition\"}]}},{\"Parameters\":{\"Attributes\":{\"Error\":\"CheckHours\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Error\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7\",\"Errors\":[{\"NextAction\":\"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{},\"Identifier\":\"3bf2d950-b306-4b2a-9aeb-bde32f0497b5\",\"Type\":\"TransferContactToQueue\",\"Transitions\":{\"NextAction\":\"88f8185b-648c-48a5-9283-d2c0908a7da2\",\"Errors\":[{\"NextAction\":\"88f8185b-648c-48a5-9283-d2c0908a7da2\",\"ErrorType\":\"QueueAtCapacity\"},{\"NextAction\":\"88f8185b-648c-48a5-9283-d2c0908a7da2\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{},\"Identifier\":\"88f8185b-648c-48a5-9283-d2c0908a7da2\",\"Type\":\"DisconnectParticipant\",\"Transitions\":{}},{\"Parameters\":{\"QueueId\":\"arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/7ce5bf5e-63ac-41b4-8b30-76bd985019d0\"},\"Identifier\":\"Set English After Hours\",\"Type\":\"UpdateContactTargetQueue\",\"Transitions\":{\"NextAction\":\"3bf2d950-b306-4b2a-9aeb-bde32f0497b5\",\"Errors\":[{\"NextAction\":\"3bf2d950-b306-4b2a-9aeb-bde32f0497b5\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"LexPrompt\":\"Con gusto lo conecto con un agente. Para ayudarme a dirigirlo a la persona correcta, \u00bfpodr\u00eda decirme brevemente con qu\u00e9 necesita ayuda? Por ejemplo, \u00bfest\u00e1 tratando de reservar un viaje, verificar el estado de un viaje, u otra cosa\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Agent Retry Prompt Spanish\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"1 retry\",\"Errors\":[{\"NextAction\":\"1 retry\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"LexPrompt\":\"I'd be happy to connect you with an agent. To help me route you to the right person, could you briefly tell me what you need help with? For example, are you trying to book a ride, check a ride status, or something else\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Agent Retry Prompt English\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"1 retry\",\"Errors\":[{\"NextAction\":\"1 retry\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"LexPrompt\":\"I'm sorry, I didn't quite catch that. Could you try saying it differently? For example, you can say 'book a ride,' 'check my ride status,' or 'talk to an agent\"},\"TargetContact\":\"Current\"},\"Identifier\":\"No Match Retry English\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"1 retry\",\"Errors\":[{\"NextAction\":\"1 retry\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"LexPrompt\":\"Lo siento, no entend\u00ed bien. \u00bfPodr\u00eda intentar decirlo de otra manera? Por ejemplo, puede decir 'reservar un viaje,' 'verificar el estado de mi viaje,' o 'hablar con un agente\"},\"TargetContact\":\"Current\"},\"Identifier\":\"No Match Retry Spanish\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"1 retry\",\"Errors\":[{\"NextAction\":\"1 retry\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"ComparisonValue\":\"$.Attributes.estimatedWaitTimeMinutes\"},\"Identifier\":\"estimatedWaitTimeMinutes\",\"Type\":\"Compare\",\"Transitions\":{\"NextAction\":\"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964\",\"Conditions\":[{\"NextAction\":\"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964\",\"Condition\":{\"Operator\":\"NumberGreaterOrEqualTo\",\"Operands\":[\"5\"]}}],\"Errors\":[{\"NextAction\":\"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964\",\"ErrorType\":\"NoMatchingCondition\"}]}},{\"Parameters\":{\"FlowModuleId\":\"7d4a6c73-1d6f-4ed3-b55e-8dadfcc200b6\"},\"Identifier\":\"a4a72b72-fcc5-48ad-8402-f116ea144447\",\"Type\":\"InvokeFlowModule\",\"Transitions\":{\"NextAction\":\"estimatedWaitTimeMinutes\",\"Errors\":[{\"NextAction\":\"estimatedWaitTimeMinutes\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"Error\":\"Transfer To Queue \"},\"TargetContact\":\"Current\"},\"Identifier\":\"Error Transfer to Queue\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"f38f4510-0a6e-4491-b4b0-67daf98e2753\",\"Errors\":[{\"NextAction\":\"f38f4510-0a6e-4491-b4b0-67daf98e2753\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"ComparisonValue\":\"$.Attributes.LanguageCode\"},\"Identifier\":\"Check Language-copy-1\",\"Type\":\"Compare\",\"Transitions\":{\"NextAction\":\"Agent Retry Prompt English\",\"Conditions\":[{\"NextAction\":\"Agent Retry Prompt Spanish\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"es-US\"]}}],\"Errors\":[{\"NextAction\":\"Agent Retry Prompt English\",\"ErrorType\":\"NoMatchingCondition\"}]}},{\"Parameters\":{\"ComparisonValue\":\"$.Attributes.LanguageCode\"},\"Identifier\":\"Check Language-copy-1-copy-1\",\"Type\":\"Compare\",\"Transitions\":{\"NextAction\":\"No Match Retry English\",\"Conditions\":[{\"NextAction\":\"No Match Retry Spanish\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"es-US\"]}}],\"Errors\":[{\"NextAction\":\"No Match Retry English\",\"ErrorType\":\"NoMatchingCondition\"}]}},{\"Parameters\":{\"LoopCount\":\"1\"},\"Identifier\":\"1 retry\",\"Type\":\"Loop\",\"Transitions\":{\"NextAction\":\"a4a72b72-fcc5-48ad-8402-f116ea144447\",\"Conditions\":[{\"NextAction\":\"How Can I help Bot\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"ContinueLooping\"]}},{\"NextAction\":\"a4a72b72-fcc5-48ad-8402-f116ea144447\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"DoneLooping\"]}}]}},{\"Parameters\":{\"Attributes\":{\"CustomerJourney\":\"$.Attributes.CustomerJourney - Inside Business Hours\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Reporting Attributes\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"How Can I help Bot\",\"Errors\":[{\"NextAction\":\"How Can I help Bot\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"LexIntent\":\"$.Lex.IntentName\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Intent Captured Attribute\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"a4a72b72-fcc5-48ad-8402-f116ea144447\",\"Errors\":[{\"NextAction\":\"a4a72b72-fcc5-48ad-8402-f116ea144447\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Text\":\"$.Attributes.LexPrompt\",\"LexV2Bot\":{\"AliasArn\":\"arn:aws:lex:us-west-2:523773103726:bot-alias/JH5QVDICLV/HWFCIMRDSP\"}},\"Identifier\":\"How Can I help Bot\",\"Type\":\"ConnectParticipantWithLexBot\",\"Transitions\":{\"NextAction\":\"Check Language-copy-1-copy-1\",\"Conditions\":[{\"NextAction\":\"Intent Captured Attribute\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"FlexRideActivation\"]}},{\"NextAction\":\"Intent Captured Attribute\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"RescueRide\"]}},{\"NextAction\":\"Intent Captured Attribute\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"CancelRide\"]}},{\"NextAction\":\"Intent Captured Attribute\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"ModifyRide\"]}},{\"NextAction\":\"Intent Captured Attribute\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"DriverStatus\"]}},{\"NextAction\":\"Intent Captured Attribute\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"RideStatus\"]}},{\"NextAction\":\"Intent Captured Attribute\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"Reservation\"]}},{\"NextAction\":\"Check Language-copy-1\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"Agent\"]}}],\"Errors\":[{\"NextAction\":\"Check Language-copy-1-copy-1\",\"ErrorType\":\"NoMatchingCondition\"},{\"NextAction\":\"Check Language-copy-1-copy-1\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{},\"Identifier\":\"f38f4510-0a6e-4491-b4b0-67daf98e2753\",\"Type\":\"DisconnectParticipant\",\"Transitions\":{}},{\"Parameters\":{\"Attributes\":{\"Error\":\"Return from VM Module Error\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Return from VM Error\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"f38f4510-0a6e-4491-b4b0-67daf98e2753\",\"Errors\":[{\"NextAction\":\"f38f4510-0a6e-4491-b4b0-67daf98e2753\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"CustomerJourney\":\"$.Attributes.CustomerJourney - Customer Selected VoiceMail\"},\"TargetContact\":\"Current\"},\"Identifier\":\"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Press 1 for VM\",\"Errors\":[{\"NextAction\":\"Press 1 for VM\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{},\"Identifier\":\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\",\"Type\":\"TransferContactToQueue\",\"Transitions\":{\"NextAction\":\"Error Transfer to Queue\",\"Errors\":[{\"NextAction\":\"Error Transfer to Queue\",\"ErrorType\":\"QueueAtCapacity\"},{\"NextAction\":\"Error Transfer to Queue\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"FlowModuleId\":\"3546180a-6408-4578-8ddf-64fdad5b58b8\"},\"Identifier\":\"Transfer to VM\",\"Type\":\"InvokeFlowModule\",\"Transitions\":{\"NextAction\":\"f38f4510-0a6e-4491-b4b0-67daf98e2753\",\"Errors\":[{\"NextAction\":\"Return from VM Error\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"StoreInput\":\"False\",\"InputTimeLimitSeconds\":\"5\",\"Text\":\"$.Attributes.EWTPrompt\"},\"Identifier\":\"Press 1 for VM\",\"Type\":\"GetParticipantInput\",\"Transitions\":{\"NextAction\":\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\",\"Conditions\":[{\"NextAction\":\"Transfer to VM\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"1\"]}}],\"Errors\":[{\"NextAction\":\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\",\"ErrorType\":\"InputTimeLimitExceeded\"},{\"NextAction\":\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\",\"ErrorType\":\"NoMatchingCondition\"},{\"NextAction\":\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"Closed\":\"Esta contactando a nuestra linea fuera de horario regular. Por Favor espere al siguiente representante para que le pueda asistir \",\"CustomerJourney\":\"$.Attributes.CustomerJourney - Spanish\",\"LanguageCode\":\"es-US\",\"LexPrompt\":\"C\u00f3mo puedo ayudarte\",\"EWTPrompt\":\"En este momento estamos ayudando a otros clientes, pero no queremos perderte. Presiona 1 para dejarnos un mensaje r\u00e1pido, y te llamaremos dentro de un d\u00eda h\u00e1bil. Si no, qu\u00e9date en la l\u00ednea y alguien te atender\u00e1 en breve.\\n\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Spanish Prompts\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Turn to Spanish\",\"Errors\":[{\"NextAction\":\"Turn to Spanish\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{},\"Identifier\":\"461a49e4-1f40-42c9-a012-94b897f9d75c\",\"Type\":\"CheckHoursOfOperation\",\"Transitions\":{\"NextAction\":\"Error\",\"Conditions\":[{\"NextAction\":\"Reporting Attributes\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"True\"]}},{\"NextAction\":\"Reporting Attriubtes 2\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"False\"]}}],\"Errors\":[{\"NextAction\":\"Error\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"RecordingBehavior\":{\"RecordedParticipants\":[\"Agent\",\"Customer\"],\"ScreenRecordedParticipants\":[\"Agent\"],\"IVRRecordingBehavior\":\"Enabled\"},\"AnalyticsBehavior\":{\"Enabled\":\"True\",\"AnalyticsLanguage\":\"es-US\",\"AnalyticsRedactionBehavior\":\"Disabled\",\"AnalyticsRedactionResults\":\"RedactedAndOriginal\",\"ChannelConfiguration\":{\"Chat\":{\"AnalyticsModes\":[\"ContactLens\"]},\"Voice\":{\"AnalyticsModes\":[\"RealTime\"]}},\"SentimentConfiguration\":{\"Enabled\":\"True\"}}},\"Identifier\":\"Turn to Spanish\",\"Type\":\"UpdateContactRecordingBehavior\",\"Transitions\":{\"NextAction\":\"Transfer to Ultimate Spanish\"}},{\"Parameters\":{\"QueueId\":\"arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/f6aeda4b-9341-41fd-a874-45dff680a74c\"},\"Identifier\":\"Transfer to Ultimate Spanish\",\"Type\":\"UpdateContactTargetQueue\",\"Transitions\":{\"NextAction\":\"461a49e4-1f40-42c9-a012-94b897f9d75c\",\"Errors\":[{\"NextAction\":\"461a49e4-1f40-42c9-a012-94b897f9d75c\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"Closed\":\"You have reached the afterhours line. Please hold for the next representative to assist you.\",\"Campaign\":\"Ultimate\",\"LexPrompt\":\"How can I help you\",\"EWTPrompt\":\"We\u2019re helping other customers right now, but we don\u2019t want to miss you. Press 1 to Leave us a quick message, and we\u2019ll call you back within one business day\\nOtherwise, Stay on the line and someone will be with you shortly. \"},\"TargetContact\":\"Current\"},\"Identifier\":\"English Dynamic Prompt\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Reproting Attributes\",\"Errors\":[{\"NextAction\":\"Reproting Attributes\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"CustomerJourney\":\"Returned Outbound Call - Main Entry\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Reproting Attributes\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Blocked Caller Module\",\"Errors\":[{\"NextAction\":\"Blocked Caller Module\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"TextToSpeechVoice\":\"Stephen\",\"TextToSpeechEngine\":\"Generative\",\"TextToSpeechStyle\":\"None\"},\"Identifier\":\"New GEN AI Voice\",\"Type\":\"UpdateContactTextToSpeechVoice\",\"Transitions\":{\"NextAction\":\"New GEN AI Voice-vxGWeESu6F\",\"Errors\":[{\"NextAction\":\"English Dynamic Prompt\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"LanguageCode\":\"en-US\"},\"Identifier\":\"New GEN AI Voice-vxGWeESu6F\",\"Type\":\"UpdateContactData\",\"Transitions\":{\"NextAction\":\"English Dynamic Prompt\",\"Errors\":[{\"NextAction\":\"English Dynamic Prompt\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"RecordingBehavior\":{\"RecordedParticipants\":[\"Agent\",\"Customer\"],\"ScreenRecordedParticipants\":[\"Agent\"],\"IVRRecordingBehavior\":\"Enabled\"},\"AnalyticsBehavior\":{\"Enabled\":\"True\",\"AnalyticsLanguage\":\"en-US\",\"AnalyticsRedactionBehavior\":\"Disabled\",\"AnalyticsRedactionResults\":\"RedactedAndOriginal\",\"ChannelConfiguration\":{\"Chat\":{\"AnalyticsModes\":[\"ContactLens\"]},\"Voice\":{\"AnalyticsModes\":[\"RealTime\"]}},\"SummaryConfiguration\":{\"SummaryModes\":[\"PostContact\"]},\"SentimentConfiguration\":{\"Enabled\":\"True\"}}},\"Identifier\":\"Turn on All Features\",\"Type\":\"UpdateContactRecordingBehavior\",\"Transitions\":{\"NextAction\":\"New GEN AI Voice\"}},{\"Parameters\":{\"FlowLoggingBehavior\":\"Enabled\"},\"Identifier\":\"e7fdf26a-16f9-4ba3-b09f-6d53929455aa\",\"Type\":\"UpdateFlowLoggingBehavior\",\"Transitions\":{\"NextAction\":\"Turn on All Features\"}},{\"Parameters\":{\"FlowModuleId\":\"f5420782-47e6-4fcc-aa96-c9b74e8328d3\"},\"Identifier\":\"MOTD Module\",\"Type\":\"InvokeFlowModule\",\"Transitions\":{\"NextAction\":\"a26ae266-a056-4e48-9b41-9a0de0c81c3f\",\"Errors\":[{\"NextAction\":\"a26ae266-a056-4e48-9b41-9a0de0c81c3f\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"MenuSelection\":\"Invalid DTMF Input\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Menu Selection Invalid\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Transfer to Ultimate Regular hours\",\"Errors\":[{\"NextAction\":\"Transfer to Ultimate Regular hours\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"MenuSelection\":\"Ultimate English\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Menu Selection English\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Transfer to Ultimate Regular hours\",\"Errors\":[{\"NextAction\":\"Transfer to Ultimate Regular hours\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"QueueId\":\"arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/04f60a61-9301-4742-ba1a-7239edde3f62\"},\"Identifier\":\"Transfer to Ultimate Regular hours\",\"Type\":\"UpdateContactTargetQueue\",\"Transitions\":{\"NextAction\":\"461a49e4-1f40-42c9-a012-94b897f9d75c\",\"Errors\":[{\"NextAction\":\"461a49e4-1f40-42c9-a012-94b897f9d75c\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"MenuSelection\":\"Timeout - No Input\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Menu Selection Timeout\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Transfer to Ultimate Regular hours\",\"Errors\":[{\"NextAction\":\"Transfer to Ultimate Regular hours\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"MenuSelection\":\"Ultimate Spanish\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Menu Selection Spanish\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"73f9abfa-8a06-4562-8370-caf67c51e858\",\"Errors\":[{\"NextAction\":\"73f9abfa-8a06-4562-8370-caf67c51e858\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"StoreInput\":\"False\",\"InputTimeLimitSeconds\":\"8\",\"PromptId\":\"arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/prompt/471c666f-d77f-49c6-b69a-1d32ef78f9cf\"},\"Identifier\":\"Press 1 for english\",\"Type\":\"GetParticipantInput\",\"Transitions\":{\"NextAction\":\"Menu Selection Invalid\",\"Conditions\":[{\"NextAction\":\"Menu Selection English\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"1\"]}},{\"NextAction\":\"Menu Selection Spanish\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"2\"]}}],\"Errors\":[{\"NextAction\":\"Menu Selection Timeout\",\"ErrorType\":\"InputTimeLimitExceeded\"},{\"NextAction\":\"Menu Selection Invalid\",\"ErrorType\":\"NoMatchingCondition\"},{\"NextAction\":\"Transfer to Ultimate Regular hours\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Text\":\"This call is being recorded for quality assurance and training purposes and by continuing, you consent to this recording.\"},\"Identifier\":\"a26ae266-a056-4e48-9b41-9a0de0c81c3f\",\"Type\":\"MessageParticipant\",\"Transitions\":{\"NextAction\":\"Press 1 for english\"}},{\"Parameters\":{\"FlowModuleId\":\"2e906bdf-a23f-47e3-a0de-8d89dae86333\"},\"Identifier\":\"Blocked Caller Module\",\"Type\":\"InvokeFlowModule\",\"Transitions\":{\"NextAction\":\"MOTD Module\",\"Errors\":[{\"NextAction\":\"Return from Module Error\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"Error\":\"Return from Module Error\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Return from Module Error\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"a26ae266-a056-4e48-9b41-9a0de0c81c3f\",\"Errors\":[{\"NextAction\":\"a26ae266-a056-4e48-9b41-9a0de0c81c3f\",\"ErrorType\":\"NoMatchingError\"}]}}]}"}, "arns": {"Flow": "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/contact-flow/31d89347-aab3-4704-af89-2c591b7ca888"}, "color_key": "connect:contactflow", "is_error": false, "error_msg": "", "is_seed": true}, {"id": "ConnectInstancesrh", "service": "connect", "subtype": "instance", "cfn_type": "AWS::Connect::Instance", "properties": {"Id": "17d7794d-9d83-46fd-a6dc-07c38873db34", "Arn": "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34", "IdentityManagementType": "SAML", "InstanceAlias": "srh", "CreatedTime": "2025-09-08T14:41:17-06:00", "ServiceRole": "arn:aws:iam::523773103726:role/aws-service-role/connect.amazonaws.com/AWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ", "InstanceStatus": "ACTIVE", "InboundCallsEnabled": true, "OutboundCallsEnabled": true, "InstanceAccessUrl": "https://srh.my.connect.aws", "Tags": {}}, "arns": {"Instance": "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"}, "color_key": "connect:instance", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "ConnectQueueUltimate English", "service": "connect", "subtype": "queue", "cfn_type": "AWS::Connect::Queue", "properties": {"Name": "Ultimate English", "QueueArn": "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/04f60a61-9301-4742-ba1a-7239edde3f62", "QueueId": "04f60a61-9301-4742-ba1a-7239edde3f62", "Description": "Ultimate English", "OutboundCallerConfig": {"OutboundCallerIdName": "SafeRide", "OutboundCallerIdNumberId": "199ae2b1-84d0-4620-9ea3-4e18797d1f45", "OutboundFlowId": "75b8e03f-f5c4-47d7-bb54-89fc84e66ffa"}, "HoursOfOperationId": "75e9d999-0df8-42dc-9a86-89147033e7d9", "Status": "ENABLED", "Tags": {}, "LastModifiedTime": "2025-10-23T20:47:44.021000-06:00", "LastModifiedRegion": "us-west-2", "InstanceArn": "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"}, "arns": {"Queue": "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/04f60a61-9301-4742-ba1a-7239edde3f62"}, "color_key": "connect:queue", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "ConnectPromptUltimate Language Selection", "service": "connect", "subtype": "prompt", "cfn_type": "AWS::Connect::Prompt", "properties": {"Name": "Ultimate Language Selection", "Description": "Ultimate Language Selection", "S3Uri": null, "InstanceArn": "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"}, "arns": {"Prompt": "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/prompt/471c666f-d77f-49c6-b69a-1d32ef78f9cf"}, "color_key": "connect:prompt", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "LexAliasPROD", "service": "lex", "subtype": "botalias", "cfn_type": "AWS::Lex::BotAlias", "properties": {"BotAliasName": "PROD", "BotId": "JH5QVDICLV", "Description": "Production Alias", "BotAliasLocaleSettings": {"en_US": {"enabled": true}, "es_US": {"enabled": true}}, "ConversationLogSettings": {"textLogSettings": [{"enabled": true, "destination": {"cloudWatch": {"cloudWatchLogGroupArn": "arn:aws:logs:us-west-2:523773103726:log-group:BotLogs", "logPrefix": "aws/lex/JH5QVDICLV/HWFCIMRDSP/3/"}}, "selectiveLoggingEnabled": false}], "audioLogSettings": [{"enabled": true, "destination": {"s3Bucket": {"s3BucketArn": "arn:aws:s3:::amazon-connect-c575c0ad8ab8", "logPrefix": "aws/lex/JH5QVDICLV/HWFCIMRDSP/3/"}}, "selectiveLoggingEnabled": false}]}}, "arns": {"Alias": "arn:aws:lex:us-west-2:523773103726:bot-alias/JH5QVDICLV/HWFCIMRDSP"}, "color_key": "lex:botalias", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "Unresolved_BotLogs", "service": "unresolved", "subtype": "", "cfn_type": "Unresolved::Resource", "properties": {}, "arns": {"Primary": "arn:aws:logs:us-west-2:523773103726:log-group:BotLogs"}, "color_key": "unresolved", "is_error": true, "error_msg": "No resolver registered for service 'logs'", "is_seed": false}, {"id": "S3Bucketamazonconnectc575c0ad8ab8", "service": "s3", "subtype": "bucket", "cfn_type": "AWS::S3::Bucket", "properties": {"BucketName": "amazon-connect-c575c0ad8ab8", "BucketEncryption": {"Rules": [{"ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}, "BucketKeyEnabled": false}]}}, "arns": {"Bucket": "arn:aws:s3:::amazon-connect-c575c0ad8ab8"}, "color_key": "s3:bucket", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "LexBotUltimate-Intent-Capture-2", "service": "lex", "subtype": "bot", "cfn_type": "AWS::Lex::Bot", "properties": {"Name": "Ultimate-Intent-Capture-2", "Description": null, "RoleArn": "arn:aws:iam::523773103726:role/aws-service-role/lexv2.amazonaws.com/AWSServiceRoleForLexV2Bots_G5GKAZB1D9I", "DataPrivacy": {"childDirected": false}, "IdleSessionTTLInSeconds": 300}, "arns": {"Bot": "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV"}, "color_key": "lex:bot", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "LexLocaleen_US", "service": "lex", "subtype": "botlocale", "cfn_type": "AWS::Lex::BotLocale", "properties": {"BotId": "JH5QVDICLV", "LocaleId": "en_US", "Description": null, "NluIntentConfidenceThreshold": 0.4, "VoiceSettings": {"voiceId": "Stephen", "engine": "neural"}}, "arns": {"Locale": "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US"}, "color_key": "lex:botlocale", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "LexIntentFallbackIntent", "service": "lex", "subtype": "intent", "cfn_type": "AWS::Lex::Intent", "properties": {"BotId": "JH5QVDICLV", "LocaleId": "es_US", "IntentName": "FallbackIntent", "Description": "Intenci\u00f3n predeterminada cuando no coincide ninguna otra intenci\u00f3n", "SampleUtterances": null, "DialogCodeHook": null, "FulfillmentCodeHook": null, "SlotPriorities": [], "IntentClosingSetting": null, "IntentConfirmationSetting": null, "InputContexts": null, "OutputContexts": null}, "arns": {"Intent": "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US/intent/FALLBCKINT"}, "color_key": "lex:intent", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "LexIntentModifyRide", "service": "lex", "subtype": "intent", "cfn_type": "AWS::Lex::Intent", "properties": {"BotId": "JH5QVDICLV", "LocaleId": "es_US", "IntentName": "ModifyRide", "Description": null, "SampleUtterances": [{"utterance": "Modificar mi reservaci\u00f3n "}, {"utterance": "\u00bfPuedo reprogramar mi viaje? "}, {"utterance": "Cambiar hora de recogida "}, {"utterance": "Actualiza los detalles de mi viaje "}, {"utterance": "Necesito cambiar mi lugar de recogida "}, {"utterance": "\u00bfPuedo cambiar la hora de mi cita? "}, {"utterance": "Reprogramar mi viaje "}, {"utterance": "Editar mi reserva "}, {"utterance": "Cambiar la hora de mi viaje "}, {"utterance": "Actualiza la direcci\u00f3n de recogida "}, {"utterance": "Necesito cambiar el destino "}, {"utterance": "Modifica mi hora de recogida "}], "DialogCodeHook": null, "FulfillmentCodeHook": null, "SlotPriorities": [], "IntentClosingSetting": null, "IntentConfirmationSetting": null, "InputContexts": null, "OutputContexts": null}, "arns": {"Intent": "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US/intent/5MEQNUXZJD"}, "color_key": "lex:intent", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "LexIntentDriverStatus", "service": "lex", "subtype": "intent", "cfn_type": "AWS::Lex::Intent", "properties": {"BotId": "JH5QVDICLV", "LocaleId": "es_US", "IntentName": "DriverStatus", "Description": null, "SampleUtterances": [{"utterance": "Cu\u00e1ndo llegar\u00e1 mi conductor "}, {"utterance": "Cu\u00e1l es el tiempo estimado de llegada "}, {"utterance": "Cu\u00e1nto falta para la recogida "}, {"utterance": "Mi conductor est\u00e1 en camino "}, {"utterance": "Rastrear mi conductor "}, {"utterance": "A cu\u00e1ntos minutos est\u00e1 mi conductor "}, {"utterance": "Cu\u00e1ndo llegar\u00e1n "}, {"utterance": "Est\u00e1 cerca el conductor "}, {"utterance": "Qu\u00e9 tan lejos est\u00e1 el conductor "}, {"utterance": "Dame la ubicaci\u00f3n del conductor "}, {"utterance": "D\u00f3nde viene el chofer "}], "DialogCodeHook": null, "FulfillmentCodeHook": null, "SlotPriorities": [], "IntentClosingSetting": null, "IntentConfirmationSetting": null, "InputContexts": null, "OutputContexts": null}, "arns": {"Intent": "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US/intent/HFJ8DVIEH6"}, "color_key": "lex:intent", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "LexIntentAgent", "service": "lex", "subtype": "intent", "cfn_type": "AWS::Lex::Intent", "properties": {"BotId": "JH5QVDICLV", "LocaleId": "es_US", "IntentName": "Agent", "Description": null, "SampleUtterances": [{"utterance": "Agente"}, {"utterance": "Necesito un agente"}, {"utterance": "Operador"}, {"utterance": "Persona"}, {"utterance": "Humano"}, {"utterance": "Vete, bot"}, {"utterance": "Bot est\u00fapido"}, {"utterance": "Quiero hablar con una persona"}, {"utterance": "Por favor, dame una persona"}, {"utterance": "Representante"}, {"utterance": "Centro de llamadas"}], "DialogCodeHook": null, "FulfillmentCodeHook": null, "SlotPriorities": [], "IntentClosingSetting": null, "IntentConfirmationSetting": null, "InputContexts": null, "OutputContexts": null}, "arns": {"Intent": "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US/intent/1ESWSMPEDG"}, "color_key": "lex:intent", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "LexIntentFlexRideActivation", "service": "lex", "subtype": "intent", "cfn_type": "AWS::Lex::Intent", "properties": {"BotId": "JH5QVDICLV", "LocaleId": "es_US", "IntentName": "FlexRideActivation", "Description": null, "SampleUtterances": [{"utterance": "Activar Flex Ride"}, {"utterance": "Enciende Flex Ride"}, {"utterance": "Habilita Flex Ride"}, {"utterance": "Quiero usar Flex Ride"}, {"utterance": "Configura Flex Ride"}, {"utterance": "Inicia el servicio Flex Ride"}, {"utterance": "Inscr\u00edbeme en Flex Ride"}, {"utterance": "Reg\u00edstrame en Flex Ride"}, {"utterance": "\u00bfPuedo activar Flex Ride?"}, {"utterance": "Necesito que actives Flex Ride"}, {"utterance": "Habilita mi opci\u00f3n de Flex Ride"}, {"utterance": "Cambia a Flex Ride"}], "DialogCodeHook": null, "FulfillmentCodeHook": null, "SlotPriorities": [], "IntentClosingSetting": null, "IntentConfirmationSetting": null, "InputContexts": null, "OutputContexts": null}, "arns": {"Intent": "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US/intent/EBH1AQ64BA"}, "color_key": "lex:intent", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "LexIntentCancelRide", "service": "lex", "subtype": "intent", "cfn_type": "AWS::Lex::Intent", "properties": {"BotId": "JH5QVDICLV", "LocaleId": "es_US", "IntentName": "CancelRide", "Description": null, "SampleUtterances": [{"utterance": "Cancela mi viaje"}, {"utterance": "Necesito cancelar "}, {"utterance": "Cancela mi reservaci\u00f3n "}, {"utterance": "Ya no necesito el viaje "}, {"utterance": "Elimina mi reserva "}, {"utterance": "Cancela el viaje pr\u00f3ximo "}, {"utterance": "Quiero cancelar mi viaje para"}, {"utterance": "Borra mi reservaci\u00f3n "}, {"utterance": "Cancela mi viaje para la cita "}, {"utterance": "Necesito cancelar mi recogida "}, {"utterance": "Cancela el transporte "}], "DialogCodeHook": null, "FulfillmentCodeHook": null, "SlotPriorities": [], "IntentClosingSetting": null, "IntentConfirmationSetting": null, "InputContexts": null, "OutputContexts": null}, "arns": {"Intent": "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US/intent/HE1LVVLDXQ"}, "color_key": "lex:intent", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "LexIntentRideStatus", "service": "lex", "subtype": "intent", "cfn_type": "AWS::Lex::Intent", "properties": {"BotId": "JH5QVDICLV", "LocaleId": "es_US", "IntentName": "RideStatus", "Description": null, "SampleUtterances": [{"utterance": "\u00bfD\u00f3nde est\u00e1 mi viaje? "}, {"utterance": "\u00bfCu\u00e1l es el estado de mi viaje? "}, {"utterance": "Verifica el estado de mi viaje"}, {"utterance": "\u00bfMi viaje est\u00e1 confirmado?"}, {"utterance": "\u00bfTengo un viaje programado? "}, {"utterance": "\u00bfCu\u00e1ndo es mi viaje? "}, {"utterance": "\u00bfQu\u00e9 viajes tengo pr\u00f3ximamente? "}, {"utterance": "Dime sobre mi reservaci\u00f3n "}, {"utterance": "\u00bfMi viaje ha sido programado? "}, {"utterance": "Verifica mi reserva "}, {"utterance": "\u00bfCu\u00e1l es la informaci\u00f3n de mi viaje? "}], "DialogCodeHook": null, "FulfillmentCodeHook": null, "SlotPriorities": [], "IntentClosingSetting": null, "IntentConfirmationSetting": null, "InputContexts": null, "OutputContexts": null}, "arns": {"Intent": "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US/intent/ATC4GUUZLW"}, "color_key": "lex:intent", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "LexIntentRescueRide", "service": "lex", "subtype": "intent", "cfn_type": "AWS::Lex::Intent", "properties": {"BotId": "JH5QVDICLV", "LocaleId": "es_US", "IntentName": "RescueRide", "Description": null, "SampleUtterances": [{"utterance": "Me dejaron atr\u00e1s "}, {"utterance": "Mi conductor no apareci\u00f3 "}, {"utterance": "Perd\u00ed mi viaje "}, {"utterance": "El conductor se fue sin m\u00ed "}, {"utterance": "Necesito transporte de emergencia "}, {"utterance": "Mi viaje nunca lleg\u00f3 "}, {"utterance": "Me qued\u00e9 varado"}, {"utterance": "Me qued\u00e9 varada "}, {"utterance": "Necesito un viaje de rescate "}, {"utterance": "El conductor no esper\u00f3 "}, {"utterance": "Necesito ayuda, todav\u00eda estoy aqu\u00ed"}, {"utterance": "Env\u00eda otro conductor "}, {"utterance": "Mi viaje me abandon\u00f3 "}], "DialogCodeHook": null, "FulfillmentCodeHook": null, "SlotPriorities": [], "IntentClosingSetting": null, "IntentConfirmationSetting": null, "InputContexts": null, "OutputContexts": null}, "arns": {"Intent": "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US/intent/IUFP0FCC4W"}, "color_key": "lex:intent", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "LexIntentReservation", "service": "lex", "subtype": "intent", "cfn_type": "AWS::Lex::Intent", "properties": {"BotId": "JH5QVDICLV", "LocaleId": "es_US", "IntentName": "Reservation", "Description": null, "SampleUtterances": [{"utterance": "Necesito un viaje "}, {"utterance": "Programa un viaje "}, {"utterance": "Reserva un viaje para ma\u00f1ana "}, {"utterance": "\u00bfPuedes organizar transporte para m\u00ed? "}, {"utterance": "Necesito ir a mi cita con el doctor "}, {"utterance": "Reserva un transporte m\u00e9dico "}, {"utterance": "Necesito un viaje a"}, {"utterance": "\u00bfPuedo conseguir un viaje hoy? "}, {"utterance": "Reserva un viaje "}, {"utterance": "Necesito transporte "}, {"utterance": "Configura un viaje para m\u00ed "}, {"utterance": "Cons\u00edgueme un viaje al hospital "}, {"utterance": "Tengo una cita y necesito un viaje "}, {"utterance": "\u00bfPuedes programar una recogida? "}], "DialogCodeHook": null, "FulfillmentCodeHook": null, "SlotPriorities": [], "IntentClosingSetting": null, "IntentConfirmationSetting": null, "InputContexts": null, "OutputContexts": null}, "arns": {"Intent": "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US/intent/OFGU4JSP8M"}, "color_key": "lex:intent", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "Unresolved_0", "service": "unresolved", "subtype": "", "cfn_type": "Unresolved::Resource", "properties": {}, "arns": {"Primary": "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0"}, "color_key": "unresolved", "is_error": true, "error_msg": "No resolver registered for service 'bedrock'", "is_seed": false}, {"id": "IAMRoleAWSServiceRoleForLexV2Bots_G5GKAZB1D9I", "service": "iam", "subtype": "role", "cfn_type": "AWS::IAM::Role", "properties": {"RoleName": "AWSServiceRoleForLexV2Bots_G5GKAZB1D9I", "Arn": "arn:aws:iam::523773103726:role/aws-service-role/lexv2.amazonaws.com/AWSServiceRoleForLexV2Bots_G5GKAZB1D9I", "Path": "/aws-service-role/lexv2.amazonaws.com/", "Description": null, "ManagedBy": "AWS", "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Service": "lexv2.amazonaws.com"}, "Action": "sts:AssumeRole"}]}}, "arns": {"Role": "arn:aws:iam::523773103726:role/aws-service-role/lexv2.amazonaws.com/AWSServiceRoleForLexV2Bots_G5GKAZB1D9I"}, "color_key": "iam:role", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "LexLocalees_US", "service": "lex", "subtype": "botlocale", "cfn_type": "AWS::Lex::BotLocale", "properties": {"BotId": "JH5QVDICLV", "LocaleId": "es_US", "Description": null, "NluIntentConfidenceThreshold": 0.4, "VoiceSettings": {"voiceId": "Lupe", "engine": "neural"}}, "arns": {"Locale": "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US"}, "color_key": "lex:botlocale", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "ConnectQueueUltimate After Hours Spanish", "service": "connect", "subtype": "queue", "cfn_type": "AWS::Connect::Queue", "properties": {"Name": "Ultimate After Hours Spanish", "QueueArn": "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/43df19c1-ee7f-43de-906e-408152e8ad5f", "QueueId": "43df19c1-ee7f-43de-906e-408152e8ad5f", "Description": "Ultimate After Hours Spanish", "OutboundCallerConfig": {"OutboundCallerIdName": "SafeRide", "OutboundCallerIdNumberId": "199ae2b1-84d0-4620-9ea3-4e18797d1f45", "OutboundFlowId": "75b8e03f-f5c4-47d7-bb54-89fc84e66ffa"}, "HoursOfOperationId": "1e6d53d3-e0a8-42a3-b7b1-6d73a764a9c3", "Status": "ENABLED", "Tags": {}, "LastModifiedTime": "2025-10-23T20:47:15.217000-06:00", "LastModifiedRegion": "us-west-2", "InstanceArn": "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"}, "arns": {"Queue": "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/43df19c1-ee7f-43de-906e-408152e8ad5f"}, "color_key": "connect:queue", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "ConnectQueueUltimate Spanish", "service": "connect", "subtype": "queue", "cfn_type": "AWS::Connect::Queue", "properties": {"Name": "Ultimate Spanish", "QueueArn": "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/f6aeda4b-9341-41fd-a874-45dff680a74c", "QueueId": "f6aeda4b-9341-41fd-a874-45dff680a74c", "Description": "Ultimate Spanish", "OutboundCallerConfig": {"OutboundCallerIdName": "SafeRide", "OutboundCallerIdNumberId": "199ae2b1-84d0-4620-9ea3-4e18797d1f45", "OutboundFlowId": "75b8e03f-f5c4-47d7-bb54-89fc84e66ffa"}, "HoursOfOperationId": "75e9d999-0df8-42dc-9a86-89147033e7d9", "Status": "ENABLED", "Tags": {}, "LastModifiedTime": "2025-10-23T20:46:03.286000-06:00", "LastModifiedRegion": "us-west-2", "InstanceArn": "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"}, "arns": {"Queue": "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/f6aeda4b-9341-41fd-a874-45dff680a74c"}, "color_key": "connect:queue", "is_error": false, "error_msg": "", "is_seed": false}, {"id": "ConnectQueueUltimate After Hours English", "service": "connect", "subtype": "queue", "cfn_type": "AWS::Connect::Queue", "properties": {"Name": "Ultimate After Hours English", "QueueArn": "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/7ce5bf5e-63ac-41b4-8b30-76bd985019d0", "QueueId": "7ce5bf5e-63ac-41b4-8b30-76bd985019d0", "Description": "Ultimate After Hours English", "OutboundCallerConfig": {"OutboundCallerIdName": "SafeRide", "OutboundCallerIdNumberId": "199ae2b1-84d0-4620-9ea3-4e18797d1f45", "OutboundFlowId": "75b8e03f-f5c4-47d7-bb54-89fc84e66ffa"}, "HoursOfOperationId": "1e6d53d3-e0a8-42a3-b7b1-6d73a764a9c3", "Status": "ENABLED", "Tags": {}, "LastModifiedTime": "2025-10-23T20:46:47.322000-06:00", "LastModifiedRegion": "us-west-2", "InstanceArn": "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"}, "arns": {"Queue": "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/7ce5bf5e-63ac-41b4-8b30-76bd985019d0"}, "color_key": "connect:queue", "is_error": false, "error_msg": "", "is_seed": false}], "links": [{"source": "ConnectFlow1. Ultimate Entry", "target": "ConnectQueueUltimate After Hours English"}, {"source": "ConnectFlow1. Ultimate Entry", "target": "ConnectQueueUltimate Spanish"}, {"source": "ConnectFlow1. Ultimate Entry", "target": "ConnectQueueUltimate After Hours Spanish"}, {"source": "ConnectFlow1. Ultimate Entry", "target": "LexAliasPROD"}, {"source": "ConnectFlow1. Ultimate Entry", "target": "ConnectPromptUltimate Language Selection"}, {"source": "ConnectFlow1. Ultimate Entry", "target": "ConnectQueueUltimate English"}, {"source": "ConnectFlow1. Ultimate Entry", "target": "ConnectInstancesrh"}, {"source": "LexAliasPROD", "target": "LexBotUltimate-Intent-Capture-2"}, {"source": "LexAliasPROD", "target": "S3Bucketamazonconnectc575c0ad8ab8"}, {"source": "LexAliasPROD", "target": "Unresolved_BotLogs"}, {"source": "LexBotUltimate-Intent-Capture-2", "target": "LexLocalees_US"}, {"source": "LexBotUltimate-Intent-Capture-2", "target": "IAMRoleAWSServiceRoleForLexV2Bots_G5GKAZB1D9I"}, {"source": "LexBotUltimate-Intent-Capture-2", "target": "LexLocaleen_US"}, {"source": "LexLocaleen_US", "target": "Unresolved_0"}, {"source": "LexLocaleen_US", "target": "LexIntentReservation"}, {"source": "LexLocaleen_US", "target": "LexIntentRescueRide"}, {"source": "LexLocaleen_US", "target": "LexIntentRideStatus"}, {"source": "LexLocaleen_US", "target": "LexIntentCancelRide"}, {"source": "LexLocaleen_US", "target": "LexIntentFlexRideActivation"}, {"source": "LexLocaleen_US", "target": "LexIntentAgent"}, {"source": "LexLocaleen_US", "target": "LexIntentDriverStatus"}, {"source": "LexLocaleen_US", "target": "LexIntentModifyRide"}, {"source": "LexLocaleen_US", "target": "LexIntentFallbackIntent"}, {"source": "LexLocalees_US", "target": "LexIntentFallbackIntent"}, {"source": "LexLocalees_US", "target": "LexIntentRideStatus"}, {"source": "LexLocalees_US", "target": "LexIntentCancelRide"}, {"source": "LexLocalees_US", "target": "LexIntentModifyRide"}, {"source": "LexLocalees_US", "target": "LexIntentRescueRide"}, {"source": "LexLocalees_US", "target": "LexIntentDriverStatus"}, {"source": "LexLocalees_US", "target": "LexIntentReservation"}, {"source": "LexLocalees_US", "target": "LexIntentFlexRideActivation"}, {"source": "LexLocalees_US", "target": "LexIntentAgent"}]};
+    const colorMap = {
+  "lambda": "#4e9cff",
+  "s3": "#2ecc71",
+  "dynamodb": "#f39c12",
+  "connect": "#9b59b6",
+  "iam": "#e74c3c",
+  "sns": "#e67e22",
+  "sqs": "#f1c40f",
+  "cloudformation": "#16a085",
+  "lex": "#3498db",
+  "unresolved": "#555555",
+  "connect:contactflow": "#ed2a2a",
+  "connect:instance": "#ed9f2a",
+  "connect:queue": "#c6ed2a",
+  "connect:prompt": "#51ed2a",
+  "lex:botalias": "#2aed78",
+  "s3:bucket": "#2aeded",
+  "lex:bot": "#2a78ed",
+  "lex:botlocale": "#512aed",
+  "lex:intent": "#c62aed",
+  "iam:role": "#ed2a9f"
+};
+// -------------------------------------------
+// State and utilities
+// -------------------------------------------
+let editMode = false;
+let searchTerm = "";
+
+function hashColor(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue},70%,55%)`;
+}
+
+// Group color keys
+const grouped = {};
+Object.keys(colorMap).forEach(k => {
+  const idx = k.indexOf(":");
+  const svc = idx === -1 ? k : k.slice(0, idx);
+  const subtype = idx === -1 ? "default" : k.slice(idx + 1);
+  if (!grouped[svc]) grouped[svc] = {};
+  grouped[svc][subtype || "default"] = colorMap[k];
+});
+
+let activeKeys = new Set(Object.keys(colorMap));
+
+// -------------------------------------------
+// DOM references
+// -------------------------------------------
+const legendDiv = document.getElementById("legend");
+const infoPanel = document.getElementById("infoPanel");
+const nodeTitle = document.getElementById("nodeTitle");
+const nodeDetails = document.getElementById("nodeDetails");
+const closeBtn = document.getElementById("closeBtn");
+const searchBox = document.getElementById("searchBox");
+const resetBtn = document.getElementById("resetBtn");
+const exportBtn = document.getElementById("exportBtn");
+const editToggleBtn = document.getElementById("editToggleBtn");
+
+closeBtn.onclick = () => infoPanel.classList.remove("visible");
+
+// -------------------------------------------
+// Legend
+// -------------------------------------------
+function createLegend() {
+  legendDiv.innerHTML = "";
+  Object.entries(grouped).forEach(([svc, subs]) => {
+    const keys = Object.keys(subs);
+    const groupDiv = document.createElement("div");
+    groupDiv.className = "legend-group";
+
+    const title = document.createElement("div");
+    title.className = "legend-service";
+    title.textContent = svc;
+    title.onclick = () => toggleGroup(svc);
+    groupDiv.appendChild(title);
+
+    const showAll = keys.length > 1;
+    keys.forEach(sub => {
+      if (sub === "default" && !showAll) return;
+      const key = sub === "default" ? svc : `${svc}:${sub}`;
+      const color = subs[sub];
+      const colorBox =
+        sub === "default"
+          ? `<div class='color-box' style='background:none;border:1px solid #999'></div>`
+          : `<div class='color-box' style='background:${color}'></div>`;
+      const label = sub === "default" ? "(all)" : sub;
+      const item = document.createElement("div");
+      item.className = "legend-item";
+      item.dataset.key = key;
+      item.innerHTML = `${colorBox}${label}`;
+      item.onclick = () => toggleGroup(key);
+      groupDiv.appendChild(item);
+    });
+
+    legendDiv.appendChild(groupDiv);
+  });
+  updateLegendStyles();
+}
+
+function rebuildLegendFromGraph() {
+  const gData = Graph.graphData();
+  const seen = new Set();
+  const newColors = { ...colorMap };
+
+  gData.nodes.forEach(n => {
+    n.subtype = (n.subtype || "").toLowerCase();
+    n.service = (n.service || "unknown").toLowerCase();
+    n.color_key = n.subtype ? `${n.service}:${n.subtype}` : n.service;
+    seen.add(n.color_key);
+    if (!newColors[n.color_key]) newColors[n.color_key] = hashColor(n.color_key);
+  });
+
+  Object.assign(colorMap, newColors);
+  activeKeys = new Set(Object.keys(colorMap));
+  Object.keys(grouped).forEach(k => delete grouped[k]);
+  Object.keys(colorMap).forEach(k => {
+    const idx = k.indexOf(":");
+    const svc = idx === -1 ? k : k.slice(0, idx);
+    const sub = idx === -1 ? "default" : k.slice(idx + 1);
+    if (!grouped[svc]) grouped[svc] = {};
+    grouped[svc][sub] = colorMap[k];
+  });
+
+  createLegend();
+}
+
+function toggleGroup(key) {
+  const affected = Object.keys(colorMap).filter(k => k === key || k.startsWith(`${key}:`));
+  const active = affected.some(k => activeKeys.has(k));
+  if (active) affected.forEach(k => activeKeys.delete(k));
+  else affected.forEach(k => activeKeys.add(k));
+  updateLegendStyles();
+  Graph.graphData(Graph.graphData());
+}
+
+function updateLegendStyles() {
+  document.querySelectorAll(".legend-item").forEach(el => {
+    const key = el.dataset.key;
+    const on = activeKeys.has(key);
+    el.classList.toggle("inactive", !on);
+    const box = el.querySelector(".color-box");
+    if (box) box.style.filter = on ? "brightness(1)" : "brightness(0.55)";
+  });
+}
+createLegend();
+
+// -------------------------------------------
+// Graph Setup
+// -------------------------------------------
+const fg = document.getElementById("graph");
+const Graph = ForceGraph()(fg)
+  .graphData(data)
+  .nodeId("id")
+  .nodeLabel(n => `${n.id}\n(${n.service}${n.subtype ? ":" + n.subtype : ""})`)
+  .nodeColor(n => colorMap[n.color_key] || "#777")
+  .linkColor(() => "rgba(255,255,255,0.25)")
+  .backgroundColor("#0e1117")
+  .onNodeClick(n => {
+    Graph.centerAt(n.x, n.y, 800);
+    Graph.zoom(4, 800);
+    showNodeInfo(n);
+  })
+  .nodeVisibility(n => !searchTerm || n.id.toLowerCase().includes(searchTerm))
+  .nodeCanvasObject((n, ctx, scale) => {
+    const active = activeKeys.has(n.color_key);
+    const color = colorMap[n.color_key] || "#777";
+    const r = 6;
+    const err = n.is_error || n.metadata?.Unresolved || n.metadata?.Error;
+    const seed = n.is_seed || n.metadata?.Seed;
+
+    if (err) {
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r + 3, 0, 2 * Math.PI);
+      ctx.fillStyle = "rgba(255,0,0,0.25)";
+      ctx.fill();
+    }
+
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, r, 0, 2 * Math.PI);
+    ctx.fillStyle = active ? color : "rgba(150,150,150,0.25)";
+    ctx.fill();
+
+    if (err) {
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = "#ff3333";
+      ctx.stroke();
+    } else if (seed) {
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "#f1ff33ff";
+      ctx.stroke();
+    }
+
+    const fs = 10 / scale;
+    ctx.font = `${fs}px Sans-Serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillStyle = active ? "#fff" : "rgba(255,255,255,0.35)";
+    ctx.fillText(n.id, n.x, n.y + 6);
+  });
+
+// -------------------------------------------
+// Info Panel
+// -------------------------------------------
+let currentNode = null;
+function showNodeInfo(node) {
+  currentNode = node;
+  infoPanel.classList.add("visible");
+  nodeTitle.textContent = node.id;
+  nodeDetails.innerHTML = "";
+
+  const meta = [
+    ["Service", node.service],
+    ["Subtype", node.subtype],
+    ["CFN Type", node.cfn_type],
+    ["Error", node.error_msg || ""],
+  ];
+  meta.forEach(([k, v]) => {
+    const row = document.createElement("div");
+    row.className = "info-row";
+    row.innerHTML = `<b>${k}:</b> <div>${v ?? ""}</div>`;
+    nodeDetails.appendChild(row);
+  });
+
+  if (node.properties && Object.keys(node.properties).length) {
+    nodeDetails.appendChild(document.createElement("hr"));
+    const pTitle = document.createElement("div");
+    pTitle.innerHTML = "<b>Properties</b>";
+    nodeDetails.appendChild(pTitle);
+    for (const [k, v] of Object.entries(node.properties)) {
+      const row = document.createElement("div");
+      row.className = "info-row";
+      const pre = document.createElement("pre");
+      pre.className = "json-block";
+      pre.textContent = typeof v === "object" ? JSON.stringify(v, null, 2) : v;
+      row.innerHTML = `<b>${k}:</b>`;
+      row.appendChild(pre);
+      nodeDetails.appendChild(row);
+    }
+  }
+
+  if (node.arns && Object.keys(node.arns).length) {
+    nodeDetails.appendChild(document.createElement("hr"));
+    const aTitle = document.createElement("div");
+    aTitle.innerHTML = "<b>ARNs</b>";
+    nodeDetails.appendChild(aTitle);
+    const list = document.createElement("ul");
+    for (const [k, v] of Object.entries(node.arns)) {
+      const li = document.createElement("li");
+      li.innerHTML = `${k}: <code>${v}</code>`;
+      list.appendChild(li);
+    }
+    nodeDetails.appendChild(list);
+  }
+
+  nodeDetails.appendChild(document.createElement("hr"));
+  const det = document.createElement("details");
+  det.open = false;
+  det.innerHTML = `<summary><b>Raw Node Data</b></summary>
+  <pre class='json-block'>${JSON.stringify(node, null, 2)}</pre>`;
+  nodeDetails.appendChild(det);
+}
+closeBtn.onclick = () => infoPanel.classList.remove("visible");
+
+// -------------------------------------------
+// Controls
+// -------------------------------------------
+resetBtn.onclick = () => {
+  searchTerm = "";
+  searchBox.value = "";
+  activeKeys = new Set(Object.keys(colorMap));
+  updateLegendStyles();
+  Graph.graphData(Graph.graphData());
+};
+searchBox.oninput = () => {
+  searchTerm = searchBox.value.trim().toLowerCase();
+  Graph.graphData(Graph.graphData());
+};
+exportBtn.onclick = () => {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "graph-edited.json";
+  a.click();
+  URL.revokeObjectURL(url);
+};
+editToggleBtn.onclick = () => {
+  editMode = !editMode;
+  editToggleBtn.textContent = `Edit: ${editMode ? "On" : "Off"}`;
+  document.body.classList.toggle("edit-mode", editMode);
+};
+
+// -------------------------------------------
+// Initialize
+// -------------------------------------------
+rebuildLegendFromGraph();
+updateLegendStyles();
+
+  </script>
+</body>
+</html>
