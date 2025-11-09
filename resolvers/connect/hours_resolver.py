@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any
 from mypy_boto3_connect.type_defs import DescribeHoursOfOperationResponseTypeDef
 from graph.dependency_graph import ResourceNode
 from utils.arn import ARN
@@ -16,6 +17,8 @@ def _infer_instance_arn_from_subresource(arn: ARN) -> str:
 
 
 class HoursResolver(BaseConnectSubResolver[DescribeHoursOfOperationResponseTypeDef]):
+    """Resolve Connect Hours of Operation resources."""
+
     resource_type = "hours-of-operation"
     cfn_type = "AWS::Connect::HoursOfOperation"
 
@@ -26,15 +29,30 @@ class HoursResolver(BaseConnectSubResolver[DescribeHoursOfOperationResponseTypeD
         )
 
     def parse(self, arn: ARN, raw: DescribeHoursOfOperationResponseTypeDef):
-        hoo = raw.get("HoursOfOperation", {})
+        hoo = raw.get("HoursOfOperation", {}) or {}
 
-        if not hoo.get("InstanceArn"):
-            hoo["InstanceArn"] = _infer_instance_arn_from_subresource(arn)
+        instance_arn_str = hoo.get("InstanceArn") or _infer_instance_arn_from_subresource(arn)
+        instance_arn = ARN(instance_arn_str)
+
+        props: dict[str, Any] = {
+            "Name": hoo.get("Name"),
+            "Description": hoo.get("Description"),
+            "Config": hoo.get("Config"),
+            "TimeZone": hoo.get("TimeZone"),
+            "InstanceArn": instance_arn_str,
+            "Tags": hoo.get("Tags", {}),
+        }
+
+        metadata = {
+            "Source": "describe_hours_of_operation",
+        }
 
         return ResourceNode(
             logical_id=f"ConnectHoursOfOperation{hoo.get('Name', arn.resource_id)}",
             service="connect",
             cfn_type=self.cfn_type,
-            properties=hoo,
+            properties=props,
+            referenced_arns={instance_arn},
             arns={"HoursOfOperation": arn},
+            metadata=metadata,
         )

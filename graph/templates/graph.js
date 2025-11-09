@@ -23,6 +23,48 @@ Object.keys(colorMap).forEach(k => {
 
 let activeKeys = new Set(Object.keys(colorMap));
 
+function getConnectedNodes(nodeId, direction = "out") {
+  const gData = Graph.graphData();
+  const out = new Set();
+  if (direction === "out" || direction === "both") {
+    gData.links.forEach(l => {
+      if (l.source.id === nodeId || l.source === nodeId) out.add(l.target.id || l.target);
+    });
+  }
+  if (direction === "in" || direction === "both") {
+    gData.links.forEach(l => {
+      if (l.target.id === nodeId || l.target === nodeId) out.add(l.source.id || l.source);
+    });
+  }
+  return Array.from(out);
+}
+
+function markDownstreamParameters(nodeId, newState, visited = new Set()) {
+  if (visited.has(nodeId)) return;
+  visited.add(nodeId);
+
+  const gData = Graph.graphData();
+  const node = gData.nodes.find(n => n.id === nodeId);
+  if (!node) return;
+
+  // --- Lock check ---------------------------------------------------
+  const locked =
+    node.metadata?.implicit_aws_managed ||
+    node.metadata?.immutable_reference ||
+    node.service === "bedrock";
+  if (locked) return; // stop propagation at locked nodes
+  // -----------------------------------------------------------------
+
+  node.is_parameter = newState;
+  node.metadata = node.metadata || {};
+  node.metadata.Parameter = newState;
+
+  const downstream = getConnectedNodes(nodeId, "out");
+  downstream.forEach(childId => markDownstreamParameters(childId, newState, visited));
+}
+
+
+
 // -------------------------------------------
 // DOM references
 // -------------------------------------------
@@ -133,32 +175,88 @@ const Graph = ForceGraph()(fg)
   .nodeId("id")
   .nodeLabel(n => `${n.id}\n(${n.service}${n.subtype ? ":" + n.subtype : ""})`)
   .nodeColor(n => colorMap[n.color_key] || "#777")
-  .linkColor(() => "rgba(255,255,255,0.25)")
+  .linkColor(link => link.inferred ? "#999999" : "#aaaaaa")
+  .linkWidth(link => link.inferred ? 1.5 : 2.0)
+  .linkDirectionalParticles(link => link.inferred ? 0 : 2)
+  .linkCurvature(link => link.inferred ? 0.2 : 0)
+  .linkCanvasObjectMode(() => 'after')
+  .linkCanvasObject((link, ctx, globalScale) => {
+    if (link.inferred) {
+      const start = link.source;
+      const end = link.target;
+      if (typeof start !== "object" || typeof end !== "object") return;
+      ctx.save();
+      ctx.setLineDash([5, 5]);
+      ctx.strokeStyle = "#999999";
+      ctx.beginPath();
+      ctx.moveTo(start.x, start.y);
+      ctx.lineTo(end.x, end.y);
+      ctx.stroke();
+      ctx.restore();
+    }
+  })
   .backgroundColor("#0e1117")
   .onNodeClick(n => {
     Graph.centerAt(n.x, n.y, 800);
     Graph.zoom(4, 800);
     showNodeInfo(n);
+  }).onNodeRightClick(n => {
+    // Detect locked nodes
+    const locked = n.metadata?.implicit_aws_managed || n.metadata?.immutable_reference || n.service === "bedrock";
+    if (locked) {
+      // UX feedback: small shake or flash
+      const canvas = document.getElementById("graph");
+      canvas.classList.add("node-shake");
+      setTimeout(() => canvas.classList.remove("node-shake"), 400);
+      return; // skip toggling
+    }
+
+    const newState = !n.is_parameter;
+    markDownstreamParameters(n.id, newState);
+    Graph.graphData(Graph.graphData());
   })
   .nodeVisibility(n => !searchTerm || n.id.toLowerCase().includes(searchTerm))
   .nodeCanvasObject((n, ctx, scale) => {
+    const r = 6;
     const active = activeKeys.has(n.color_key);
     const color = colorMap[n.color_key] || "#777";
-    const r = 6;
     const err = n.is_error || n.metadata?.Unresolved || n.metadata?.Error;
     const seed = n.is_seed || n.metadata?.Seed;
+    const param = n.is_parameter || n.metadata?.Parameter;
+    const implicit = n.metadata?.implicit_aws_managed;
+    const locked = implicit || n.metadata?.immutable_reference || n.service === "bedrock";
 
-    if (err) {
+    if (locked) {
       ctx.beginPath();
-      ctx.arc(n.x, n.y, r + 3, 0, 2 * Math.PI);
-      ctx.fillStyle = "rgba(255,0,0,0.25)";
-      ctx.fill();
+      ctx.arc(n.x, n.y, r + 2, 0, 2 * Math.PI);
+      ctx.strokeStyle = "#00ffff"; // cyan glow for locked
+      ctx.setLineDash([3, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 0.7;
     }
 
-    ctx.beginPath();
-    ctx.arc(n.x, n.y, r, 0, 2 * Math.PI);
-    ctx.fillStyle = active ? color : "rgba(150,150,150,0.25)";
-    ctx.fill();
+
+    // Draw parameter as diamond
+    if (param) {
+      ctx.beginPath();
+      ctx.moveTo(n.x, n.y - r);
+      ctx.lineTo(n.x + r, n.y);
+      ctx.lineTo(n.x, n.y + r);
+      ctx.lineTo(n.x - r, n.y);
+      ctx.closePath();
+      ctx.fillStyle = active ? color : "rgba(150,150,150,0.25)";
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff55";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    } else {
+      // normal circle
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r, 0, 2 * Math.PI);
+      ctx.fillStyle = active ? color : "rgba(150,150,150,0.25)";
+      ctx.fill();
+    }
 
     if (err) {
       ctx.lineWidth = 2.5;
@@ -176,6 +274,7 @@ const Graph = ForceGraph()(fg)
     ctx.textBaseline = "top";
     ctx.fillStyle = active ? "#fff" : "rgba(255,255,255,0.35)";
     ctx.fillText(n.id, n.x, n.y + 6);
+    ctx.globalAlpha = 1.0;
   });
 
 // -------------------------------------------

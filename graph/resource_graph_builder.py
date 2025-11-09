@@ -69,6 +69,7 @@ class ResourceGraphBuilder:
                     pending.append(ref)
         
         graph.resolve_links()
+        graph.freeze_to_portable()
         graph.print_summary()
         return graph
         
@@ -91,4 +92,49 @@ class ResourceGraphBuilder:
         logger.debug(f"Adding ${node.logical_id}")
         graph.add_node(node)
         return node
-        
+    
+def sanitize_graph_for_portable_refs(graph: DependencyGraph) -> None:
+    """
+    Replace any embedded ARNs in node properties (including JSON-encoded
+    strings like Connect ContactFlow 'Content') with __REF_<LogicalID>__ placeholders.
+
+    This should be called *after* the graph is fully built and linked.
+    """
+    # Map stringified ARNs → logical IDs
+    arn_map = {str(a): lid for a, lid in graph._arn_index.items()}
+
+    def replace_arns_in_text(text: str) -> str:
+        def repl(match: re.Match[str]) -> str:
+            arn = match.group(0)
+            lid = arn_map.get(arn)
+            return f"__REF_{lid}__" if lid else arn
+        return ARN_PATTERN.sub(repl, text)
+
+    def recurse(obj: Any) -> Any:
+        """Recursively walk dicts/lists and replace ARNs in strings."""
+        if isinstance(obj, str):
+            if obj.strip().startswith("{") and "arn:aws:" in obj:
+                # Try to parse nested JSON blobs (like Connect flow content)
+                try:
+                    parsed = json.loads(obj)
+                    return json.dumps(recurse(parsed))
+                except Exception:
+                    # fallback: simple regex substitution
+                    return replace_arns_in_text(obj)
+            return replace_arns_in_text(obj)
+        elif isinstance(obj, dict):
+            return {k: recurse(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [recurse(v) for v in obj]
+        return obj
+
+    # Apply transformation to each node
+    for node in graph._nodes.values():
+        node.properties = recurse(node.properties)
+
+        # also rewrite metadata if relevant
+        node.metadata = recurse(node.metadata)
+
+    # mark graph as sanitized
+    graph.metadata["PortableSanitized"] = True
+    print(f"[INFO] Sanitized {len(graph._nodes)} nodes for portable references.")

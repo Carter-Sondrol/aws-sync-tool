@@ -15,11 +15,13 @@ def serialize_graph(graph) -> Dict[str, Any]:
             "logical_id": lid,
             "service": getattr(node, "service", "unknown"),
             "cfn_type": getattr(node, "cfn_type", None),
-            "reference_only": getattr(node, "reference_only", getattr(node, "reference_only", False)),
+            "reference_only": getattr(node, "reference_only", False),
+            "metadata": getattr(node, "metadata", {}) or {},  # ✅ Add this line
             "properties": getattr(node, "properties", {}) or {},
-            "arns": [str(v) for v in getattr(node, "arns", {}).values()] if hasattr(node, "arns") else [],
-            "references": [str(a) for a in getattr(node, "referenced_arns", [])] if hasattr(node, "referenced_arns") else [],
+            "arns": [str(v) for v in getattr(node, "arns", {}).values()],
+            "references": [str(a) for a in getattr(node, "referenced_arns", [])],
         })
+
 
     edges = []
     try:
@@ -28,4 +30,10 @@ def serialize_graph(graph) -> Dict[str, Any]:
     except Exception:
         pass
 
-    return {"nodes": nodes, "edges": edges}
+    metadata = {}
+    try:
+        metadata = dict(getattr(graph, "metadata", {}) or {})
+    except Exception:
+        metadata = {}
+
+    return {"nodes": nodes, "edges": edges, "metadata": metadata}

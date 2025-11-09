@@ -529,6 +529,34 @@ class ARN:
         }
 
 
+def to_artifact_arn(source_arn_or_uri: str) -> ARN:
+    """
+    Converts an S3 ARN or URI into a pseudo artifact ARN.
+
+    Examples:
+        s3://bucket/key.txt → arn:aws:artifacts:::bucket/key.txt
+        arn:aws:s3:::bucket/key.txt → arn:aws:artifacts:::bucket/key.txt
+    """
+    import re
+    from urllib.parse import urlparse
+
+    # S3 ARN case
+    if source_arn_or_uri.startswith("arn:aws:s3:::"):
+        return ARN(source_arn_or_uri.replace("arn:aws:s3:::", "arn:aws:artifacts:::"))
+
+    # S3 URI case
+    if source_arn_or_uri.startswith("s3://"):
+        parsed = urlparse(source_arn_or_uri)
+        bucket = parsed.netloc
+        key = parsed.path.lstrip("/")
+        return ARN(f"arn:aws:artifacts:::{bucket}/{key}")
+
+    # Fallback to treat as URL or relative path
+    safe = re.sub(r"[^A-Za-z0-9_.:/-]+", "-", source_arn_or_uri)
+    return ARN(f"arn:aws:artifacts:::{safe}")
+
+
+
 # ------------------------------------------------------------------
 # Recursive ARN extraction utility
 # ------------------------------------------------------------------

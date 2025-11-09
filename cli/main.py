@@ -48,8 +48,8 @@ def install_completion(shell: str):
 
 # cli/main.py
 def main(argv: Optional[List[str]] = None) -> int:
-    args = parse_args()
-
+    args = parse_args(_normalize_argv(argv))
+    
     if args.install_completion:
         install_completion(args.install_completion)
         return 0
@@ -123,6 +123,20 @@ def main(argv: Optional[List[str]] = None) -> int:
         render_interactive_graph(graph)
 
     return 0
+
+def _normalize_argv(argv: Optional[List[str]]) -> Optional[List[str]]:
+    if argv is None:
+        return None
+
+    normalized = list(argv)
+    if not normalized:
+        return normalized
+
+    aliases = {"cdk": ["--export", "cdk"], "cfn": ["--export", "cfn"], "both": ["--export", "both"]}
+    first = normalized[0]
+    if first in aliases:
+        normalized = aliases[first] + normalized[1:]
+    return normalized
 
 if __name__ == "__main__":
     raise SystemExit(main())

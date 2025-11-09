@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Union, cast, Optional, Set
-from boto3 import Session
 from mypy_boto3_dynamodb import DynamoDBClient
 from mypy_boto3_dynamodb.type_defs import DescribeTableOutputTypeDef
 from botocore.exceptions import ClientError

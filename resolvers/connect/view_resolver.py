@@ -58,12 +58,22 @@ class ViewResolver(BaseConnectSubResolver[dict[str, Any]]):
     def parse(self, arn: ARN, raw: dict[str, Any]):
         # Support both describe_view and describe_view_version outputs
         view = raw.get("View") or raw.get("ViewVersion") or {}
+        instance_arn = view.get("InstanceArn")
+        if not instance_arn and arn:
+            parts = arn.resource_parts
+            if "instance" in parts:
+                try:
+                    inst_idx = parts.index("instance")
+                    inst_id = parts[inst_idx + 1]
+                    instance_arn = f"arn:aws:{arn.service}:{arn.region}:{arn.account_id}:instance/{inst_id}"
+                except Exception:
+                    instance_arn = None
         props: dict[str, Any] = {
             "Name": view.get("Name"),
             "Description": view.get("Description"),
             "Status": view.get("Status"),
             "Content": view.get("Content"),
-            "InstanceArn": view.get("InstanceArn"),
+            "InstanceArn": instance_arn,
         }
         return ResourceNode(
             logical_id=f"ConnectView{view.get('Name', arn.resource_id)}",

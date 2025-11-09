@@ -1,6 +1,8 @@
 from __future__ import annotations
 import json
 from pathlib import Path
+
+from utils.json_encoder import AWSJSONEncoder
 from .template_loader import load_template, render_template
 
 def emit_auto_stack(out_dir: Path, graph_payload: dict):
@@ -11,6 +13,6 @@ def emit_auto_stack(out_dir: Path, graph_payload: dict):
 
     rendered = render_template(
         load_template("auto_stack.py.tpl"),
-        graph_payload_json=json.dumps(graph_payload, indent=2)
+        graph_payload_json=json.dumps(graph_payload, indent=2, cls=AWSJSONEncoder)
     )
     (stacks_dir / "auto_stack.py").write_text(rendered)

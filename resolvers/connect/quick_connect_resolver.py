@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any, Set
 from mypy_boto3_connect.type_defs import DescribeQuickConnectResponseTypeDef
 from graph.dependency_graph import ResourceNode
 from utils.arn import ARN
@@ -16,6 +17,8 @@ def _infer_instance_arn_from_subresource(arn: ARN) -> str:
 
 
 class QuickConnectResolver(BaseConnectSubResolver[DescribeQuickConnectResponseTypeDef]):
+    """Resolve AWS Connect Quick Connects."""
+
     resource_type = "quick-connect"
     cfn_type = "AWS::Connect::QuickConnect"
 
@@ -26,24 +29,42 @@ class QuickConnectResolver(BaseConnectSubResolver[DescribeQuickConnectResponseTy
         )
 
     def parse(self, arn: ARN, raw: DescribeQuickConnectResponseTypeDef):
-        qc = raw.get("QuickConnect", {})
-
-        if not qc.get("InstanceArn"):
-            qc["InstanceArn"] = _infer_instance_arn_from_subresource(arn)
-
-        qc_cfg = qc.get("QuickConnectConfig", {}) or {}
+        qc = raw.get("QuickConnect", {}) or {}
         refs: set[ARN] = set()
-        for k in ("QueueArn", "ContactFlowArn"):
-            if k in qc_cfg and isinstance(qc_cfg[k], str):
-                parsed = ARN.try_parse(qc_cfg[k])
+
+        # Instance reference
+        instance_arn_str = qc.get("InstanceArn") or _infer_instance_arn_from_subresource(arn)
+        instance_arn = ARN(instance_arn_str)
+        refs.add(instance_arn)
+
+        # QuickConnectConfig may contain QueueArn or ContactFlowArn
+        cfg = qc.get("QuickConnectConfig", {}) or {}
+        for key in ("QueueArn", "ContactFlowArn"):
+            val = cfg.get(key)
+            if val and isinstance(val, str):
+                parsed = ARN.try_parse(val)
                 if parsed:
                     refs.add(parsed)
+
+        props = {
+            "Name": qc.get("Name"),
+            "Description": qc.get("Description"),
+            "QuickConnectConfig": cfg,
+            "InstanceArn": instance_arn_str,
+            "Tags": qc.get("Tags", {}),
+        }
+
+        metadata = {
+            "EmbeddedReferenceCount": len(refs),
+            "Source": "describe_quick_connect",
+        }
 
         return ResourceNode(
             logical_id=f"ConnectQuickConnect{qc.get('Name', arn.resource_id)}",
             service="connect",
             cfn_type=self.cfn_type,
-            properties=qc,
+            properties=props,
             referenced_arns=refs,
             arns={"QuickConnect": arn},
+            metadata=metadata,
         )

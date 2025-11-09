@@ -1,8 +1,8 @@
 from __future__ import annotations
-from typing import Any
+from typing import Any, Set
 from mypy_boto3_connect.type_defs import DescribePromptResponseTypeDef
 from graph.dependency_graph import ResourceNode
-from utils.arn import ARN
+from utils.arn import ARN, make_artifact_arn, to_artifact_arn
 from .base_connect import BaseConnectSubResolver
 
 
@@ -27,33 +27,31 @@ class PromptResolver(BaseConnectSubResolver[DescribePromptResponseTypeDef]):
         )
 
     def parse(self, arn: ARN, raw: DescribePromptResponseTypeDef):
-        prompt = raw.get("Prompt", {})
-        props: dict[str, Any] = {
-            "Name": prompt.get("Name"),
-            "Description": prompt.get("Description"),
-            "S3Uri": prompt.get("S3Uri"),
-            "InstanceArn": (prompt.get("InstanceArn") or _infer_instance_arn_from_subresource(arn)),
-        }
+        prompt = raw.get("Prompt", {}) or {}
+        refs: Set[ARN] = set()
 
-        refs: set[ARN] = set()
+        # Always reference its Connect instance
+        instance_arn = prompt.get("InstanceArn") or _infer_instance_arn_from_subresource(arn)
+        refs.add(ARN(instance_arn))
+
+        # If this prompt has an S3Uri, create a fake artifact ARN for it
         s3_uri = prompt.get("S3Uri")
-        if isinstance(s3_uri, str):
-            if s3_uri.startswith("arn:aws:s3:::"):
-                parsed = ARN.try_parse(s3_uri)
-                if parsed:
-                    refs.add(parsed)
-            elif s3_uri.startswith("s3://"):
-                bucket, _, key = s3_uri[5:].partition("/")
-                try:
-                    refs.add(ARN(f"arn:aws:s3:::{bucket}/{key}"))
-                except ValueError:
-                    pass
+        if isinstance(s3_uri, str) and s3_uri:
+            artifact_arn = to_artifact_arn(s3_uri)
+            refs.add(artifact_arn)
+
+        prompt["InstanceArn"] = instance_arn
 
         return ResourceNode(
             logical_id=f"ConnectPrompt{prompt.get('Name', arn.resource_id)}",
             service="connect",
             cfn_type=self.cfn_type,
-            properties=props,
+            properties=prompt,
             referenced_arns=refs,
             arns={"Prompt": arn},
+            metadata={
+                "Source": "describe_prompt",
+                "HasArtifact": bool(s3_uri),
+                "PortableArtifact": bool(s3_uri),
+            },
         )

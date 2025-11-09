@@ -50,7 +50,9 @@ class IAMResolver(BaseResolver[IAMClient, IAMResponse]):
             elif rtype == "group":
                 return self.client.get_group(GroupName=arn.resource_id)
             elif rtype == "instance-profile":
-                return self.client.get_instance_profile(InstanceProfileName=arn.resource_id)
+                return self.client.get_instance_profile(
+                    InstanceProfileName=arn.resource_id
+                )
             elif rtype == "policy-version":
                 policy_arn, version_id = arn.resource.split(":", 1)
                 return self.client.get_policy_version(
@@ -75,7 +77,9 @@ class IAMResolver(BaseResolver[IAMClient, IAMResponse]):
         elif rtype == "policy":
             return self._parse_policy(arn, cast(GetPolicyResponseTypeDef, raw))
         elif rtype == "instance-profile":
-            return self._parse_instance_profile(arn, cast(GetInstanceProfileResponseTypeDef, raw))
+            return self._parse_instance_profile(
+                arn, cast(GetInstanceProfileResponseTypeDef, raw)
+            )
         elif rtype == "user":
             return self._parse_user(arn, cast(GetUserResponseTypeDef, raw))
         elif rtype == "group":
@@ -90,48 +94,78 @@ class IAMResolver(BaseResolver[IAMClient, IAMResponse]):
         role = raw.get("Role", {})
         refs: set[ARN] = set()
 
-        # Detect AWS-managed or service-linked role
-        aws_managed = arn.is_aws_managed() or "aws-service-role" in arn.resource.lower()
+        role_name = role.get("RoleName", "")
+        arn_str = role.get("Arn", "")
 
-        if not aws_managed:
-            # Normal trust and attached policy discovery
+        # ------------------------------------------------------------------
+        # Classify role
+        # ------------------------------------------------------------------
+        is_service_linked = (
+            "/aws-service-role/" in arn_str.lower()
+            or role_name.startswith("AWSServiceRoleFor")
+        )
+        is_aws_managed = arn.is_aws_managed() and not is_service_linked
+
+        # ------------------------------------------------------------------
+        # Only collect references for customer-managed
+        # ------------------------------------------------------------------
+        if not (is_aws_managed or is_service_linked):
             assume_doc = role.get("AssumeRolePolicyDocument", {})
             refs |= extract_dependencies(assume_doc)
 
             paginator = self.client.get_paginator("list_attached_role_policies")
-            for page in paginator.paginate(RoleName=role["RoleName"]):
+            for page in paginator.paginate(RoleName=role_name):
                 for p in page.get("AttachedPolicies", []):
-                    policy_arn = p.get("PolicyArn")
-                    if policy_arn:
-                        parsed = ARN.try_parse(policy_arn)
-                        if parsed:
-                            refs.add(parsed)
+                    parsed = ARN.try_parse(p.get("PolicyArn"))
+                    if parsed:
+                        refs.add(parsed)
 
         props = {
-            "RoleName": role.get("RoleName"),
-            "Arn": role.get("Arn"),
+            "RoleName": role_name,
+            "Arn": arn_str,
             "Path": role.get("Path"),
             "Description": role.get("Description"),
-            "ManagedBy": "AWS" if aws_managed else "Customer",
+            "ManagedBy": (
+                "Service" if is_service_linked else
+                "AWS" if is_aws_managed else
+                "Customer"
+            ),
             "AssumeRolePolicyDocument": role.get("AssumeRolePolicyDocument"),
         }
 
+        # ------------------------------------------------------------------
+        # Node classification
+        # ------------------------------------------------------------------
+        if is_service_linked:
+            cfn_type = "AWS::IAM::ServiceLinkedRole"
+            metadata = {"implicit_aws_managed": True, "service_linked": True}
+            reference_only = False
+        elif is_aws_managed:
+            cfn_type = "AWS::IAM::Role"
+            metadata = {"aws_managed": True}
+            reference_only = True
+        else:
+            cfn_type = "AWS::IAM::Role"
+            metadata = {"aws_managed": False}
+            reference_only = False
+
         return ResourceNode(
-            logical_id=f"IAMRole{role.get('RoleName')}",
+            logical_id=f"IAMRole{role_name}",
             service="iam",
-            cfn_type="AWS::IAM::Role",
+            cfn_type=cfn_type,
             properties=props,
             referenced_arns=refs,
             arns={"Role": arn},
-            metadata={"aws_managed": aws_managed},
-            reference_only=aws_managed,  # don't deploy AWS-managed roles
+            metadata=metadata,
+            reference_only=reference_only,
         )
-
 
     # ------------------------------------------------------------------
     # Managed Policies
     # ------------------------------------------------------------------
-    def _parse_policy(self, arn: ARN, raw: GetPolicyResponseTypeDef) -> ResourceNode[dict[str, Any]]:
+    def _parse_policy(
+        self, arn: ARN, raw: GetPolicyResponseTypeDef
+    ) -> ResourceNode[dict[str, Any]]:
         pol = raw.get("Policy", {})
         aws_managed = arn.is_aws_managed()
 
@@ -186,7 +220,9 @@ class IAMResolver(BaseResolver[IAMClient, IAMResponse]):
     # ------------------------------------------------------------------
     # Users
     # ------------------------------------------------------------------
-    def _parse_user(self, arn: ARN, raw: GetUserResponseTypeDef) -> ResourceNode[dict[str, Any]]:
+    def _parse_user(
+        self, arn: ARN, raw: GetUserResponseTypeDef
+    ) -> ResourceNode[dict[str, Any]]:
         user = raw.get("User", {})
         refs: set[ARN] = extract_dependencies(user)
         props = {
@@ -206,7 +242,9 @@ class IAMResolver(BaseResolver[IAMClient, IAMResponse]):
     # ------------------------------------------------------------------
     # Groups
     # ------------------------------------------------------------------
-    def _parse_group(self, arn: ARN, raw: GetGroupResponseTypeDef) -> ResourceNode[dict[str, Any]]:
+    def _parse_group(
+        self, arn: ARN, raw: GetGroupResponseTypeDef
+    ) -> ResourceNode[dict[str, Any]]:
         group = raw.get("Group", {})
         refs: set[ARN] = extract_dependencies(group)
         props = {
@@ -226,7 +264,9 @@ class IAMResolver(BaseResolver[IAMClient, IAMResponse]):
     # ------------------------------------------------------------------
     # Unknown
     # ------------------------------------------------------------------
-    def _parse_unknown(self, arn: ARN, raw: dict[str, Any]) -> ResourceNode[dict[str, Any]]:
+    def _parse_unknown(
+        self, arn: ARN, raw: dict[str, Any]
+    ) -> ResourceNode[dict[str, Any]]:
         return ResourceNode(
             logical_id=f"IAMUnknown{arn.resource_id}",
             service="iam",

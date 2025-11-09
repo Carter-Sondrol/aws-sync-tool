@@ -20,6 +20,7 @@ BASE_COLORS = {
     "unresolved": "#555555",
 }
 
+
 def generate_distinct_color(index: int, total: int) -> str:
     hue = (index / total) % 1.0
     lightness = 0.55
@@ -27,28 +28,24 @@ def generate_distinct_color(index: int, total: int) -> str:
     r, g, b = colorsys.hls_to_rgb(hue, lightness, saturation)
     return f"#{int(r*255):02x}{int(g*255):02x}{int(b*255):02x}"
 
+
 # ---------------------------------------------------------------------
-# Subtype normalization (from CFN types or inferred)
+# Subtype normalization
 # ---------------------------------------------------------------------
 SUBTYPE_NORMALIZE = {
-    # Lex
     "Bot": "bot",
     "BotAlias": "botalias",
     "BotLocale": "botlocale",
     "Intent": "intent",
     "Slot": "slot",
     "SlotType": "slottype",
-    # Connect
     "ContactFlow": "contactflow",
     "ContactFlowModule": "contactflowmodule",
-    "FlowModule": "contactflowmodule",
     "Prompt": "prompt",
     "Queue": "queue",
     "Instance": "instance",
-    "View": "view",
     "RoutingProfile": "routingprofile",
     "HoursOfOperation": "hoursofoperation",
-    # Other services
     "Function": "function",
     "Bucket": "bucket",
     "Table": "table",
@@ -57,6 +54,7 @@ SUBTYPE_NORMALIZE = {
     "Policy": "policy",
     "Topic": "topic",
 }
+
 
 def normalize_subtype(service: str, cfn_type: str | None) -> str:
     if not cfn_type:
@@ -68,20 +66,22 @@ def normalize_subtype(service: str, cfn_type: str | None) -> str:
 
 
 # ---------------------------------------------------------------------
-# HTML Renderer
+# Visualization
 # ---------------------------------------------------------------------
 def render_interactive_graph(
     graph: DependencyGraph,
     out_path: Path | None = None,
     open_browser: bool = True,
 ) -> Path:
-    """Render interactive ForceGraph visualization with subresource-aware legend."""
+    """Render interactive ForceGraph visualization with awareness of frozen/portable mode."""
     if out_path is None:
         out_path = Path("output/graph.html")
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     color_keys: list[str] = []
     nodes_json = []
+
+    is_portable = graph.metadata.get("Frozen", False)
 
     for lid, n in graph._nodes.items():
         service = getattr(n, "service", "unknown").lower()
@@ -100,24 +100,28 @@ def render_interactive_graph(
         if key not in color_keys:
             color_keys.append(key)
 
-        nodes_json.append({
-            "id": lid,
-            "service": service,
-            "subtype": subtype,
-            "cfn_type": cfn_type,
-            "properties": n.properties or {},
-            "arns": {k: str(v) for k, v in getattr(n, "arns", {}).items()},
-            "color_key": key,
-            "is_error": is_error,
-            "error_msg": n.metadata.get("Error", ""),
-            "is_seed": bool(n.metadata.get("Seed")),
-        })
+        nodes_json.append(
+            {
+                "id": lid,
+                "service": service,
+                "subtype": subtype,
+                "cfn_type": cfn_type,
+                "properties": n.properties or {},
+                "metadata": n.metadata or {},
+                "color_key": key,
+                "is_error": is_error,
+                "error_msg": n.metadata.get("Error", ""),
+                "is_seed": bool(n.metadata.get("Seed")),
+                "is_portable": is_portable,
+            }
+        )
 
     # assign colors
     service_colors = dict(BASE_COLORS)
     missing = [k for k in color_keys if k not in service_colors]
     for i, key in enumerate(missing):
-        service_colors[key] = generate_distinct_color(i, max(8, len(missing)))
+        color = generate_distinct_color(i, max(8, len(missing)))
+        service_colors[key] = color
 
     tmpl_dir = Path(__file__).parent / "templates"
     html_template = (tmpl_dir / "graph_template.html").read_text(encoding="utf-8")
@@ -126,19 +130,28 @@ def render_interactive_graph(
 
     graph_data = {
         "nodes": nodes_json,
-        "links": [{"source": s, "target": t} for s, t in graph._g.edges()],
+        "links": [
+            {"source": s, "target": t, "inferred": False} for s, t in graph._g.edges()
+        ],
+        "metadata": graph.metadata,
     }
 
+    for e in graph.metadata.get("InferredEdges", []):
+        graph_data["links"].append(
+            {"source": e["from"], "target": e["to"], "inferred": True}
+        )
     html = (
-        html_template
-        .replace("__STYLE__", css_code)
+        html_template.replace("__STYLE__", css_code)
         .replace("__SCRIPT__", js_code)
         .replace("__GRAPH_DATA__", json.dumps(graph_data, cls=AWSJSONEncoder))
         .replace("__COLOR_MAP__", json.dumps(service_colors, indent=2))
     )
 
     out_path.write_text(html, encoding="utf-8")
-    print(f"[INFO] Visualization written to {out_path.resolve()} ({len(nodes_json)} nodes)")
+    print(
+        f"[INFO] Visualization written to {out_path.resolve()} "
+        f"({len(nodes_json)} nodes, portable={is_portable})"
+    )
 
     if open_browser:
         webbrowser.open(out_path.resolve().as_uri())

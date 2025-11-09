@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any
+from typing import Any, Set
 from mypy_boto3_connect.type_defs import DescribeQueueResponseTypeDef
 from graph.dependency_graph import ResourceNode
 from utils.arn import ARN
@@ -17,6 +17,8 @@ def _infer_instance_arn_from_subresource(arn: ARN) -> str:
 
 
 class QueueResolver(BaseConnectSubResolver[DescribeQueueResponseTypeDef]):
+    """Resolve AWS Connect Queues."""
+
     resource_type = "queue"
     cfn_type = "AWS::Connect::Queue"
 
@@ -27,35 +29,57 @@ class QueueResolver(BaseConnectSubResolver[DescribeQueueResponseTypeDef]):
         )
 
     def parse(self, arn: ARN, raw: DescribeQueueResponseTypeDef):
-        q = raw.get("Queue", {})
-
-        # Ensure InstanceArn is present
-        try:
-            _inst_arn = q.get("InstanceArn") if isinstance(q, dict) else None
-        except Exception:
-            _inst_arn = None
-        if not _inst_arn:
-            inst_arn = _infer_instance_arn_from_subresource(arn)
-            if isinstance(q, dict):
-                q["InstanceArn"] = inst_arn
-
+        q = raw.get("Queue", {}) or {}
         refs: set[ARN] = set()
+
+        # Ensure InstanceArn
+        instance_arn_str = q.get("InstanceArn") or _infer_instance_arn_from_subresource(arn)
+        instance_arn = ARN(instance_arn_str)
+        refs.add(instance_arn)
+
+        # Derive HoursOfOperationArn from ID if missing
+        hours_id = q.get("HoursOfOperationId")
+        if not q.get("HoursOfOperationArn") and hours_id:
+            parts = arn.resource.split("/")
+            inst_idx = parts.index("instance")
+            instance_id = parts[inst_idx + 1]
+            derived = f"arn:aws:{arn.service}:{arn.region}:{arn.account_id}:instance/{instance_id}/hours-of-operation/{hours_id}"
+            q["HoursOfOperationArn"] = derived
 
         if q.get("HoursOfOperationArn"):
             parsed = ARN.try_parse(q["HoursOfOperationArn"])
             if parsed:
                 refs.add(parsed)
 
-        for qc in q.get("QuickConnectIds", []):
-            parsed = ARN.try_parse(qc)
-            if parsed:
-                refs.add(parsed)
+        # Outbound Caller Config references (optional)
+        oc = q.get("OutboundCallerConfig", {}) or {}
+        for field in ("OutboundCallerIdNumberId", "OutboundFlowId"):
+            val = oc.get(field)
+            if val and isinstance(val, str):
+                parsed = ARN.try_parse(val)
+                if parsed:
+                    refs.add(parsed)
+
+        props: dict[str, Any] = {
+            "Name": q.get("Name"),
+            "Description": q.get("Description"),
+            "HoursOfOperationArn": q.get("HoursOfOperationArn"),
+            "InstanceArn": instance_arn_str,
+            "OutboundCallerConfig": oc,
+            "Tags": q.get("Tags", {}),
+        }
+
+        metadata = {
+            "EmbeddedReferenceCount": len(refs),
+            "Source": "describe_queue",
+        }
 
         return ResourceNode(
             logical_id=f"ConnectQueue{q.get('Name', arn.resource_id)}",
             service="connect",
             cfn_type=self.cfn_type,
-            properties=q,
+            properties=props,
             referenced_arns=refs,
             arns={"Queue": arn},
+            metadata=metadata,
         )

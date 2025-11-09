@@ -60,64 +60,43 @@ class LambdaResolver(BaseResolver[LambdaClient, LambdaResponse]):
     # ----------------------------------------------------------------------
     # Internal: Function parsing
     # ----------------------------------------------------------------------
-    def _parse_function(self, arn: ARN, raw: GetFunctionResponseTypeDef) -> ResourceNode[dict[str, Any]]:
+    def _parse_function(self, arn: ARN, raw: GetFunctionResponseTypeDef, graph: DependencyGraph | None = None):
         cfg = raw.get("Configuration", {})
         refs: Set[ARN] = set()
 
-        # Role reference
+        # Handle IAM Role
         role_arn = cfg.get("Role")
         if role_arn and role_arn.startswith("arn:"):
             parsed = ARN.try_parse(role_arn)
             if parsed:
                 refs.add(parsed)
 
-        # Layers
-        for layer in cfg.get("Layers", []):
-            layer_arn = layer.get("Arn")
-            if layer_arn:
-                parsed = ARN.try_parse(layer_arn)
-                if parsed:
-                    refs.add(parsed)
+        # Extract code location
+        code = raw.get("Code", {}) or {}
+        s3_bucket = code.get("RepositoryType") == "S3" and code.get("Location") or None
 
-        # VPC
-        vpc_cfg = cfg.get("VpcConfig", {})
-        for key in ("SecurityGroupIds", "SubnetIds"):
-            for val in vpc_cfg.get(key, []):
-                if isinstance(val, str) and val.startswith("arn:"):
-                    parsed = ARN.try_parse(val)
-                    if parsed:
-                        refs.add(parsed)
+        # Synthetic artifact for Lambda .zip
+        if s3_bucket and graph is not None:
+            artifact_node = ResourceNode(
+                logical_id=f"ArtifactLambda{cfg.get('FunctionName')}",
+                service="artifact",
+                cfn_type="Portable::Artifact",
+                properties={
+                    "FileName": f"{cfg.get('FunctionName')}.zip",
+                    "LocalPath": f"./artifacts/lambda/{cfg.get('FunctionName')}.zip",
+                    "ArtifactType": "lambda-zip",
+                    "SourceUri": s3_bucket,
+                },
+                metadata={
+                    "UploadRequired": True,
+                    "RelatedService": "lambda",
+                    "LinkedTo": arn.resource,
+                },
+            )
+            graph.add_node(artifact_node)
+            graph.add_edge(artifact_node.logical_id, f"LambdaFunction{cfg.get('FunctionName')}")
 
-        # Environment vars — may contain references or bucket names
-        env_vars = cfg.get("Environment", {}).get("Variables", {}) or {}
-        refs |= extract_dependencies(env_vars)
-
-        properties: Dict[str, Any] = {
-            "FunctionName": cfg.get("FunctionName"),
-            "Runtime": cfg.get("Runtime"),
-            "Handler": cfg.get("Handler"),
-            "Role": role_arn,
-            "Description": cfg.get("Description"),
-            "Timeout": cfg.get("Timeout"),
-            "MemorySize": cfg.get("MemorySize"),
-            "VpcConfig": vpc_cfg,
-            "Environment": {"Variables": env_vars} if env_vars else {},
-            "Layers": [layer.get("Arn") for layer in cfg.get("Layers", [])],
-        }
-
-        return ResourceNode(
-            logical_id=f"LambdaFunction{cfg.get('FunctionName')}",
-            service="lambda",
-            cfn_type="AWS::Lambda::Function",
-            properties=properties,
-            referenced_arns=refs,
-            arns={"Function": arn},
-            metadata={
-                "LastModified": cfg.get("LastModified"),
-                "HasEnvVars": bool(env_vars),
-                "EnvVarCount": len(env_vars),
-            },
-        )
+    # continue parsing lambda function...
 
     # ----------------------------------------------------------------------
     # Internal: Layer parsing
