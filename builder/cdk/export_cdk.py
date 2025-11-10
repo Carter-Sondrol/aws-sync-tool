@@ -1,7 +1,9 @@
 # export_cdk.py
 import json
 import logging
+import textwrap
 from pathlib import Path
+
 from builder.cdk.cdk_builder import generate_cdk_code
 
 logger = logging.getLogger(__name__)
@@ -11,7 +13,7 @@ def export_cdk(
     graph,
     output_dir: str = "output/cdk",
     stack_name: str = "GraphStack",
-    handler_src: str | Path = "lambda_custom_handler.py",
+    handler_src: str | Path | None = None,
 ):
     """
     Exports a complete CDK app for the given dependency graph.
@@ -36,7 +38,10 @@ def export_cdk(
     logger.info("✅ Wrote graph_custom_handler_stack.py")
 
     # 3️⃣ Copy in the actual handler implementation
-    handler_src = Path(handler_src)
+    if handler_src is None:
+        handler_src = Path(__file__).with_name("graph_custom_handler.py")
+    else:
+        handler_src = Path(handler_src)
     if not handler_src.exists():
         raise FileNotFoundError(f"Could not find handler source: {handler_src}")
 
@@ -51,6 +56,44 @@ def export_cdk(
     )
     (out_dir / "app.py").write_text(app_code)
     logger.info("✅ Wrote app.py")
+
+    # 5️⃣ Project metadata
+    (out_dir / "requirements.txt").write_text(
+        "aws-cdk-lib\nconstructs>=10.0.0\n",
+        encoding="utf-8",
+    )
+    logger.info("✅ Wrote requirements.txt")
+
+    cdk_json = {
+        "app": "python3 app.py",
+        "requireApproval": "never",
+        "versionReporting": False,
+    }
+    (out_dir / "cdk.json").write_text(json.dumps(cdk_json, indent=2), encoding="utf-8")
+    logger.info("✅ Wrote cdk.json")
+
+    readme = textwrap.dedent(
+        f"""
+        # AWS CDK App: {stack_name}
+
+        This project was generated automatically from a dependency graph.
+
+        ## Quick start
+
+        ```bash
+        python3 -m venv .venv
+        source .venv/bin/activate
+        pip install -r requirements.txt
+        cdk synth
+        cdk deploy
+        ```
+
+        The custom resource handler is deployed via `GraphCustomHandlerStack`.
+        Once deployed, provide the exported handler ARN to the generated `{stack_name}` stack.
+        """
+    ).strip()
+    (out_dir / "README.md").write_text(readme, encoding="utf-8")
+    logger.info("✅ Wrote README.md")
 
     return out_dir
 

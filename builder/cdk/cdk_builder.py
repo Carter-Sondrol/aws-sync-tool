@@ -3,7 +3,6 @@ import re
 import json
 import logging
 from textwrap import indent
-from aws_cdk import CfnParameter, custom_resources
 
 logger = logging.getLogger(__name__)
 
