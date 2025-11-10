@@ -1,9 +1,10 @@
 {
+  "summary": "Graph: 27 nodes, 44 edges",
   "nodes": {
     "ConnectFlow1. Ultimate Entry": {
-      "logical_id": "ConnectFlow1. Ultimate Entry",
       "service": "connect",
       "cfn_type": "AWS::Connect::ContactFlow",
+      "reference_only": false,
       "properties": {
         "Name": "1. Ultimate Entry",
         "Type": "CONTACT_FLOW",
@@ -13,7 +14,6 @@
         "InstanceArn": "__REF_ConnectInstancesrh__",
         "Tags": {}
       },
-      "reference_only": false,
       "metadata": {
         "EmbeddedReferenceCount": 7,
         "Source": "boto3.describe_contact_flow",
@@ -22,192 +22,12 @@
         "FrozenFrom": [
           "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/contact-flow/31d89347-aab3-4704-af89-2c591b7ca888"
         ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
-    },
-    "UltimateSpanish": {
-      "logical_id": "UltimateSpanish",
-      "service": "connect",
-      "cfn_type": "AWS::Connect::Queue",
-      "properties": {
-        "Name": "Ultimate Spanish",
-        "Description": "Ultimate Spanish",
-        "InstanceArn": "__REF_ConnectInstancesrh__",
-        "OutboundCallerConfig": {
-          "OutboundCallerIdName": "SafeRide",
-          "OutboundCallerIdNumberId": "199ae2b1-84d0-4620-9ea3-4e18797d1f45",
-          "OutboundFlowId": "75b8e03f-f5c4-47d7-bb54-89fc84e66ffa"
-        },
-        "Tags": {},
-        "HoursOfOperationArn": "__REF_ConnectHoursUltimate__"
-      },
-      "reference_only": false,
-      "metadata": {
-        "Source": "boto3.describe_queue",
-        "Portable": true,
-        "FrozenFrom": [
-          "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/f6aeda4b-9341-41fd-a874-45dff680a74c"
-        ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
-    },
-    "ConnectInstancesrh": {
-      "logical_id": "ConnectInstancesrh",
-      "service": "connect",
-      "cfn_type": "AWS::Connect::Instance",
-      "properties": {
-        "InstanceAlias": "srh",
-        "IdentityManagementType": "SAML",
-        "InboundCallsEnabled": true,
-        "OutboundCallsEnabled": true,
-        "Arn": "__REF_ConnectInstancesrh__",
-        "ServiceRole": "__REF_IAMRoleAWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ__",
-        "InstanceStatus": "ACTIVE",
-        "CreatedTime": "2025-09-08T14:41:17-06:00",
-        "Tags": {}
-      },
-      "reference_only": false,
-      "metadata": {
-        "Source": "boto3.describe_instance",
-        "Portable": true,
-        "FrozenFrom": [
-          "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"
-        ],
-        "Parameter": true
-      },
-      "arns": {},
-      "referenced_arns": "set()"
-    },
-    "IAMRoleAWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ": {
-      "logical_id": "IAMRoleAWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ",
-      "service": "iam",
-      "cfn_type": "AWS::Iam::Resource",
-      "properties": {
-        "RoleName": "AWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ",
-        "Path": "/aws-service-role/connect.amazonaws.com/",
-        "Description": "Enables access to AWS Services and Resources used or managed by Amazon Connect.",
-        "ManagedBy": "Service",
-        "AssumeRolePolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": {
-                "Service": "connect.amazonaws.com"
-              },
-              "Action": "sts:AssumeRole"
-            }
-          ]
-        }
-      },
-      "reference_only": false,
-      "metadata": {
-        "ServiceLinked": true,
-        "Portable": true,
-        "FrozenFrom": [
-          "arn:aws:iam::523773103726:role/aws-service-role/connect.amazonaws.com/AWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ"
-        ],
-        "Parameter": true
-      },
-      "arns": {},
-      "referenced_arns": "set()"
-    },
-    "ConnectHoursUltimate": {
-      "logical_id": "ConnectHoursUltimate",
-      "service": "connect",
-      "cfn_type": "AWS::Connect::HoursOfOperation",
-      "properties": {
-        "Name": "Ultimate",
-        "Description": "Ultimate - Regular Business Hours",
-        "Config": [
-          {
-            "Day": "TUESDAY",
-            "StartTime": {
-              "Hours": 8,
-              "Minutes": 0
-            },
-            "EndTime": {
-              "Hours": 20,
-              "Minutes": 0
-            }
-          },
-          {
-            "Day": "SATURDAY",
-            "StartTime": {
-              "Hours": 8,
-              "Minutes": 0
-            },
-            "EndTime": {
-              "Hours": 20,
-              "Minutes": 0
-            }
-          },
-          {
-            "Day": "WEDNESDAY",
-            "StartTime": {
-              "Hours": 8,
-              "Minutes": 0
-            },
-            "EndTime": {
-              "Hours": 20,
-              "Minutes": 0
-            }
-          },
-          {
-            "Day": "MONDAY",
-            "StartTime": {
-              "Hours": 8,
-              "Minutes": 0
-            },
-            "EndTime": {
-              "Hours": 20,
-              "Minutes": 0
-            }
-          },
-          {
-            "Day": "FRIDAY",
-            "StartTime": {
-              "Hours": 8,
-              "Minutes": 0
-            },
-            "EndTime": {
-              "Hours": 20,
-              "Minutes": 0
-            }
-          },
-          {
-            "Day": "THURSDAY",
-            "StartTime": {
-              "Hours": 8,
-              "Minutes": 0
-            },
-            "EndTime": {
-              "Hours": 23,
-              "Minutes": 59
-            }
-          }
-        ],
-        "TimeZone": "US/Eastern",
-        "InstanceArn": "__REF_ConnectInstancesrh__",
-        "Tags": {}
-      },
-      "reference_only": false,
-      "metadata": {
-        "Source": "boto3.describe_hours_of_operation",
-        "Portable": true,
-        "FrozenFrom": [
-          "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/hours-of-operation/75e9d999-0df8-42dc-9a86-89147033e7d9"
-        ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
+      }
     },
     "LexAliasPROD": {
-      "logical_id": "LexAliasPROD",
       "service": "lex",
       "cfn_type": "AWS::Lex::BotAlias",
+      "reference_only": false,
       "properties": {
         "BotAliasName": "PROD",
         "BotId": "JH5QVDICLV",
@@ -247,7 +67,6 @@
           ]
         }
       },
-      "reference_only": false,
       "metadata": {
         "BotAliasStatus": "Available",
         "BotAliasId": "HWFCIMRDSP",
@@ -257,39 +76,12 @@
         "FrozenFrom": [
           "arn:aws:lex:us-west-2:523773103726:bot-alias/JH5QVDICLV/HWFCIMRDSP"
         ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
-    },
-    "S3Bucketamazonconnectc575c0ad8ab8": {
-      "logical_id": "S3Bucketamazonconnectc575c0ad8ab8",
-      "service": "s3",
-      "cfn_type": "AWS::S3::Resource",
-      "properties": {
-        "BucketName": "amazon-connect-c575c0ad8ab8",
-        "Region": null,
-        "Tags": [],
-        "ManagedBy": "AWS"
-      },
-      "reference_only": false,
-      "metadata": {
-        "IsObject": false,
-        "Implicit": true,
-        "Exists": true,
-        "Error": null,
-        "Reason": "Service-linked managed bucket",
-        "Portable": true,
-        "FrozenFrom": [
-          "arn:aws:s3:::amazon-connect-c575c0ad8ab8"
-        ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
+      }
     },
     "LexBotUltimate-Intent-Capture-2": {
-      "logical_id": "LexBotUltimate-Intent-Capture-2",
       "service": "lex",
       "cfn_type": "AWS::Lex::Bot",
+      "reference_only": false,
       "properties": {
         "Name": "Ultimate-Intent-Capture-2",
         "Description": null,
@@ -299,7 +91,6 @@
         },
         "IdleSessionTTLInSeconds": 300
       },
-      "reference_only": false,
       "metadata": {
         "BotStatus": "Available",
         "Source": "boto3.describe_bot",
@@ -307,14 +98,12 @@
         "FrozenFrom": [
           "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV"
         ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
+      }
     },
     "LexLocalees_US": {
-      "logical_id": "LexLocalees_US",
       "service": "lex",
       "cfn_type": "AWS::Lex::BotLocale",
+      "reference_only": false,
       "properties": {
         "BotId": "JH5QVDICLV",
         "LocaleId": "es_US",
@@ -325,21 +114,18 @@
           "engine": "neural"
         }
       },
-      "reference_only": false,
       "metadata": {
         "Source": "boto3.describe_bot_locale",
         "Portable": true,
         "FrozenFrom": [
           "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US"
         ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
+      }
     },
     "LexIntentAgent": {
-      "logical_id": "LexIntentAgent",
       "service": "lex",
       "cfn_type": "AWS::Lex::Intent",
+      "reference_only": false,
       "properties": {
         "BotId": "JH5QVDICLV",
         "LocaleId": "en_US",
@@ -370,108 +156,18 @@
         "InputContexts": null,
         "OutputContexts": null
       },
-      "reference_only": false,
       "metadata": {
         "Source": "boto3.describe_intent",
         "Portable": true,
         "FrozenFrom": [
           "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/VESQOHLUDK"
         ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
-    },
-    "LexIntentCancelRide": {
-      "logical_id": "LexIntentCancelRide",
-      "service": "lex",
-      "cfn_type": "AWS::Lex::Intent",
-      "properties": {
-        "BotId": "JH5QVDICLV",
-        "LocaleId": "en_US",
-        "IntentName": "CancelRide",
-        "Description": null,
-        "SampleUtterances": [
-          {
-            "utterance": "I need to cancel "
-          },
-          {
-            "utterance": "Cancel my reservation "
-          },
-          {
-            "utterance": "I don't need the ride anymore "
-          },
-          {
-            "utterance": "Remove my booking "
-          },
-          {
-            "utterance": "Remove my reservation"
-          },
-          {
-            "utterance": "Cancel upcoming ride "
-          },
-          {
-            "utterance": "I want to cancel my ride for today"
-          },
-          {
-            "utterance": "can i cancel my ride same day"
-          },
-          {
-            "utterance": "Delete my reservation "
-          },
-          {
-            "utterance": "Cancel my appointment ride "
-          },
-          {
-            "utterance": "I need to cancel my pickup "
-          },
-          {
-            "utterance": "Cancel transportation "
-          },
-          {
-            "utterance": "I booked a ride but I won't be needing it anymore"
-          },
-          {
-            "utterance": "I found another way to my apointment"
-          },
-          {
-            "utterance": "forget about my ride"
-          },
-          {
-            "utterance": "i need to call off my trip"
-          },
-          {
-            "utterance": "Please dont send anyone"
-          },
-          {
-            "utterance": "cancel my ride"
-          },
-          {
-            "utterance": "cancel my transportation"
-          }
-        ],
-        "DialogCodeHook": null,
-        "FulfillmentCodeHook": null,
-        "SlotPriorities": [],
-        "IntentClosingSetting": null,
-        "IntentConfirmationSetting": null,
-        "InputContexts": null,
-        "OutputContexts": null
-      },
-      "reference_only": false,
-      "metadata": {
-        "Source": "boto3.describe_intent",
-        "Portable": true,
-        "FrozenFrom": [
-          "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/MUVZT1VRW5"
-        ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
+      }
     },
     "LexIntentFlexRideActivation": {
-      "logical_id": "LexIntentFlexRideActivation",
       "service": "lex",
       "cfn_type": "AWS::Lex::Intent",
+      "reference_only": false,
       "properties": {
         "BotId": "JH5QVDICLV",
         "LocaleId": "en_US",
@@ -526,80 +222,74 @@
         "InputContexts": null,
         "OutputContexts": null
       },
-      "reference_only": false,
       "metadata": {
         "Source": "boto3.describe_intent",
         "Portable": true,
         "FrozenFrom": [
           "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/ORRCFPMMVB"
         ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
+      }
     },
-    "LexIntentReservation": {
-      "logical_id": "LexIntentReservation",
+    "LexIntentDriverStatus": {
       "service": "lex",
       "cfn_type": "AWS::Lex::Intent",
+      "reference_only": false,
       "properties": {
         "BotId": "JH5QVDICLV",
         "LocaleId": "en_US",
-        "IntentName": "Reservation",
+        "IntentName": "DriverStatus",
         "Description": null,
         "SampleUtterances": [
           {
-            "utterance": "I need a ride "
+            "utterance": "Where is my driver"
           },
           {
-            "utterance": "Schedule a ride"
+            "utterance": "How far away is the driver "
           },
           {
-            "utterance": "Book a ride for tomorrow "
+            "utterance": "When will my driver arrive "
           },
           {
-            "utterance": "Can you arrange transportation for me"
+            "utterance": "What's the ETA"
           },
           {
-            "utterance": "I need to get to my doctor's appointment "
+            "utterance": "What's the Estimated time"
           },
           {
-            "utterance": "Book a medical transport "
+            "utterance": "How long until pickup "
           },
           {
-            "utterance": "I need a ride as soon as possible"
+            "utterance": "Is my driver on the way "
           },
           {
-            "utterance": "Reserve a ride "
+            "utterance": "Track my driver "
           },
           {
-            "utterance": "Can I get a ride today"
+            "utterance": "How many minutes away is my driver "
           },
           {
-            "utterance": "I need transportation "
+            "utterance": "When will they get here "
           },
           {
-            "utterance": "Set up a ride for me "
+            "utterance": "Is the driver close "
           },
           {
-            "utterance": "Get me a ride to the hospital"
+            "utterance": "How far is the driver"
           },
           {
-            "utterance": "Get me a ride to my doctor"
+            "utterance": "Give me driver location"
           },
           {
-            "utterance": "I have an appointment and need a ride "
+            "utterance": "Can you tell me when to expect them"
           },
           {
-            "utterance": "Can you schedule a pickup "
+            "utterance": "how much longer until the driver gets here"
           },
           {
-            "utterance": "reservation"
+            "utterance": "i am outside waiting on my ride"
           },
           {
-            "utterance": "reserve my transportation"
-          },
-          {
-            "utterance": "i need an uber scheduled"
+            "utterance": "driver status"
           }
         ],
         "DialogCodeHook": null,
@@ -610,21 +300,44 @@
         "InputContexts": null,
         "OutputContexts": null
       },
-      "reference_only": false,
       "metadata": {
         "Source": "boto3.describe_intent",
         "Portable": true,
         "FrozenFrom": [
-          "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/WURJCJ6OBB"
+          "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/5UPY1ESGDA"
         ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
+      }
     },
-    "LexIntentRescueRide": {
-      "logical_id": "LexIntentRescueRide",
+    "LexIntentFallbackIntent": {
       "service": "lex",
       "cfn_type": "AWS::Lex::Intent",
+      "reference_only": false,
+      "properties": {
+        "BotId": "JH5QVDICLV",
+        "LocaleId": "en_US",
+        "IntentName": "FallbackIntent",
+        "Description": "Default intent when no other intent matches",
+        "SampleUtterances": null,
+        "DialogCodeHook": null,
+        "FulfillmentCodeHook": null,
+        "SlotPriorities": [],
+        "IntentClosingSetting": null,
+        "IntentConfirmationSetting": null,
+        "InputContexts": null,
+        "OutputContexts": null
+      },
+      "metadata": {
+        "Source": "boto3.describe_intent",
+        "Portable": true,
+        "FrozenFrom": [
+          "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/FALLBCKINT"
+        ]
+      }
+    },
+    "LexIntentRescueRide": {
+      "service": "lex",
+      "cfn_type": "AWS::Lex::Intent",
+      "reference_only": false,
       "properties": {
         "BotId": "JH5QVDICLV",
         "LocaleId": "en_US",
@@ -697,50 +410,18 @@
         "InputContexts": null,
         "OutputContexts": null
       },
-      "reference_only": false,
       "metadata": {
         "Source": "boto3.describe_intent",
         "Portable": true,
         "FrozenFrom": [
           "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/6UJ2RWHL46"
         ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
-    },
-    "LexIntentFallbackIntent": {
-      "logical_id": "LexIntentFallbackIntent",
-      "service": "lex",
-      "cfn_type": "AWS::Lex::Intent",
-      "properties": {
-        "BotId": "JH5QVDICLV",
-        "LocaleId": "en_US",
-        "IntentName": "FallbackIntent",
-        "Description": "Default intent when no other intent matches",
-        "SampleUtterances": null,
-        "DialogCodeHook": null,
-        "FulfillmentCodeHook": null,
-        "SlotPriorities": [],
-        "IntentClosingSetting": null,
-        "IntentConfirmationSetting": null,
-        "InputContexts": null,
-        "OutputContexts": null
-      },
-      "reference_only": false,
-      "metadata": {
-        "Source": "boto3.describe_intent",
-        "Portable": true,
-        "FrozenFrom": [
-          "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/FALLBCKINT"
-        ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
+      }
     },
     "LexIntentModifyRide": {
-      "logical_id": "LexIntentModifyRide",
       "service": "lex",
       "cfn_type": "AWS::Lex::Intent",
+      "reference_only": false,
       "properties": {
         "BotId": "JH5QVDICLV",
         "LocaleId": "en_US",
@@ -831,21 +512,183 @@
         "InputContexts": null,
         "OutputContexts": null
       },
-      "reference_only": false,
       "metadata": {
         "Source": "boto3.describe_intent",
         "Portable": true,
         "FrozenFrom": [
           "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/OEBD6GXTB0"
         ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
+      }
     },
-    "LexIntentRideStatus": {
-      "logical_id": "LexIntentRideStatus",
+    "LexIntentCancelRide": {
       "service": "lex",
       "cfn_type": "AWS::Lex::Intent",
+      "reference_only": false,
+      "properties": {
+        "BotId": "JH5QVDICLV",
+        "LocaleId": "en_US",
+        "IntentName": "CancelRide",
+        "Description": null,
+        "SampleUtterances": [
+          {
+            "utterance": "I need to cancel "
+          },
+          {
+            "utterance": "Cancel my reservation "
+          },
+          {
+            "utterance": "I don't need the ride anymore "
+          },
+          {
+            "utterance": "Remove my booking "
+          },
+          {
+            "utterance": "Remove my reservation"
+          },
+          {
+            "utterance": "Cancel upcoming ride "
+          },
+          {
+            "utterance": "I want to cancel my ride for today"
+          },
+          {
+            "utterance": "can i cancel my ride same day"
+          },
+          {
+            "utterance": "Delete my reservation "
+          },
+          {
+            "utterance": "Cancel my appointment ride "
+          },
+          {
+            "utterance": "I need to cancel my pickup "
+          },
+          {
+            "utterance": "Cancel transportation "
+          },
+          {
+            "utterance": "I booked a ride but I won't be needing it anymore"
+          },
+          {
+            "utterance": "I found another way to my apointment"
+          },
+          {
+            "utterance": "forget about my ride"
+          },
+          {
+            "utterance": "i need to call off my trip"
+          },
+          {
+            "utterance": "Please dont send anyone"
+          },
+          {
+            "utterance": "cancel my ride"
+          },
+          {
+            "utterance": "cancel my transportation"
+          }
+        ],
+        "DialogCodeHook": null,
+        "FulfillmentCodeHook": null,
+        "SlotPriorities": [],
+        "IntentClosingSetting": null,
+        "IntentConfirmationSetting": null,
+        "InputContexts": null,
+        "OutputContexts": null
+      },
+      "metadata": {
+        "Source": "boto3.describe_intent",
+        "Portable": true,
+        "FrozenFrom": [
+          "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/MUVZT1VRW5"
+        ]
+      }
+    },
+    "LexIntentReservation": {
+      "service": "lex",
+      "cfn_type": "AWS::Lex::Intent",
+      "reference_only": false,
+      "properties": {
+        "BotId": "JH5QVDICLV",
+        "LocaleId": "en_US",
+        "IntentName": "Reservation",
+        "Description": null,
+        "SampleUtterances": [
+          {
+            "utterance": "I need a ride "
+          },
+          {
+            "utterance": "Schedule a ride"
+          },
+          {
+            "utterance": "Book a ride for tomorrow "
+          },
+          {
+            "utterance": "Can you arrange transportation for me"
+          },
+          {
+            "utterance": "I need to get to my doctor's appointment "
+          },
+          {
+            "utterance": "Book a medical transport "
+          },
+          {
+            "utterance": "I need a ride as soon as possible"
+          },
+          {
+            "utterance": "Reserve a ride "
+          },
+          {
+            "utterance": "Can I get a ride today"
+          },
+          {
+            "utterance": "I need transportation "
+          },
+          {
+            "utterance": "Set up a ride for me "
+          },
+          {
+            "utterance": "Get me a ride to the hospital"
+          },
+          {
+            "utterance": "Get me a ride to my doctor"
+          },
+          {
+            "utterance": "I have an appointment and need a ride "
+          },
+          {
+            "utterance": "Can you schedule a pickup "
+          },
+          {
+            "utterance": "reservation"
+          },
+          {
+            "utterance": "reserve my transportation"
+          },
+          {
+            "utterance": "i need an uber scheduled"
+          }
+        ],
+        "DialogCodeHook": null,
+        "FulfillmentCodeHook": null,
+        "SlotPriorities": [],
+        "IntentClosingSetting": null,
+        "IntentConfirmationSetting": null,
+        "InputContexts": null,
+        "OutputContexts": null
+      },
+      "metadata": {
+        "Source": "boto3.describe_intent",
+        "Portable": true,
+        "FrozenFrom": [
+          "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/WURJCJ6OBB"
+        ]
+      }
+    },
+    "LexIntentRideStatus": {
+      "service": "lex",
+      "cfn_type": "AWS::Lex::Intent",
+      "reference_only": false,
       "properties": {
         "BotId": "JH5QVDICLV",
         "LocaleId": "en_US",
@@ -912,102 +755,18 @@
         "InputContexts": null,
         "OutputContexts": null
       },
-      "reference_only": false,
       "metadata": {
         "Source": "boto3.describe_intent",
         "Portable": true,
         "FrozenFrom": [
           "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/DPYTTBJGHI"
         ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
-    },
-    "LexIntentDriverStatus": {
-      "logical_id": "LexIntentDriverStatus",
-      "service": "lex",
-      "cfn_type": "AWS::Lex::Intent",
-      "properties": {
-        "BotId": "JH5QVDICLV",
-        "LocaleId": "en_US",
-        "IntentName": "DriverStatus",
-        "Description": null,
-        "SampleUtterances": [
-          {
-            "utterance": "Where is my driver"
-          },
-          {
-            "utterance": "How far away is the driver "
-          },
-          {
-            "utterance": "When will my driver arrive "
-          },
-          {
-            "utterance": "What's the ETA"
-          },
-          {
-            "utterance": "What's the Estimated time"
-          },
-          {
-            "utterance": "How long until pickup "
-          },
-          {
-            "utterance": "Is my driver on the way "
-          },
-          {
-            "utterance": "Track my driver "
-          },
-          {
-            "utterance": "How many minutes away is my driver "
-          },
-          {
-            "utterance": "When will they get here "
-          },
-          {
-            "utterance": "Is the driver close "
-          },
-          {
-            "utterance": "How far is the driver"
-          },
-          {
-            "utterance": "Give me driver location"
-          },
-          {
-            "utterance": "Can you tell me when to expect them"
-          },
-          {
-            "utterance": "how much longer until the driver gets here"
-          },
-          {
-            "utterance": "i am outside waiting on my ride"
-          },
-          {
-            "utterance": "driver status"
-          }
-        ],
-        "DialogCodeHook": null,
-        "FulfillmentCodeHook": null,
-        "SlotPriorities": [],
-        "IntentClosingSetting": null,
-        "IntentConfirmationSetting": null,
-        "InputContexts": null,
-        "OutputContexts": null
-      },
-      "reference_only": false,
-      "metadata": {
-        "Source": "boto3.describe_intent",
-        "Portable": true,
-        "FrozenFrom": [
-          "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/5UPY1ESGDA"
-        ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
+      }
     },
     "LexLocaleen_US": {
-      "logical_id": "LexLocaleen_US",
       "service": "lex",
       "cfn_type": "AWS::Lex::BotLocale",
+      "reference_only": false,
       "properties": {
         "BotId": "JH5QVDICLV",
         "LocaleId": "en_US",
@@ -1018,27 +777,23 @@
           "engine": "neural"
         }
       },
-      "reference_only": false,
       "metadata": {
         "Source": "boto3.describe_bot_locale",
         "Portable": true,
         "FrozenFrom": [
           "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US"
         ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
+      }
     },
     "BedrockModelanthropic.claude_3_sonnet_20240229_v1_0": {
-      "logical_id": "BedrockModelanthropic.claude_3_sonnet_20240229_v1_0",
       "service": "bedrock",
       "cfn_type": "Unresolved::BedrockModel",
+      "reference_only": true,
       "properties": {
         "ModelId": "anthropic.claude-3-sonnet-20240229-v1:0",
         "Arn": "__REF_BedrockModelanthropic.claude_3_sonnet_20240229_v1_0__",
         "Description": "Reference-only Bedrock foundation model"
       },
-      "reference_only": false,
       "metadata": {
         "GlobalResource": true,
         "ImmutableReference": true,
@@ -1047,51 +802,35 @@
         "FrozenFrom": [
           "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0"
         ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
+      }
     },
     "IAMRoleAWSServiceRoleForLexV2Bots_G5GKAZB1D9I": {
-      "logical_id": "IAMRoleAWSServiceRoleForLexV2Bots_G5GKAZB1D9I",
       "service": "iam",
       "cfn_type": "AWS::Iam::Resource",
+      "reference_only": true,
       "properties": {
         "RoleName": "AWSServiceRoleForLexV2Bots_G5GKAZB1D9I",
         "Path": "/aws-service-role/lexv2.amazonaws.com/",
         "Description": null,
         "ManagedBy": "Service",
-        "AssumeRolePolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": {
-                "Service": "lexv2.amazonaws.com"
-              },
-              "Action": "sts:AssumeRole"
-            }
-          ]
-        }
+        "AssumeRolePolicyDocument": null
       },
-      "reference_only": false,
       "metadata": {
         "ServiceLinked": true,
+        "ReferenceOnly": true,
         "Portable": true,
         "FrozenFrom": [
           "arn:aws:iam::523773103726:role/aws-service-role/lexv2.amazonaws.com/AWSServiceRoleForLexV2Bots_G5GKAZB1D9I"
         ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
+      }
     },
     "LogsGroupBotLogs": {
-      "logical_id": "LogsGroupBotLogs",
       "service": "logs",
       "cfn_type": "AWS::Logs::LogGroup",
+      "reference_only": false,
       "properties": {
         "LogGroupName": "BotLogs"
       },
-      "reference_only": false,
       "metadata": {
         "StoredBytes": 97309,
         "CreationTime": 1761163241966,
@@ -1100,65 +839,34 @@
         "FrozenFrom": [
           "arn:aws:logs:us-west-2:523773103726:log-group:BotLogs"
         ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
+      }
     },
-    "UltimateEnglish": {
-      "logical_id": "UltimateEnglish",
-      "service": "connect",
-      "cfn_type": "AWS::Connect::Queue",
+    "S3Bucketamazonconnectc575c0ad8ab8": {
+      "service": "s3",
+      "cfn_type": "AWS::S3::Resource",
+      "reference_only": true,
       "properties": {
-        "Name": "Ultimate English",
-        "Description": "Ultimate English",
-        "InstanceArn": "__REF_ConnectInstancesrh__",
-        "OutboundCallerConfig": {
-          "OutboundCallerIdName": "SafeRide",
-          "OutboundCallerIdNumberId": "199ae2b1-84d0-4620-9ea3-4e18797d1f45",
-          "OutboundFlowId": "75b8e03f-f5c4-47d7-bb54-89fc84e66ffa"
-        },
-        "Tags": {},
-        "HoursOfOperationArn": "__REF_ConnectHoursUltimate__"
+        "BucketName": "amazon-connect-c575c0ad8ab8",
+        "Region": null,
+        "Tags": [],
+        "ManagedBy": "AWS"
       },
-      "reference_only": false,
       "metadata": {
-        "Source": "boto3.describe_queue",
+        "IsObject": false,
+        "Implicit": true,
+        "Exists": true,
+        "Error": null,
+        "Reason": "Service-linked managed bucket",
         "Portable": true,
         "FrozenFrom": [
-          "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/04f60a61-9301-4742-ba1a-7239edde3f62"
+          "arn:aws:s3:::amazon-connect-c575c0ad8ab8"
         ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
-    },
-    "ConnectPromptUltimate Language Selection": {
-      "logical_id": "ConnectPromptUltimate Language Selection",
-      "service": "connect",
-      "cfn_type": "AWS::Connect::Prompt",
-      "properties": {
-        "Name": "Ultimate Language Selection",
-        "Description": "Ultimate Language Selection",
-        "S3Uri": null,
-        "InstanceArn": "__REF_ConnectInstancesrh__",
-        "Tags": {}
-      },
-      "reference_only": false,
-      "metadata": {
-        "Source": "boto3.describe_prompt",
-        "HasS3Reference": false,
-        "S3ReferenceType": "URI",
-        "Portable": true,
-        "FrozenFrom": [
-          "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/prompt/471c666f-d77f-49c6-b69a-1d32ef78f9cf"
-        ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
+      }
     },
     "UltimateAfterHoursSpanish": {
-      "logical_id": "UltimateAfterHoursSpanish",
       "service": "connect",
       "cfn_type": "AWS::Connect::Queue",
+      "reference_only": false,
       "properties": {
         "Name": "Ultimate After Hours Spanish",
         "Description": "Ultimate After Hours Spanish",
@@ -1171,21 +879,61 @@
         "Tags": {},
         "HoursOfOperationArn": "__REF_ConnectHoursUltimate After Hours__"
       },
-      "reference_only": false,
       "metadata": {
         "Source": "boto3.describe_queue",
         "Portable": true,
         "FrozenFrom": [
           "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/43df19c1-ee7f-43de-906e-408152e8ad5f"
         ]
+      }
+    },
+    "ConnectInstancesrh": {
+      "service": "connect",
+      "cfn_type": "AWS::Connect::Instance",
+      "reference_only": false,
+      "properties": {
+        "InstanceAlias": "srh",
+        "IdentityManagementType": "SAML",
+        "InboundCallsEnabled": true,
+        "OutboundCallsEnabled": true,
+        "Arn": "__REF_ConnectInstancesrh__",
+        "ServiceRole": "__REF_IAMRoleAWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ__",
+        "InstanceStatus": "ACTIVE",
+        "CreatedTime": "2025-09-08T14:41:17-06:00",
+        "Tags": {}
       },
-      "arns": {},
-      "referenced_arns": "set()"
+      "metadata": {
+        "Source": "boto3.describe_instance",
+        "Portable": true,
+        "FrozenFrom": [
+          "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"
+        ]
+      }
+    },
+    "IAMRoleAWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ": {
+      "service": "iam",
+      "cfn_type": "AWS::Iam::Resource",
+      "reference_only": true,
+      "properties": {
+        "RoleName": "AWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ",
+        "Path": "/aws-service-role/connect.amazonaws.com/",
+        "Description": "Enables access to AWS Services and Resources used or managed by Amazon Connect.",
+        "ManagedBy": "Service",
+        "AssumeRolePolicyDocument": null
+      },
+      "metadata": {
+        "ServiceLinked": true,
+        "ReferenceOnly": true,
+        "Portable": true,
+        "FrozenFrom": [
+          "arn:aws:iam::523773103726:role/aws-service-role/connect.amazonaws.com/AWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ"
+        ]
+      }
     },
     "ConnectHoursUltimate After Hours": {
-      "logical_id": "ConnectHoursUltimate After Hours",
       "service": "connect",
       "cfn_type": "AWS::Connect::HoursOfOperation",
+      "reference_only": false,
       "properties": {
         "Name": "Ultimate After Hours",
         "Description": "Ultimate After Hours",
@@ -1228,21 +976,129 @@
         "InstanceArn": "__REF_ConnectInstancesrh__",
         "Tags": {}
       },
-      "reference_only": false,
       "metadata": {
         "Source": "boto3.describe_hours_of_operation",
         "Portable": true,
         "FrozenFrom": [
           "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/hours-of-operation/1e6d53d3-e0a8-42a3-b7b1-6d73a764a9c3"
         ]
-      },
-      "arns": {},
-      "referenced_arns": "set()"
+      }
     },
-    "UltimateAfterHoursEnglish": {
-      "logical_id": "UltimateAfterHoursEnglish",
+    "UltimateSpanish": {
       "service": "connect",
       "cfn_type": "AWS::Connect::Queue",
+      "reference_only": false,
+      "properties": {
+        "Name": "Ultimate Spanish",
+        "Description": "Ultimate Spanish",
+        "InstanceArn": "__REF_ConnectInstancesrh__",
+        "OutboundCallerConfig": {
+          "OutboundCallerIdName": "SafeRide",
+          "OutboundCallerIdNumberId": "199ae2b1-84d0-4620-9ea3-4e18797d1f45",
+          "OutboundFlowId": "75b8e03f-f5c4-47d7-bb54-89fc84e66ffa"
+        },
+        "Tags": {},
+        "HoursOfOperationArn": "__REF_ConnectHoursUltimate__"
+      },
+      "metadata": {
+        "Source": "boto3.describe_queue",
+        "Portable": true,
+        "FrozenFrom": [
+          "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/f6aeda4b-9341-41fd-a874-45dff680a74c"
+        ]
+      }
+    },
+    "ConnectHoursUltimate": {
+      "service": "connect",
+      "cfn_type": "AWS::Connect::HoursOfOperation",
+      "reference_only": false,
+      "properties": {
+        "Name": "Ultimate",
+        "Description": "Ultimate - Regular Business Hours",
+        "Config": [
+          {
+            "Day": "TUESDAY",
+            "StartTime": {
+              "Hours": 8,
+              "Minutes": 0
+            },
+            "EndTime": {
+              "Hours": 20,
+              "Minutes": 0
+            }
+          },
+          {
+            "Day": "SATURDAY",
+            "StartTime": {
+              "Hours": 8,
+              "Minutes": 0
+            },
+            "EndTime": {
+              "Hours": 20,
+              "Minutes": 0
+            }
+          },
+          {
+            "Day": "WEDNESDAY",
+            "StartTime": {
+              "Hours": 8,
+              "Minutes": 0
+            },
+            "EndTime": {
+              "Hours": 20,
+              "Minutes": 0
+            }
+          },
+          {
+            "Day": "MONDAY",
+            "StartTime": {
+              "Hours": 8,
+              "Minutes": 0
+            },
+            "EndTime": {
+              "Hours": 20,
+              "Minutes": 0
+            }
+          },
+          {
+            "Day": "FRIDAY",
+            "StartTime": {
+              "Hours": 8,
+              "Minutes": 0
+            },
+            "EndTime": {
+              "Hours": 20,
+              "Minutes": 0
+            }
+          },
+          {
+            "Day": "THURSDAY",
+            "StartTime": {
+              "Hours": 8,
+              "Minutes": 0
+            },
+            "EndTime": {
+              "Hours": 23,
+              "Minutes": 59
+            }
+          }
+        ],
+        "TimeZone": "US/Eastern",
+        "InstanceArn": "__REF_ConnectInstancesrh__",
+        "Tags": {}
+      },
+      "metadata": {
+        "Source": "boto3.describe_hours_of_operation",
+        "Portable": true,
+        "FrozenFrom": [
+          "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/hours-of-operation/75e9d999-0df8-42dc-9a86-89147033e7d9"
+        ]
+      }
+    },
+    "UltimateAfterHoursEnglish": {
+      "service": "connect",
+      "cfn_type": "AWS::Connect::Queue",
+      "reference_only": false,
       "properties": {
         "Name": "Ultimate After Hours English",
         "Description": "Ultimate After Hours English",
@@ -1255,16 +1111,321 @@
         "Tags": {},
         "HoursOfOperationArn": "__REF_ConnectHoursUltimate After Hours__"
       },
-      "reference_only": false,
       "metadata": {
         "Source": "boto3.describe_queue",
         "Portable": true,
         "FrozenFrom": [
           "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/7ce5bf5e-63ac-41b4-8b30-76bd985019d0"
         ]
+      }
+    },
+    "ConnectPromptUltimate Language Selection": {
+      "service": "connect",
+      "cfn_type": "AWS::Connect::Prompt",
+      "reference_only": false,
+      "properties": {
+        "Name": "Ultimate Language Selection",
+        "Description": "Ultimate Language Selection",
+        "S3Uri": null,
+        "InstanceArn": "__REF_ConnectInstancesrh__",
+        "Tags": {}
       },
-      "arns": {},
-      "referenced_arns": "set()"
+      "metadata": {
+        "Source": "boto3.describe_prompt",
+        "HasS3Reference": false,
+        "S3ReferenceType": "URI",
+        "Portable": true,
+        "FrozenFrom": [
+          "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/prompt/471c666f-d77f-49c6-b69a-1d32ef78f9cf"
+        ]
+      }
+    },
+    "UltimateEnglish": {
+      "service": "connect",
+      "cfn_type": "AWS::Connect::Queue",
+      "reference_only": false,
+      "properties": {
+        "Name": "Ultimate English",
+        "Description": "Ultimate English",
+        "InstanceArn": "__REF_ConnectInstancesrh__",
+        "OutboundCallerConfig": {
+          "OutboundCallerIdName": "SafeRide",
+          "OutboundCallerIdNumberId": "199ae2b1-84d0-4620-9ea3-4e18797d1f45",
+          "OutboundFlowId": "75b8e03f-f5c4-47d7-bb54-89fc84e66ffa"
+        },
+        "Tags": {},
+        "HoursOfOperationArn": "__REF_ConnectHoursUltimate__"
+      },
+      "metadata": {
+        "Source": "boto3.describe_queue",
+        "Portable": true,
+        "FrozenFrom": [
+          "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/04f60a61-9301-4742-ba1a-7239edde3f62"
+        ]
+      }
+    }
+  },
+  "edges": [
+    {
+      "from": "ConnectFlow1. Ultimate Entry",
+      "to": "UltimateEnglish",
+      "inferred": false
+    },
+    {
+      "from": "ConnectFlow1. Ultimate Entry",
+      "to": "ConnectPromptUltimate Language Selection",
+      "inferred": false
+    },
+    {
+      "from": "ConnectFlow1. Ultimate Entry",
+      "to": "UltimateAfterHoursEnglish",
+      "inferred": false
+    },
+    {
+      "from": "ConnectFlow1. Ultimate Entry",
+      "to": "UltimateSpanish",
+      "inferred": false
+    },
+    {
+      "from": "ConnectFlow1. Ultimate Entry",
+      "to": "ConnectInstancesrh",
+      "inferred": false
+    },
+    {
+      "from": "ConnectFlow1. Ultimate Entry",
+      "to": "UltimateAfterHoursSpanish",
+      "inferred": false
+    },
+    {
+      "from": "ConnectFlow1. Ultimate Entry",
+      "to": "LexAliasPROD",
+      "inferred": false
+    },
+    {
+      "from": "LexAliasPROD",
+      "to": "S3Bucketamazonconnectc575c0ad8ab8",
+      "inferred": false
+    },
+    {
+      "from": "LexAliasPROD",
+      "to": "LogsGroupBotLogs",
+      "inferred": false
+    },
+    {
+      "from": "LexAliasPROD",
+      "to": "LexBotUltimate-Intent-Capture-2",
+      "inferred": false
+    },
+    {
+      "from": "LexBotUltimate-Intent-Capture-2",
+      "to": "IAMRoleAWSServiceRoleForLexV2Bots_G5GKAZB1D9I",
+      "inferred": false
+    },
+    {
+      "from": "LexBotUltimate-Intent-Capture-2",
+      "to": "LexLocaleen_US",
+      "inferred": false
+    },
+    {
+      "from": "LexBotUltimate-Intent-Capture-2",
+      "to": "LexLocalees_US",
+      "inferred": false
+    },
+    {
+      "from": "LexLocalees_US",
+      "to": "LexIntentRideStatus",
+      "inferred": false
+    },
+    {
+      "from": "LexLocalees_US",
+      "to": "LexIntentReservation",
+      "inferred": false
+    },
+    {
+      "from": "LexLocalees_US",
+      "to": "LexIntentCancelRide",
+      "inferred": false
+    },
+    {
+      "from": "LexLocalees_US",
+      "to": "LexIntentModifyRide",
+      "inferred": false
+    },
+    {
+      "from": "LexLocalees_US",
+      "to": "LexIntentRescueRide",
+      "inferred": false
+    },
+    {
+      "from": "LexLocalees_US",
+      "to": "LexIntentFallbackIntent",
+      "inferred": false
+    },
+    {
+      "from": "LexLocalees_US",
+      "to": "LexIntentDriverStatus",
+      "inferred": false
+    },
+    {
+      "from": "LexLocalees_US",
+      "to": "LexIntentFlexRideActivation",
+      "inferred": false
+    },
+    {
+      "from": "LexLocalees_US",
+      "to": "LexIntentAgent",
+      "inferred": false
+    },
+    {
+      "from": "LexLocaleen_US",
+      "to": "LexIntentReservation",
+      "inferred": false
+    },
+    {
+      "from": "LexLocaleen_US",
+      "to": "LexIntentRescueRide",
+      "inferred": false
+    },
+    {
+      "from": "LexLocaleen_US",
+      "to": "LexIntentFallbackIntent",
+      "inferred": false
+    },
+    {
+      "from": "LexLocaleen_US",
+      "to": "BedrockModelanthropic.claude_3_sonnet_20240229_v1_0",
+      "inferred": false
+    },
+    {
+      "from": "LexLocaleen_US",
+      "to": "LexIntentCancelRide",
+      "inferred": false
+    },
+    {
+      "from": "LexLocaleen_US",
+      "to": "LexIntentAgent",
+      "inferred": false
+    },
+    {
+      "from": "LexLocaleen_US",
+      "to": "LexIntentRideStatus",
+      "inferred": false
+    },
+    {
+      "from": "LexLocaleen_US",
+      "to": "LexIntentDriverStatus",
+      "inferred": false
+    },
+    {
+      "from": "LexLocaleen_US",
+      "to": "LexIntentModifyRide",
+      "inferred": false
+    },
+    {
+      "from": "LexLocaleen_US",
+      "to": "LexIntentFlexRideActivation",
+      "inferred": false
+    },
+    {
+      "from": "UltimateAfterHoursSpanish",
+      "to": "ConnectHoursUltimate After Hours",
+      "inferred": false
+    },
+    {
+      "from": "UltimateAfterHoursSpanish",
+      "to": "ConnectInstancesrh",
+      "inferred": false
+    },
+    {
+      "from": "ConnectInstancesrh",
+      "to": "IAMRoleAWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ",
+      "inferred": false
+    },
+    {
+      "from": "ConnectHoursUltimate After Hours",
+      "to": "ConnectInstancesrh",
+      "inferred": false
+    },
+    {
+      "from": "UltimateSpanish",
+      "to": "ConnectInstancesrh",
+      "inferred": false
+    },
+    {
+      "from": "UltimateSpanish",
+      "to": "ConnectHoursUltimate",
+      "inferred": false
+    },
+    {
+      "from": "ConnectHoursUltimate",
+      "to": "ConnectInstancesrh",
+      "inferred": false
+    },
+    {
+      "from": "UltimateAfterHoursEnglish",
+      "to": "ConnectHoursUltimate After Hours",
+      "inferred": false
+    },
+    {
+      "from": "UltimateAfterHoursEnglish",
+      "to": "ConnectInstancesrh",
+      "inferred": false
+    },
+    {
+      "from": "ConnectPromptUltimate Language Selection",
+      "to": "ConnectInstancesrh",
+      "inferred": false
+    },
+    {
+      "from": "UltimateEnglish",
+      "to": "ConnectHoursUltimate",
+      "inferred": false
+    },
+    {
+      "from": "UltimateEnglish",
+      "to": "ConnectInstancesrh",
+      "inferred": false
+    }
+  ],
+  "metadata": {
+    "Frozen": true,
+    "ARNMap": {
+      "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/contact-flow/31d89347-aab3-4704-af89-2c591b7ca888": "ConnectFlow1. Ultimate Entry",
+      "arn:aws:lex:us-west-2:523773103726:bot-alias/JH5QVDICLV/HWFCIMRDSP": "LexAliasPROD",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV": "LexBotUltimate-Intent-Capture-2",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US": "LexLocalees_US",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US/intent/1ESWSMPEDG": "LexIntentAgent",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US/intent/EBH1AQ64BA": "LexIntentFlexRideActivation",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US/intent/HFJ8DVIEH6": "LexIntentDriverStatus",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US/intent/FALLBCKINT": "LexIntentFallbackIntent",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US/intent/IUFP0FCC4W": "LexIntentRescueRide",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US/intent/5MEQNUXZJD": "LexIntentModifyRide",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US/intent/HE1LVVLDXQ": "LexIntentCancelRide",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US/intent/OFGU4JSP8M": "LexIntentReservation",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US/intent/ATC4GUUZLW": "LexIntentRideStatus",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US": "LexLocaleen_US",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/ORRCFPMMVB": "LexIntentFlexRideActivation",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/OEBD6GXTB0": "LexIntentModifyRide",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/5UPY1ESGDA": "LexIntentDriverStatus",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/DPYTTBJGHI": "LexIntentRideStatus",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/VESQOHLUDK": "LexIntentAgent",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/MUVZT1VRW5": "LexIntentCancelRide",
+      "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0": "BedrockModelanthropic.claude_3_sonnet_20240229_v1_0",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/FALLBCKINT": "LexIntentFallbackIntent",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/6UJ2RWHL46": "LexIntentRescueRide",
+      "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US/intent/WURJCJ6OBB": "LexIntentReservation",
+      "arn:aws:iam::523773103726:role/aws-service-role/lexv2.amazonaws.com/AWSServiceRoleForLexV2Bots_G5GKAZB1D9I": "IAMRoleAWSServiceRoleForLexV2Bots_G5GKAZB1D9I",
+      "arn:aws:logs:us-west-2:523773103726:log-group:BotLogs": "LogsGroupBotLogs",
+      "arn:aws:s3:::amazon-connect-c575c0ad8ab8": "S3Bucketamazonconnectc575c0ad8ab8",
+      "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/43df19c1-ee7f-43de-906e-408152e8ad5f": "UltimateAfterHoursSpanish",
+      "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34": "ConnectInstancesrh",
+      "arn:aws:iam::523773103726:role/aws-service-role/connect.amazonaws.com/AWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ": "IAMRoleAWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ",
+      "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/hours-of-operation/1e6d53d3-e0a8-42a3-b7b1-6d73a764a9c3": "ConnectHoursUltimate After Hours",
+      "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/f6aeda4b-9341-41fd-a874-45dff680a74c": "UltimateSpanish",
+      "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/hours-of-operation/75e9d999-0df8-42dc-9a86-89147033e7d9": "ConnectHoursUltimate",
+      "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/7ce5bf5e-63ac-41b4-8b30-76bd985019d0": "UltimateAfterHoursEnglish",
+      "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/prompt/471c666f-d77f-49c6-b69a-1d32ef78f9cf": "ConnectPromptUltimate Language Selection",
+      "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/04f60a61-9301-4742-ba1a-7239edde3f62": "UltimateEnglish"
     }
   }
 }

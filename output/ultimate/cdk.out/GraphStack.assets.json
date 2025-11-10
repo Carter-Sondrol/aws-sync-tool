@@ -1,0 +1,21 @@
+{
+  "version": "48.0.0",
+  "files": {
+    "39416d16b91326a2b6d915eadfcd9738ca919c5333f925c9c032f648b0ca837d": {
+      "displayName": "GraphStack Template",
+      "source": {
+        "path": "GraphStack.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "current_account-us-west-2-40b38176": {
+          "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-us-west-2",
+          "objectKey": "39416d16b91326a2b6d915eadfcd9738ca919c5333f925c9c032f648b0ca837d.json",
+          "region": "us-west-2",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-us-west-2"
+        }
+      }
+    }
+  },
+  "dockerImages": {}
+}

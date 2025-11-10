@@ -464,3 +464,22 @@ class DependencyGraph:
             arns={},
             referenced_arns=set(),
         )
+        
+    # ------------------------------------------------------------------
+    # Ordered node iteration for template generation
+    # ------------------------------------------------------------------
+    def ordered_nodes(self) -> Iterable[tuple[str, ResourceNode]]:
+        """
+        Yield (logical_id, node) tuples in topological order,
+        ensuring dependencies are emitted before dependents.
+
+        Falls back to insertion order if graph is empty or cyclic.
+        """
+        try:
+            for lid in self.topological_sort():
+                if lid in self._nodes:
+                    yield lid, self._nodes[lid]
+        except Exception:
+            logger.warning("[Graph] Falling back to unsorted node order (cycle or missing edges)")
+            for lid, node in self._nodes.items():
+                yield lid, node
