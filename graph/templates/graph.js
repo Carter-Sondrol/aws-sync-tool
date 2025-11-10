@@ -1,3 +1,6 @@
+// graph.js — Unified Editable AWS Resource Graph Visualizer
+// ---------------------------------------------------------------------------
+
 // -------------------------------------------
 // State and utilities
 // -------------------------------------------
@@ -47,13 +50,11 @@ function markDownstreamParameters(nodeId, newState, visited = new Set()) {
   const node = gData.nodes.find(n => n.id === nodeId);
   if (!node) return;
 
-  // --- Lock check ---------------------------------------------------
   const locked =
     node.metadata?.implicit_aws_managed ||
     node.metadata?.immutable_reference ||
     node.service === "bedrock";
-  if (locked) return; // stop propagation at locked nodes
-  // -----------------------------------------------------------------
+  if (locked) return;
 
   node.is_parameter = newState;
   node.metadata = node.metadata || {};
@@ -62,8 +63,6 @@ function markDownstreamParameters(nodeId, newState, visited = new Set()) {
   const downstream = getConnectedNodes(nodeId, "out");
   downstream.forEach(childId => markDownstreamParameters(childId, newState, visited));
 }
-
-
 
 // -------------------------------------------
 // DOM references
@@ -121,14 +120,12 @@ function createLegend() {
 
 function rebuildLegendFromGraph() {
   const gData = Graph.graphData();
-  const seen = new Set();
   const newColors = { ...colorMap };
 
   gData.nodes.forEach(n => {
     n.subtype = (n.subtype || "").toLowerCase();
     n.service = (n.service || "unknown").toLowerCase();
     n.color_key = n.subtype ? `${n.service}:${n.subtype}` : n.service;
-    seen.add(n.color_key);
     if (!newColors[n.color_key]) newColors[n.color_key] = hashColor(n.color_key);
   });
 
@@ -175,42 +172,28 @@ const Graph = ForceGraph()(fg)
   .nodeId("id")
   .nodeLabel(n => `${n.id}\n(${n.service}${n.subtype ? ":" + n.subtype : ""})`)
   .nodeColor(n => colorMap[n.color_key] || "#777")
-  .linkColor(link => link.inferred ? "#999999" : "#aaaaaa")
-  .linkWidth(link => link.inferred ? 1.5 : 2.0)
-  .linkDirectionalParticles(link => link.inferred ? 0 : 2)
-  .linkCurvature(link => link.inferred ? 0.2 : 0)
-  .linkCanvasObjectMode(() => 'after')
-  .linkCanvasObject((link, ctx, globalScale) => {
-    if (link.inferred) {
-      const start = link.source;
-      const end = link.target;
-      if (typeof start !== "object" || typeof end !== "object") return;
-      ctx.save();
-      ctx.setLineDash([5, 5]);
-      ctx.strokeStyle = "#999999";
-      ctx.beginPath();
-      ctx.moveTo(start.x, start.y);
-      ctx.lineTo(end.x, end.y);
-      ctx.stroke();
-      ctx.restore();
-    }
-  })
+  .linkColor(link => (link.inferred ? "#999999" : "#aaaaaa"))
+  .linkWidth(link => (link.inferred ? 1.5 : 2.0))
+  .linkDirectionalParticles(link => (link.inferred ? 0 : 2))
+  .linkCurvature(link => (link.inferred ? 0.2 : 0))
   .backgroundColor("#0e1117")
   .onNodeClick(n => {
-    Graph.centerAt(n.x, n.y, 800);
-    Graph.zoom(4, 800);
-    showNodeInfo(n);
-  }).onNodeRightClick(n => {
-    // Detect locked nodes
-    const locked = n.metadata?.implicit_aws_managed || n.metadata?.immutable_reference || n.service === "bedrock";
+    if (editMode) showEditPanel(n);
+    else {
+      Graph.centerAt(n.x, n.y, 800);
+      Graph.zoom(4, 800);
+      showNodeInfo(n);
+    }
+  })
+  .onNodeRightClick(n => {
+    const locked =
+      n.metadata?.implicit_aws_managed || n.metadata?.immutable_reference || n.service === "bedrock";
     if (locked) {
-      // UX feedback: small shake or flash
       const canvas = document.getElementById("graph");
       canvas.classList.add("node-shake");
       setTimeout(() => canvas.classList.remove("node-shake"), 400);
-      return; // skip toggling
+      return;
     }
-
     const newState = !n.is_parameter;
     markDownstreamParameters(n.id, newState);
     Graph.graphData(Graph.graphData());
@@ -229,15 +212,13 @@ const Graph = ForceGraph()(fg)
     if (locked) {
       ctx.beginPath();
       ctx.arc(n.x, n.y, r + 2, 0, 2 * Math.PI);
-      ctx.strokeStyle = "#00ffff"; // cyan glow for locked
+      ctx.strokeStyle = "#00ffff";
       ctx.setLineDash([3, 3]);
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.globalAlpha = 0.7;
     }
 
-
-    // Draw parameter as diamond
     if (param) {
       ctx.beginPath();
       ctx.moveTo(n.x, n.y - r);
@@ -251,7 +232,6 @@ const Graph = ForceGraph()(fg)
       ctx.lineWidth = 1.5;
       ctx.stroke();
     } else {
-      // normal circle
       ctx.beginPath();
       ctx.arc(n.x, n.y, r, 0, 2 * Math.PI);
       ctx.fillStyle = active ? color : "rgba(150,150,150,0.25)";
@@ -278,7 +258,7 @@ const Graph = ForceGraph()(fg)
   });
 
 // -------------------------------------------
-// Info Panel
+// Info / Edit Panels
 // -------------------------------------------
 let currentNode = null;
 function showNodeInfo(node) {
@@ -317,28 +297,54 @@ function showNodeInfo(node) {
     }
   }
 
-  if (node.arns && Object.keys(node.arns).length) {
-    nodeDetails.appendChild(document.createElement("hr"));
-    const aTitle = document.createElement("div");
-    aTitle.innerHTML = "<b>ARNs</b>";
-    nodeDetails.appendChild(aTitle);
-    const list = document.createElement("ul");
-    for (const [k, v] of Object.entries(node.arns)) {
-      const li = document.createElement("li");
-      li.innerHTML = `${k}: <code>${v}</code>`;
-      list.appendChild(li);
-    }
-    nodeDetails.appendChild(list);
-  }
-
   nodeDetails.appendChild(document.createElement("hr"));
   const det = document.createElement("details");
-  det.open = false;
   det.innerHTML = `<summary><b>Raw Node Data</b></summary>
   <pre class='json-block'>${JSON.stringify(node, null, 2)}</pre>`;
   nodeDetails.appendChild(det);
 }
-closeBtn.onclick = () => infoPanel.classList.remove("visible");
+
+function showEditPanel(node) {
+  currentNode = node;
+  infoPanel.classList.add("visible");
+  nodeTitle.textContent = `Edit: ${node.id}`;
+  nodeDetails.innerHTML = `
+    <label>Logical ID:</label>
+    <input id="editLogicalId" class="editable-field" value="${node.id}" />
+    <label>Service:</label>
+    <input id="editService" class="editable-field" value="${node.service}" />
+    <label>Subtype:</label>
+    <input id="editSubtype" class="editable-field" value="${node.subtype}" />
+    <label>Properties (JSON):</label>
+    <textarea id="editProperties" class="editable-textarea">${JSON.stringify(node.properties, null, 2)}</textarea>
+    <div class="panel-actions">
+      <button id="saveBtn">Save</button>
+    </div>
+  `;
+  document.getElementById("saveBtn").onclick = () => saveNodeChanges(node);
+}
+
+function saveNodeChanges(node) {
+  try {
+    const newId = document.getElementById("editLogicalId").value.trim();
+    const service = document.getElementById("editService").value.trim();
+    const subtype = document.getElementById("editSubtype").value.trim();
+    const props = JSON.parse(document.getElementById("editProperties").value);
+
+    node.id = newId;
+    node.service = service;
+    node.subtype = subtype;
+    node.properties = props;
+
+    rebuildLegendFromGraph();
+    Graph.nodeLabel(n => `${n.id}\n(${n.service}${n.subtype ? ":" + n.subtype : ""})`);
+    Graph.graphData(Graph.graphData());
+    alert("Node updated successfully.");
+    infoPanel.classList.remove("visible");
+  } catch (err) {
+    alert("Error saving node: " + err.message);
+  }
+}
 
 // -------------------------------------------
 // Controls
@@ -354,7 +360,43 @@ searchBox.oninput = () => {
   searchTerm = searchBox.value.trim().toLowerCase();
   Graph.graphData(Graph.graphData());
 };
-exportBtn.onclick = () => {
+editToggleBtn.onclick = () => {
+  editMode = !editMode;
+  editToggleBtn.textContent = `Edit: ${editMode ? "On" : "Off"}`;
+  document.body.classList.toggle("edit-mode", editMode);
+};
+
+// -------------------------------------------
+// Export menu
+// -------------------------------------------
+const exportMenu = document.createElement("div");
+exportMenu.className = "export-menu";
+exportMenu.style.display = "none";
+
+const exportJSON = document.createElement("div");
+exportJSON.className = "export-item";
+exportJSON.textContent = "Export JSON";
+exportJSON.onclick = () => exportGraphAsJSON();
+
+const exportCDK = document.createElement("div");
+exportCDK.className = "export-item";
+exportCDK.textContent = "Export CDK Template";
+exportCDK.onclick = () => exportGraphAsCDK();
+
+exportMenu.appendChild(exportJSON);
+exportMenu.appendChild(exportCDK);
+document.body.appendChild(exportMenu);
+
+exportBtn.onclick = e => {
+  e.stopPropagation();
+  const rect = exportBtn.getBoundingClientRect();
+  exportMenu.style.left = `${rect.left}px`;
+  exportMenu.style.top = `${rect.bottom + 5}px`;
+  exportMenu.style.display = exportMenu.style.display === "none" ? "block" : "none";
+};
+document.addEventListener("click", () => (exportMenu.style.display = "none"));
+
+function exportGraphAsJSON() {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -362,12 +404,31 @@ exportBtn.onclick = () => {
   a.download = "graph-edited.json";
   a.click();
   URL.revokeObjectURL(url);
-};
-editToggleBtn.onclick = () => {
-  editMode = !editMode;
-  editToggleBtn.textContent = `Edit: ${editMode ? "On" : "Off"}`;
-  document.body.classList.toggle("edit-mode", editMode);
-};
+  exportMenu.style.display = "none";
+}
+
+async function exportGraphAsCDK() {
+  exportMenu.style.display = "none";
+  try {
+    const response = await fetch("/api/export-cdk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error(await response.text());
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "cdk-template.json";
+    a.click();
+    URL.revokeObjectURL(url);
+    console.log("[INFO] CDK template exported successfully.");
+  } catch (err) {
+    alert("CDK export failed: " + err.message);
+    console.error(err);
+  }
+}
 
 // -------------------------------------------
 // Initialize

@@ -1,12 +1,15 @@
 from __future__ import annotations
+
 import logging
 from typing import Any, Dict, Set
 from mypy_boto3_lexv2_models.type_defs import DescribeBotAliasResponseTypeDef
+
 from resolvers.lex.base_lex import BaseLexSubResolver
 from utils.arn import ARN, extract_dependencies
 from graph.dependency_graph import ResourceNode
 
 logger = logging.getLogger(__name__)
+
 
 class LexAliasResolver(BaseLexSubResolver[DescribeBotAliasResponseTypeDef]):
     """Resolves Lex V2 bot aliases and links to parent bot."""
@@ -17,17 +20,20 @@ class LexAliasResolver(BaseLexSubResolver[DescribeBotAliasResponseTypeDef]):
     def fetch(self, arn: ARN) -> DescribeBotAliasResponseTypeDef:
         bot_id = arn.subresource_parent_id("bot") or arn.resource_parts[1]
         alias_id = arn.subresource_id()
-        logger.info("[LexAliasResolver] Fetching alias %s", arn)
+        if not alias_id:
+            raise ValueError(f"Invalid Lex alias ARN (missing alias ID): {arn}")
+
+        self.log.info("[LexAliasResolver] Fetching alias %s", arn)
         return self.client.describe_bot_alias(botId=bot_id, botAliasId=alias_id)
 
-    def parse(self, arn: ARN, raw: DescribeBotAliasResponseTypeDef) -> ResourceNode[dict[str, Any]]:
+
+    def parse(self, arn: ARN, raw: DescribeBotAliasResponseTypeDef) -> ResourceNode:
         alias = raw.get("botAlias") or raw
         refs: Set[ARN] = extract_dependencies(alias)
 
-        # Always link parent bot
         bot_id = alias.get("botId")
         if bot_id:
-            refs.add(ARN(f"arn:aws:lex:{arn.region}:{arn.account_id}:bot/{bot_id}"))
+            refs.add(ARN.from_parts("lex", f"bot/{bot_id}", region=arn.region, account_id=arn.account_id))
 
         props: Dict[str, Any] = {
             "BotAliasName": alias.get("botAliasName"),
@@ -37,16 +43,20 @@ class LexAliasResolver(BaseLexSubResolver[DescribeBotAliasResponseTypeDef]):
             "ConversationLogSettings": alias.get("conversationLogSettings"),
         }
 
-        return ResourceNode(
+        meta = {
+            "BotAliasStatus": alias.get("botAliasStatus"),
+            "BotAliasId": alias.get("botAliasId"),
+            "BotVersion": alias.get("botVersion"),
+            "Source": "boto3.describe_bot_alias",
+        }
+
+        node = ResourceNode(
             logical_id=f"LexAlias{alias.get('botAliasName', arn.resource_id)}",
             service="lex",
             cfn_type=self.cfn_type,
             properties=props,
             referenced_arns=refs,
             arns={"Alias": arn},
-            metadata={
-                "BotAliasStatus": alias.get("botAliasStatus"),
-                "BotAliasId": alias.get("botAliasId"),
-                "BotVersion": alias.get("botVersion"),
-            },
+            metadata=meta,
         )
+        return node

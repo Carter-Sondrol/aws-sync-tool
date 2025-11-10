@@ -1,7 +1,0 @@
-{
-  "app": "python3 app.py",
-  "watch": {
-    "include": ["**"],
-    "exclude": ["cdk.out"]
-  }
-}

@@ -1,58 +1,70 @@
 from __future__ import annotations
-from typing import Any
+
+from typing import Any, Iterable
+from botocore.exceptions import ClientError
+from boto3 import Session
+from mypy_boto3_connect import ConnectClient
 from mypy_boto3_connect.type_defs import DescribeHoursOfOperationResponseTypeDef
+
 from graph.dependency_graph import ResourceNode
+from resolvers.connect.base_connect import BaseConnectResolver
 from utils.arn import ARN
-from .base_connect import BaseConnectSubResolver
 
 
-def _infer_instance_arn_from_subresource(arn: ARN) -> str:
-    parts = arn.resource.split("/")
-    if "instance" in parts:
-        idx = parts.index("instance")
-        if idx + 1 < len(parts):
-            inst_id = parts[idx + 1]
-            return f"arn:aws:{arn.service}:{arn.region}:{arn.account_id}:instance/{inst_id}"
-    raise ValueError(f"Cannot infer Connect Instance from ARN: {arn}")
-
-
-class HoursResolver(BaseConnectSubResolver[DescribeHoursOfOperationResponseTypeDef]):
-    """Resolve Connect Hours of Operation resources."""
+class HoursResolver(BaseConnectResolver[ConnectClient, DescribeHoursOfOperationResponseTypeDef]):
+    """Resolver for Amazon Connect Hours of Operation."""
 
     resource_type = "hours-of-operation"
     cfn_type = "AWS::Connect::HoursOfOperation"
 
-    def fetch(self, instance_id: str, arn: ARN):
-        return self.client.describe_hours_of_operation(
-            InstanceId=instance_id,
-            HoursOfOperationId=arn.subresource_id(),
-        )
+    def list_resources(self) -> Iterable[ARN]:
+        for hoo in self.list_with_instance("list_hours_of_operations", "HoursOfOperationSummaryList"):
+            arn_str = hoo.get("Arn")
+            if arn_str:
+                yield ARN.parse_cached(arn_str)
 
-    def parse(self, arn: ARN, raw: DescribeHoursOfOperationResponseTypeDef):
+    def fetch_resource(self, arn: ARN) -> DescribeHoursOfOperationResponseTypeDef:
+        self.ensure_instance_id(arn)
+
+        if not self.instance_id:
+            raise ValueError("Connect instance ID is required")
+        sub_id = arn.subresource_id()
+        if not sub_id:
+            raise ValueError(f"Invalid ARN missing subresource ID: {arn}")
+
+        try:
+            return self.client.describe_hours_of_operation(
+                InstanceId=self.instance_id,
+                HoursOfOperationId=sub_id,
+            )
+        except ClientError as e:
+            self.log.error("Failed to fetch hours-of-operation %s: %s", arn, e)
+            raise
+
+    def to_node(self, arn: ARN, raw: DescribeHoursOfOperationResponseTypeDef) -> ResourceNode:
         hoo = raw.get("HoursOfOperation", {}) or {}
 
-        instance_arn_str = hoo.get("InstanceArn") or _infer_instance_arn_from_subresource(arn)
-        instance_arn = ARN(instance_arn_str)
+        instance_arn = hoo.get("InstanceArn") or self.instance_arn
+        instance_ref = ARN.parse_cached(instance_arn) if instance_arn else None
 
         props: dict[str, Any] = {
             "Name": hoo.get("Name"),
             "Description": hoo.get("Description"),
             "Config": hoo.get("Config"),
             "TimeZone": hoo.get("TimeZone"),
-            "InstanceArn": instance_arn_str,
+            "InstanceArn": instance_arn,
             "Tags": hoo.get("Tags", {}),
         }
 
-        metadata = {
-            "Source": "describe_hours_of_operation",
-        }
+        meta = {"Source": "boto3.describe_hours_of_operation"}
 
-        return ResourceNode(
-            logical_id=f"ConnectHoursOfOperation{hoo.get('Name', arn.resource_id)}",
-            service="connect",
-            cfn_type=self.cfn_type,
+        node = self.make_node(
+            arn,
+            logical_id=f"ConnectHours{hoo.get('Name', arn.resource_id)}",
             properties=props,
-            referenced_arns={instance_arn},
-            arns={"HoursOfOperation": arn},
-            metadata=metadata,
+            metadata=meta,
         )
+
+        if instance_ref:
+            node.referenced_arns.add(instance_ref)
+        return node

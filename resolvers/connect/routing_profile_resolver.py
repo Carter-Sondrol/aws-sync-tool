@@ -1,74 +1,93 @@
 from __future__ import annotations
-from typing import Any, Set
+
+from typing import Any, Iterable, Set, cast
+from botocore.exceptions import ClientError
+from boto3 import Session
+from mypy_boto3_connect import ConnectClient
 from mypy_boto3_connect.type_defs import DescribeRoutingProfileResponseTypeDef
+
 from graph.dependency_graph import ResourceNode
+from resolvers.connect.base_connect import BaseConnectResolver
 from utils.arn import ARN
-from .base_connect import BaseConnectSubResolver
 
 
-def _infer_instance_arn_from_subresource(arn: ARN) -> str:
-    parts = arn.resource.split("/")
-    if "instance" in parts:
-        idx = parts.index("instance")
-        if idx + 1 < len(parts):
-            inst_id = parts[idx + 1]
-            return f"arn:aws:{arn.service}:{arn.region}:{arn.account_id}:instance/{inst_id}"
-    raise ValueError(f"Cannot infer Connect Instance from ARN: {arn}")
-
-
-class RoutingProfileResolver(BaseConnectSubResolver[DescribeRoutingProfileResponseTypeDef]):
-    """Resolve AWS Connect Routing Profiles."""
+class RoutingProfileResolver(
+    BaseConnectResolver[ConnectClient, DescribeRoutingProfileResponseTypeDef]
+):
+    """Resolver for Amazon Connect Routing Profiles."""
 
     resource_type = "routing-profile"
     cfn_type = "AWS::Connect::RoutingProfile"
 
-    def fetch(self, instance_id: str, arn: ARN):
-        return self.client.describe_routing_profile(
-            InstanceId=instance_id,
-            RoutingProfileId=arn.subresource_id(),
-        )
+    def list_resources(self) -> Iterable[ARN]:
+        for prof in self.list_with_instance(
+            "list_routing_profiles", "RoutingProfileSummaryList"
+        ):
+            arn_str = prof.get("Arn")
+            if arn_str:
+                yield ARN.parse_cached(arn_str)
 
-    def parse(self, arn: ARN, raw: DescribeRoutingProfileResponseTypeDef):
-        prof = raw.get("RoutingProfile", {}) or {}
-        refs: set[ARN] = set()
+    def fetch_resource(self, arn: ARN) -> DescribeRoutingProfileResponseTypeDef:
+        self.ensure_instance_id(arn)
+        if not self.instance_id:
+            raise ValueError("Connect instance ID is required")
 
-        # Instance reference
-        instance_arn_str = prof.get("InstanceArn") or _infer_instance_arn_from_subresource(arn)
-        instance_arn = ARN(instance_arn_str)
-        refs.add(instance_arn)
+        sub_id = arn.subresource_id()
+        if not sub_id:
+            raise ValueError(f"Invalid RoutingProfile ARN: {arn}")
 
-        # DefaultOutboundQueueArn and possibly other queues
-        if prof.get("DefaultOutboundQueueArn"):
-            parsed = ARN.try_parse(prof["DefaultOutboundQueueArn"])
-            if parsed:
-                refs.add(parsed)
+        try:
+            return self.client.describe_routing_profile(
+                InstanceId=self.instance_id,
+                RoutingProfileId=sub_id,
+            )
+        except ClientError as e:
+            self.log.error("Failed to fetch RoutingProfile %s: %s", arn, e)
+            raise
 
-        for q in prof.get("MediaConcurrencies", []) or []:
-            if isinstance(q, dict) and "QueueArn" in q:
-                parsed = ARN.try_parse(q["QueueArn"])
-                if parsed:
-                    refs.add(parsed)
+    def to_node(
+        self, arn: ARN, raw: DescribeRoutingProfileResponseTypeDef
+    ) -> ResourceNode:
+        # Cast to generic dict to handle fields missing from stubs
+        prof = cast(dict[str, Any], raw.get("RoutingProfile", {}) or {})
+        refs: Set[ARN] = set()
 
-        props = {
+        inst_arn = prof.get("InstanceArn") or self.instance_arn
+        if inst_arn:
+            refs.add(ARN.parse_cached(inst_arn))
+
+        # Handle DefaultOutboundQueueArn (newer field not in stub)
+        dobq = prof.get("DefaultOutboundQueueArn")
+        if dobq and ARN.is_valid(dobq):
+            refs.add(ARN.parse_cached(dobq))
+
+        for mc in prof.get("MediaConcurrencies", []) or []:
+            if (
+                isinstance(mc, dict)
+                and "QueueArn" in mc
+                and ARN.is_valid(mc["QueueArn"])
+            ):
+                refs.add(ARN.parse_cached(mc["QueueArn"]))
+
+        props: dict[str, Any] = {
             "Name": prof.get("Name"),
             "Description": prof.get("Description"),
-            "InstanceArn": instance_arn_str,
-            "DefaultOutboundQueueArn": prof.get("DefaultOutboundQueueArn"),
+            "InstanceArn": inst_arn,
+            "DefaultOutboundQueueArn": dobq,
             "MediaConcurrencies": prof.get("MediaConcurrencies"),
             "Tags": prof.get("Tags", {}),
         }
 
-        metadata = {
+        meta = {
             "EmbeddedReferenceCount": len(refs),
-            "Source": "describe_routing_profile",
+            "Source": "boto3.describe_routing_profile",
         }
 
-        return ResourceNode(
+        node = self.make_node(
+            arn,
             logical_id=f"ConnectRoutingProfile{prof.get('Name', arn.resource_id)}",
-            service="connect",
-            cfn_type=self.cfn_type,
             properties=props,
-            referenced_arns=refs,
-            arns={"RoutingProfile": arn},
-            metadata=metadata,
+            metadata=meta,
         )
+        node.referenced_arns |= refs
+        return node
