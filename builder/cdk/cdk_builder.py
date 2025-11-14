@@ -1,28 +1,29 @@
-import re
+from __future__ import annotations
+
 import json
 import logging
-from textwrap import indent
-from importlib import import_module
+import re
 
 from graph.dependency_graph import DependencyGraph
 
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------
-# Supported CDK service modules
+# CDK service module mapping
 # ---------------------------------------------------------------------
 SERVICE_MAP = {
     "connect": "aws_connect",
-    "lex": "aws_lex",  # ✅ Lex v2 is unified under aws_lex
+    "lex": "aws_lex",
     "logs": "aws_logs",
     "iam": "aws_iam",
     "lambda": "aws_lambda",
     "s3": "aws_s3",
     "dynamodb": "aws_dynamodb",
+    "sns": "aws_sns",
 }
 
 # ---------------------------------------------------------------------
-# CloudFormation → CDK class overrides
+# CloudFormation → CDK L1 overrides
 # ---------------------------------------------------------------------
 CFN_CLASS_OVERRIDES = {
     "AWS::IAM::ServiceLinkedRole": "aws_iam.CfnServiceLinkedRole",
@@ -41,19 +42,6 @@ CFN_CLASS_OVERRIDES = {
     "AWS::Lex::ResourcePolicy": "aws_lex.CfnResourcePolicy",
 }
 
-# ---------------------------------------------------------------------
-# Required properties for validation
-# ---------------------------------------------------------------------
-REQUIRED_PROPS = {
-    "AWS::Connect::ContactFlow": ["name", "instance_arn", "type", "content"],
-    "AWS::Connect::Queue": ["name", "instance_arn"],
-    "AWS::Connect::Prompt": ["name", "instance_arn"],
-    "AWS::Connect::Instance": ["attributes", "identity_management_type"],
-    "AWS::Lex::Bot": ["name", "role_arn"],
-    "AWS::Lex::BotAlias": ["bot_alias_name", "bot_id"],
-}
-
-SUPPORTED_CFN_TYPES = set(CFN_CLASS_OVERRIDES.keys())
 LEX_AUTHORING_TYPES = {
     "AWS::Lex::BotLocale",
     "AWS::Lex::Intent",
@@ -63,13 +51,13 @@ LEX_AUTHORING_TYPES = {
 
 
 # ---------------------------------------------------------------------
-# Utility helpers
+# Helper functions
 # ---------------------------------------------------------------------
 def sanitize_identifier(name: str) -> str:
     name = re.sub(r"[^A-Za-z0-9_]", "_", name)
     if not re.match(r"^[A-Za-z_]", name):
         name = f"r_{name}"
-    return name[:100]
+    return name[:80]
 
 
 def camel_to_snake(name: str) -> str:
@@ -82,241 +70,225 @@ def cfn_to_cdk_class(cfn_type: str) -> str:
         return "aws_cdk.CfnResource"
     if cfn_type in CFN_CLASS_OVERRIDES:
         return CFN_CLASS_OVERRIDES[cfn_type]
-    parts = cfn_type.split("::")
-    if len(parts) == 3:
-        _, svc, res = parts
-    else:
-        svc, res = parts[-2], parts[-1] if len(parts) >= 2 else "Resource"
+    try:
+        _, svc, res = cfn_type.split("::")
+    except ValueError:
+        svc = "unknown"
+        res = "Resource"
     module = SERVICE_MAP.get(svc.lower(), f"aws_{svc.lower()}")
     return f"{module}.Cfn{res}"
 
 
 # ---------------------------------------------------------------------
-# Property normalization for nested CDK structures
+# CDK generator
 # ---------------------------------------------------------------------
-def _build_cfn_property_str(module_name: str, class_name: str, data: dict) -> str:
-    """Recursively convert nested dicts into proper Cfn*Property(...) syntax."""
-    module = import_module(f"aws_cdk.{module_name}")
-    cfn_cls = getattr(module, class_name, None)
-    if not cfn_cls or not isinstance(data, dict):
-        return repr(data)
+def generate_cdk_code(graph: DependencyGraph, stack_name: str = "GraphStack") -> str:
+    """
+    Generate a Python CDK stack that recreates the given DependencyGraph.
 
-    # Special case: Connect HoursOfOperation
-    if class_name == "CfnHoursOfOperation" and "config" in data:
-        cfgs = []
-        for cfg in data["config"]:
-            day = cfg.get("Day")
-            st = cfg.get("StartTime", {})
-            et = cfg.get("EndTime", {})
-            cfgs.append(
-                f"aws_connect.CfnHoursOfOperation.HoursOfOperationConfigProperty("
-                f"day={json.dumps(day)}, "
-                f"start_time=aws_connect.CfnHoursOfOperation.HoursOfOperationTimeSliceProperty("
-                f"hours={st.get('Hours', 0)}, minutes={st.get('Minutes', 0)}), "
-                f"end_time=aws_connect.CfnHoursOfOperation.HoursOfOperationTimeSliceProperty("
-                f"hours={et.get('Hours', 0)}, minutes={et.get('Minutes', 0)}))"
-            )
-        data = {**data, "config": f"[{', '.join(cfgs)}]"}
-    return repr(data)
+    Assumes graph is already frozen/portable:
+      - ARN strings have been replaced with __REF_<LogicalId>__ where possible.
+      - Lambda env params are recorded in graph.metadata["PendingParams"].
+    """
 
-def generate_cdk_code(graph: DependencyGraph, stack_name="GraphStack") -> str:
-    import re
-    from textwrap import indent
-
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-    def _inject_placeholder_edges(graph: DependencyGraph):
-        """Infer dependency edges from __REF_*__ placeholders anywhere in node properties."""
-        import re
-        injected = 0
-
-        def _extract_refs(obj):
-            """Recursively collect all __REF_*__ placeholders from nested dict/list/str structures."""
-            refs = set()
-            if isinstance(obj, str):
-                for match in re.findall(r"__REF_([^_]+)__", obj):
-                    refs.add(match.strip())
-            elif isinstance(obj, dict):
-                for v in obj.values():
-                    refs.update(_extract_refs(v))
-            elif isinstance(obj, list):
-                for v in obj:
-                    refs.update(_extract_refs(v))
-            return refs
-
-        for lid, node in list(graph._nodes.items()):
-            refs = _extract_refs(node.properties)
-            for ref_match in refs:
-                ref_match = ref_match.strip()
-                for candidate in graph._nodes.keys():
-                    if candidate == ref_match or sanitize_identifier(candidate) == sanitize_identifier(ref_match):
-                        if not graph._g.has_edge(lid, candidate):
-                            graph.add_edge(lid, candidate, inferred=True)
-                            injected += 1
-                        break
-
-        logger.info(f"[CDK] Injected {injected} inferred edges from __REF__ placeholders")
-
-    def _priority(node):
-        # Fallback priority ordering if topo sort fails
-        if "Parameter" in node.metadata:
-            return 0
-        if node.reference_only:
-            return 1
-        if node.service == "iam":
-            return 2
-        if node.service == "s3":
-            return 3
-        if node.service == "lambda":
-            return 4
-        return 10
-
-    # ------------------------------------------------------------------
-    # Ensure correct dependency order
-    # ------------------------------------------------------------------
-    _inject_placeholder_edges(graph)
+    # --------------------------------------------------------
+    # 1. Determine resource build order
+    # --------------------------------------------------------
     try:
         ordered_lids = graph.topological_sort()
-        logger.info(f"[CDK] Using topological sort for {len(ordered_lids)} nodes")
+        logger.info("[CDK] Using topological sort for %d nodes", len(ordered_lids))
     except Exception as e:
-        logger.warning(f"[CDK] Topological sort failed ({e}); using fallback order")
-        ordered_lids = sorted(graph._nodes.keys(), key=lambda lid: _priority(graph._nodes[lid]))
+        logger.warning("[CDK] Topological sort failed (%s), using fallback order", e)
+        ordered_lids = sorted(graph._nodes.keys())
 
-    # ------------------------------------------------------------------
-    # Imports and Stack header
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------
+    # 2. Build header & imports
+    # --------------------------------------------------------
     used_modules = sorted(set(SERVICE_MAP.values()))
-    import_line = f"from aws_cdk import (Stack, {', '.join(used_modules)}, custom_resources)"
-    lines = [
+    import_line = (
+        f"from aws_cdk import (Stack, {', '.join(used_modules)}, "
+        "CfnParameter, CfnCustomResource)"
+    )
+
+    lines: list[str] = [
         import_line,
         "from constructs import Construct",
-        "from aws_cdk import CfnParameter",
+        "import aws_cdk",
         "import json",
         "",
         f"class {stack_name}(Stack):",
         "    def __init__(self, scope: Construct, id: str, **kwargs):",
         "        super().__init__(scope, id, **kwargs)",
         "",
+        '        # Custom handler for unsupported resources',
         '        self.custom_handler_arn = CfnParameter(self, "CustomHandlerArn", type="String")',
         "",
     ]
 
-    # ------------------------------------------------------------------
-    # Parameter definitions
-    # ------------------------------------------------------------------
-    for lid in ordered_lids:
-        node = graph._nodes[lid]
-        if node.metadata.get("Parameter") and not node.reference_only:
-            var_name = sanitize_identifier(lid)
-            lines.append(f'        self.{var_name} = CfnParameter(self, "{lid}", type="String")')
-    lines.append("")
+    # --------------------------------------------------------
+    # 3. Emit parameters for __PARAM_* markers (Lambda env etc.)
+    # --------------------------------------------------------
+    pending_params = graph.metadata.get("PendingParams", {})
+    for pname, default_val in pending_params.items():
+        safe_name = sanitize_identifier(pname)
+        default_str = json.dumps(default_val)
+        lines.append(
+            f'        self.{safe_name} = CfnParameter('
+            f'self, "{pname}", type="String", default={default_str})'
+        )
+    if pending_params:
+        lines.append("")
 
-    # ------------------------------------------------------------------
-    # Resource generation
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------
+    # 4. Emit resources
+    # --------------------------------------------------------
     for lid in ordered_lids:
-        node = graph._nodes[lid]
-        if node.reference_only or node.metadata.get("Parameter"):
+        node = graph.get_node(lid)
+        if not node or node.reference_only:
             continue
 
         cfn_type = node.cfn_type or "AWS::Unknown::Resource"
         cls = cfn_to_cdk_class(cfn_type)
         var_name = sanitize_identifier(lid)
-        props = node.properties or {}
+        raw_props = node.properties or {}
 
-        normalized_props = {camel_to_snake(k): v for k, v in props.items()}
-        for req in REQUIRED_PROPS.get(cfn_type, []):
-            normalized_props.setdefault(req, f"__AUTO_{req}__")
+        # Normalize keys to snake_case for CDK L1
+        props_snake: dict[str, object] = {
+            camel_to_snake(k): v for k, v in raw_props.items()
+        }
 
+        # ----------------- Per-type fixups & injections -----------------
+
+        # Lambda Function requires code
+        if cfn_type == "AWS::Lambda::Function":
+            if "code" not in props_snake:
+                props_snake["code"] = {
+                    "zip_file": (
+                        "def handler(event, context):\n"
+                        "    return {'statusCode': 200, 'body': 'OK'}"
+                    )
+                }
+
+        # IAM Role inline_policies → policies list
+        if cfn_type == "AWS::IAM::Role":
+            inline = props_snake.pop("inline_policies", None)
+            if isinstance(inline, dict) and inline:
+                pols = []
+                for pname, pdoc in inline.items():
+                    pols.append(
+                        {
+                            "policy_name": pname,
+                            "policy_document": pdoc,
+                        }
+                    )
+                props_snake["policies"] = pols
+
+        # Lex BotAlias requires bot_id and usually references a Bot
+        if cfn_type == "AWS::Lex::BotAlias":
+            if "bot_id" not in props_snake:
+                # Look for a dependent Lex::Bot node
+                bot_lid = None
+                for _, tgt in graph._g.edges(lid):
+                    tgt_node = graph.get_node(tgt)
+                    if tgt_node and tgt_node.cfn_type == "AWS::Lex::Bot":
+                        bot_lid = tgt
+                        break
+                if bot_lid:
+                    # Special sentinel so we can emit attr_bot_id
+                    props_snake["bot_id"] = {"__BOT_ID_FROM__": bot_lid}
+
+        # ----------------- Determine if we must use custom resource -----
         unsupported = (
-            cfn_type not in SUPPORTED_CFN_TYPES
+            cfn_type not in CFN_CLASS_OVERRIDES
             or cfn_type in LEX_AUTHORING_TYPES
-            or "Unknown" in cls
+            or cls.startswith("aws_unknown")
         )
 
-        # Unsupported → custom resource bridge
         if unsupported:
-            prop_json = json.dumps(normalized_props, indent=2)
-            lines.append(f"""\
-        self.{var_name} = aws_cdk.CfnCustomResource(
-            self, "{lid}",
-            service_token=self.custom_handler_arn.value_as_string,
-        )
-        for k, v in json.loads(r'''{prop_json}''').items():
-            self.{var_name}.add_property_override(k, v)
-        self.{var_name}.add_property_override("Service", "{node.service}")
-        self.{var_name}.add_property_override("OriginalType", "{cfn_type}")
-""")
+            prop_literal = repr(props_snake)
+            lines.append(f"        self.{var_name} = CfnCustomResource(")
+            lines.append(f'            self, "{lid}",')
+            lines.append(
+                "            service_token=self.custom_handler_arn.value_as_string,"
+            )
+            lines.append("        )")
+            lines.append(f"        for k, v in {prop_literal}.items():")
+            lines.append(f"            self.{var_name}.add_property_override(k, v)")
+            lines.append(
+                f'        self.{var_name}.add_property_override("Service", "{node.service}")'
+            )
+            lines.append(
+                f'        self.{var_name}.add_property_override("OriginalType", "{cfn_type}")'
+            )
+            lines.append("")
             continue
 
-        # ------------------------------------------------------------------
-        # Supported → CDK native resource
-        # ------------------------------------------------------------------
-        prop_lines = []
-        for key, val in normalized_props.items():
-            vstr = None
-            # --- Special handling: Lex alias locale settings ---
-            if key in ("bot_alias_locale_settings", "botalias_localesettings"):
-                # Convert dict {"en_US": {...}, "es_US": {...}} → list of objects
-                if isinstance(val, dict):
-                    converted = []
-                    for locale_id, conf in val.items():
-                        converted.append({
-                            "locale_id": locale_id,
-                            "bot_alias_locale_setting": conf,
-                        })
-                    vstr = (
-                        "["
-                        + ", ".join(
-                            f"aws_lex.CfnBotAlias.BotAliasLocaleSettingsItemProperty(locale_id={json.dumps(i['locale_id'])}, "
-                            f"bot_alias_locale_setting={json.dumps(i['bot_alias_locale_setting'])})"
-                            for i in converted
-                        )
-                        + "]"
-                    )
-                    prop_lines.append(f"{key}={vstr}")
+        # ----------------- Native CDK L1 resource -----------------------
+        prop_lines: list[str] = []
+
+        for key, val in props_snake.items():
+            # Drop any explicit None values to avoid type errors
+            if val is None:
+                continue
+
+            # Tag dict → list of {key, value}
+            if key == "tags" and isinstance(val, dict):
+                if not val:
+                    # empty tags dict → omit property entirely
                     continue
+                tag_list = [{"key": k, "value": v} for k, v in val.items()]
+                prop_lines.append(f"{key}={repr(tag_list)}")
+                continue
 
+            # Special bot_id sentinel for Lex::BotAlias
+            if isinstance(val, dict) and "__BOT_ID_FROM__" in val:
+                bot_lid = val["__BOT_ID_FROM__"]
+                bot_var = sanitize_identifier(bot_lid)
+                vstr = f"self.{bot_var}.attr_bot_id"
+                prop_lines.append(f"{key}={vstr}")
+                continue
 
-            # Handle __REF_*__ references
+            # __REF_<LogicalId>__ placeholder → .ref
             if isinstance(val, str) and val.startswith("__REF_") and val.endswith("__"):
                 ref_target = val.strip("_").replace("REF_", "")
-                ref_target_sanitized = sanitize_identifier(ref_target)
-                target_node = graph._nodes.get(ref_target)
+                ref_safe = sanitize_identifier(ref_target)
+                target_node = graph.get_node(ref_target)
 
-                # Try fallback match by sanitized name
-                if not target_node:
-                    for k in graph._nodes.keys():
-                        if sanitize_identifier(k) == ref_target_sanitized:
-                            target_node = graph._nodes[k]
-                            break
-
-                if target_node and target_node.metadata.get("Parameter"):
-                    vstr = f"self.{ref_target_sanitized}.value_as_string"
-                elif target_node:
-                    vstr = f"self.{ref_target_sanitized}.ref"
+                if target_node:
+                    vstr = f"self.{ref_safe}.ref"
                 else:
-                    logger.warning(f"[CDK] Unresolved placeholder: {ref_target}")
-                    vstr = f'"__UNRESOLVED_{ref_target}__"'
+                    logger.warning("[CDK] Unresolved __REF__ placeholder %s", ref_target)
+                    vstr = json.dumps(val)
+                prop_lines.append(f"{key}={vstr}")
+                continue
 
-            elif isinstance(val, dict) and key == "config" and "connect" in cls:
-                vstr = _build_cfn_property_str("aws_connect", "CfnHoursOfOperation", {"config": val})
-            elif isinstance(val, dict) and key == "tags":
-                vstr = repr([{"key": k, "value": v} for k, v in val.items()])
-            elif isinstance(val, dict):
-                vstr = json.dumps(val)
-            else:
-                vstr = json.dumps(val) if isinstance(val, str) else repr(val)
-            vstr = vstr.replace("true", "True").replace("false", "False").replace("null", "None")
-            prop_lines.append(f"{key}={vstr}")
+            # __PARAM_<Name>__ placeholder → parameter
+            if isinstance(val, str) and val.startswith("__PARAM_"):
+                pname = val.replace("__PARAM_", "").replace("__", "")
+                p_safe = sanitize_identifier(pname)
+                vstr = f"self.{p_safe}.value_as_string"
+                prop_lines.append(f"{key}={vstr}")
+                continue
 
-        joined_props = ",\n".join(indent(p, " " * 12) for p in prop_lines)
-        lines.append(f"""\
-        self.{var_name} = {cls}(
-            self, "{lid}",
-{joined_props}
-        )
-""")
+            # Dict/list → literal JSON-like structure
+            if isinstance(val, (dict, list)):
+                prop_lines.append(f"{key}={json.dumps(val)}")
+                continue
+
+            # Primitive string → JSON string literal
+            if isinstance(val, str):
+                prop_lines.append(f"{key}={json.dumps(val)}")
+                continue
+
+            # Other primitives
+            prop_lines.append(f"{key}={repr(val)}")
+
+        # Emit the resource construct
+        lines.append(f"        self.{var_name} = {cls}(")
+        lines.append(f'            self, "{lid}",')
+        for pl in prop_lines:
+            lines.append(" " * 12 + pl + ",")
+        lines.append("        )")
+        lines.append("")
 
     return "\n".join(lines)

@@ -1,53 +1,38 @@
 from __future__ import annotations
-
 import json
-from typing import Any, Iterable, Set
-from boto3 import Session
+from typing import Any, Set
 from botocore.exceptions import ClientError
 from mypy_boto3_connect import ConnectClient
 from mypy_boto3_connect.type_defs import DescribeContactFlowModuleResponseTypeDef
 
-from graph.dependency_graph import ResourceNode
+from resolvers.registry import register_resolver
 from resolvers.connect.base_connect import BaseConnectResolver
+from graph.resource_node import ResourceNode
 from utils.arn import ARN, extract_dependencies
 
 
+@register_resolver("connect:flow-module")
 class FlowModuleResolver(BaseConnectResolver[ConnectClient, DescribeContactFlowModuleResponseTypeDef]):
-    """
-    Resolver for Amazon Connect Contact Flow Modules.
-    Captures embedded dependencies and instance linkage.
-    """
-
-    resource_type = "contact-flow-module"
-    aliases = ("flow-module",)
+    resource_type = "flow-module"
     cfn_type = "AWS::Connect::ContactFlowModule"
-
-    def list_resources(self) -> Iterable[ARN]:
-        for mod in self.list_with_instance("list_contact_flow_modules", "ContactFlowModulesSummaryList"):
-            arn_str = mod.get("Arn")
-            if arn_str:
-                yield ARN.parse_cached(arn_str)
 
     def fetch_resource(self, arn: ARN) -> DescribeContactFlowModuleResponseTypeDef:
         self.ensure_instance_id(arn)
-        if not self.instance_id:
-            raise ValueError("Connect instance ID is required")
         sub_id = arn.subresource_id()
-        if not sub_id:
-            raise ValueError(f"Invalid ARN missing subresource ID: {arn}")
-
         try:
+            if not self.instance_id or not sub_id:
+                raise ValueError(f"Invalid ARN {arn}")
             return self.client.describe_contact_flow_module(
                 InstanceId=self.instance_id,
                 ContactFlowModuleId=sub_id,
             )
-        except ClientError as e:
-            self.log.error("Failed to fetch flow module %s: %s", arn, e)
+        except ClientError:
+            self.log.error("Failed to fetch %s", arn, exc_info=True)
             raise
 
     def to_node(self, arn: ARN, raw: DescribeContactFlowModuleResponseTypeDef) -> ResourceNode:
         mod = raw.get("ContactFlowModule", {}) or {}
-        content = mod.get("Content", "") or ""
+        content = mod.get("Content") or ""
 
         try:
             refs: Set[ARN] = extract_dependencies(json.loads(content))
@@ -58,7 +43,7 @@ class FlowModuleResolver(BaseConnectResolver[ConnectClient, DescribeContactFlowM
         if inst_arn:
             refs.add(ARN.parse_cached(inst_arn))
 
-        props: dict[str, Any] = {
+        props = {
             "Name": mod.get("Name"),
             "Description": mod.get("Description"),
             "Content": content,
@@ -66,13 +51,11 @@ class FlowModuleResolver(BaseConnectResolver[ConnectClient, DescribeContactFlowM
             "Tags": mod.get("Tags", {}),
         }
 
-        meta = {"EmbeddedReferenceCount": len(refs), "Source": "boto3.describe_contact_flow_module"}
-
         node = self.make_node(
             arn,
-            logical_id=f"ConnectModule{mod.get('Name', arn.resource_id)}",
+            logical_id=f"ConnectModule{self.make_logical_id(mod.get('Name'))}",
             properties=props,
-            metadata=meta,
+            metadata={"Source": "describe_contact_flow_module", "EmbeddedReferenceCount": len(refs)},
         )
         node.referenced_arns |= refs
         return node

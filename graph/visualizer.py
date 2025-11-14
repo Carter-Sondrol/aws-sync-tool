@@ -1,6 +1,10 @@
 from __future__ import annotations
-import json, webbrowser, colorsys
+
+import colorsys
+import json
+import webbrowser
 from pathlib import Path
+
 from graph.dependency_graph import DependencyGraph
 from utils.json_encoder import AWSJSONEncoder
 
@@ -140,6 +144,7 @@ def render_interactive_graph(
         graph_data["links"].append(
             {"source": e["from"], "target": e["to"], "inferred": True}
         )
+
     html = (
         html_template.replace("__STYLE__", css_code)
         .replace("__SCRIPT__", js_code)

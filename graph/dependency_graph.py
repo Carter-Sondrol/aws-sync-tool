@@ -1,264 +1,340 @@
 from __future__ import annotations
 
+import datetime
 import json
 import logging
-from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Iterator, Iterable, Set
+from typing import Any, Dict, Optional, Iterator
 from copy import deepcopy
+
 import networkx as nx
 
-from utils.arn import ARN, extract_dependencies
+from graph.resource_node import ResourceNode
+from utils.arn import ARN
 
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------
-# Node definition
-# ---------------------------------------------------------------------
-@dataclass
-class ResourceNode:
-    """
-    Representation of a resource in the dependency graph.
-
-    logical_id: CloudFormation-style logical ID
-    service: AWS service namespace (e.g. "lambda", "connect", "s3")
-    cfn_type: CloudFormation resource type
-    properties: Resource configuration or definition
-    reference_only: True if node represents a reference/parameter
-    metadata: Additional diagnostic metadata
-    arns: Named ARN map (Primary, Artifact, etc.)
-    referenced_arns: Set of ARNs this resource depends on
-    """
-
-    logical_id: str
-    service: str
-    cfn_type: str
-    properties: dict
-    reference_only: bool = False
-    metadata: dict = field(default_factory=dict)
-    arns: dict[str, ARN] = field(default_factory=dict)
-    referenced_arns: set[ARN] = field(default_factory=set)
-
-
-# ---------------------------------------------------------------------
-# DependencyGraph
-# ---------------------------------------------------------------------
 class DependencyGraph:
-    """Generic dependency graph of AWS resources with ARN-aware linkage."""
+    """
+    Stores ResourceNodes, manages ARN→logical-ID mapping,
+    handles edges, deferred edges, and orphan generation.
+
+    NOTE:
+      - Resolvers do NOT modify the graph.
+      - ResourceGraphBuilder orchestrates traversal + node insertion.
+      - All structural logic (edges, pending links) lives here.
+    """
 
     def __init__(self) -> None:
-        self._g: nx.DiGraph = nx.DiGraph()
+        self._g = nx.DiGraph()
         self._nodes: dict[str, ResourceNode] = {}
         self._arn_index: dict[ARN, str] = {}
         self._pending_links: list[tuple[str, ARN]] = []
         self.metadata: dict[str, Any] = {}
 
-    # ------------------------------------------------------------------
-    # Basic iteration
-    # ------------------------------------------------------------------
+    # ============================================================
+    # Basic API
+    # ============================================================
     def __iter__(self) -> Iterator[ResourceNode]:
         return iter(self._nodes.values())
 
     def __len__(self) -> int:
         return len(self._nodes)
 
-    # ------------------------------------------------------------------
-    # Node / Edge Management
-    # ------------------------------------------------------------------
+    def get_node(self, logical_id: str) -> Optional[ResourceNode]:
+        return self._nodes.get(logical_id)
+
+    def get_node_by_arn(self, arn: ARN) -> Optional[ResourceNode]:
+        lid = self._arn_index.get(arn)
+        return self._nodes.get(lid) if lid else None
+
+    def services(self) -> set[str]:
+        return {n.service for n in self._nodes.values()}
+
+    def find_by_property(
+        self,
+        service: Optional[str],
+        prop: str,
+        value: Any,
+    ) -> Optional[ResourceNode]:
+        """
+        Search existing graph nodes for a given service/property/value.
+
+        IMPORTANT: this only searches the in-memory graph – it does not
+        do any AWS lookups. This keeps us strictly seed-based.
+        """
+        for node in self._nodes.values():
+            if service and node.service != service:
+                continue
+            props = getattr(node, "properties", None)
+            if isinstance(props, dict) and props.get(prop) == value:
+                return node
+        return None
+
+    # ============================================================
+    # Node insertion + edge management
+    # ============================================================
     def add_node(self, node: ResourceNode) -> None:
-        """Add a node, extract dependencies, and index ARNs."""
-        if node.logical_id in self._nodes:
-            logger.debug("[Graph] Updating existing node: %s", node.logical_id)
+        """
+        Insert a node and register:
+          - logical ID
+          - ARNs
+          - referenced edges (resolve now if possible, defer if not)
+        """
+        lid = node.logical_id
 
-        # Extract dependencies if not already provided
-        if not node.referenced_arns and node.properties:
-            try:
-                node.referenced_arns = extract_dependencies(node.properties)
-            except Exception as e:
-                logger.debug("ARN extraction failed for %s: %s", node.logical_id, e)
+        # Add to internal store
+        self._nodes[lid] = node
+        self._g.add_node(lid, data=node)
 
-        # Register node
-        self._nodes[node.logical_id] = node
-        self._g.add_node(node.logical_id, data=node)
-
-        # Index its ARNs
+        # Register ARNs
         for arn in node.arns.values():
-            if arn in self._arn_index and self._arn_index[arn] != node.logical_id:
+            if arn in self._arn_index and self._arn_index[arn] != lid:
                 logger.warning(
                     "[Graph] ARN %s already mapped to %s (conflict with %s)",
-                    arn, self._arn_index[arn], node.logical_id,
+                    arn,
+                    self._arn_index[arn],
+                    lid,
                 )
-            self._arn_index[arn] = node.logical_id
+            self._arn_index[arn] = lid
 
-        # Defer or resolve edges
+        # Handle referenced ARNs → edges
         for ref in node.referenced_arns:
-            target_id = self._arn_index.get(ref)
-            if target_id:
-                self.add_edge(node.logical_id, target_id)
-            else:
-                self.defer_link(node.logical_id, ref)
+            target_lid = self._arn_index.get(ref)
 
-    def add_edge(self, parent: str, child: str, inferred: bool = False) -> None:
-        """Create a directed dependency edge (parent → child)."""
-        if parent not in self._nodes or child not in self._nodes:
-            logger.debug("[Graph] Skipping unknown edge %s -> %s", parent, child)
-            return
+            if target_lid:
+                self.add_edge(lid, target_lid)
+            else:
+                # Defer until target ARN shows up
+                self._pending_links.append((lid, ref))
+
+    def add_edge(self, parent: str, child: str) -> None:
+        """
+        Parent → child means “parent depends on child”.
+        """
         if parent == child:
             return
+
+        if parent not in self._nodes or child not in self._nodes:
+            # Should be impossible if builder is correct
+            logger.debug(
+                "[Graph] Skipping edge %s → %s (missing nodes)",
+                parent,
+                child,
+            )
+            return
+
         if not self._g.has_edge(parent, child):
-            self._g.add_edge(parent, child, inferred=inferred)
+            self._g.add_edge(parent, child)
 
-    def defer_link(self, source_id: str, target_arn: ARN) -> None:
-        """Queue a reference to resolve once all nodes are known."""
-        self._pending_links.append((source_id, target_arn))
-
-    def resolve_links(self) -> None:
-        """Resolve deferred links by ARN and fuzzy same_resource match."""
+    # ============================================================
+    # Deferred links
+    # ============================================================
+    def resolve_deferred_links(self) -> None:
+        """
+        Resolve edges where the referenced ARN was unknown at node insertion time.
+        """
+        remaining: list[tuple[str, ARN]] = []
         resolved = 0
-        still_pending: list[tuple[str, ARN]] = []
 
-        for src, arn in self._pending_links:
-            target_id = self._arn_index.get(arn)
+        for src_lid, ref in self._pending_links:
+            target_lid = self._arn_index.get(ref)
 
-            if not target_id:
-                # Fuzzy match: same resource ignoring region/account
-                for candidate, lid in self._arn_index.items():
-                    if arn.same_resource(candidate):
-                        target_id = lid
+            if not target_lid:
+                # Try fuzzy match (same resource, diff account/region)
+                for cand_arn, lid in self._arn_index.items():
+                    if ref.same_resource(cand_arn):
+                        target_lid = lid
                         break
 
-            if target_id:
-                self.add_edge(src, target_id)
+            if target_lid:
+                self.add_edge(src_lid, target_lid)
                 resolved += 1
             else:
-                still_pending.append((src, arn))
+                remaining.append((src_lid, ref))
 
-        self._pending_links = still_pending
-        logger.info("[Graph] Resolved %d deferred links (%d remaining)", resolved, len(still_pending))
+        self._pending_links = remaining
 
-    def resolve_orphans(self) -> None:
-        """Create reference-only placeholder nodes for unresolved ARNs."""
+        logger.info(
+            "[Graph] Deferred links: %d resolved, %d remain",
+            resolved,
+            len(remaining),
+        )
+
+    # Backwards-compatible aliases for builder
+    def resolve_links(self) -> None:
+        """Alias used by older builder code."""
+        self.resolve_deferred_links()
+
+    # ============================================================
+    # Orphan resolvers
+    # ============================================================
+    def generate_orphans(self) -> None:
+        """
+        For unresolved references, create placeholder nodes.
+        """
         if not self._pending_links:
             return
 
         unresolved_arns = {arn for _, arn in self._pending_links}
         self._pending_links.clear()
 
+        logger.info(
+            "[Graph] Generating %d orphan placeholders", len(unresolved_arns)
+        )
+
         for arn in unresolved_arns:
-            if arn not in self._arn_index:
-                lid = f"Ref{arn.resource_id.replace('-', '')[:32]}"
-                placeholder = ResourceNode(
-                    logical_id=lid,
-                    service=arn.service,
-                    cfn_type=f"AWS::{arn.service.title()}::ExternalReference",
-                    properties={},
-                    reference_only=True,
-                    arns={"External": arn},
-                    metadata={"Generated": "resolve_orphans"},
-                )
-                self.add_node(placeholder)
-        logger.info("[Graph] Created %d placeholder nodes for unresolved references", len(unresolved_arns))
+            # Lightweight logical ID; purely internal
+            lid = f"Ref_{arn.resource_id.replace('-', '')[:30]}"
 
-    # ------------------------------------------------------------------
-    # Lookup
-    # ------------------------------------------------------------------
-    def get_node(self, logical_id: str) -> ResourceNode:
-        return self._nodes[logical_id]
+            node = ResourceNode(
+                logical_id=lid,
+                service=arn.service,
+                cfn_type=f"AWS::{arn.service.title()}::ExternalReference",
+                properties={},
+                reference_only=True,
+                metadata={
+                    "OriginalARN": arn.raw,
+                    "Generated": "orphan",
+                    "Timestamp": datetime.datetime.utcnow().isoformat(),
+                },
+                arns={"Primary": arn, arn.account_id: arn},
+                referenced_arns=set(),
+            )
 
-    def get_node_by_arn(self, arn: ARN) -> Optional[ResourceNode]:
-        lid = self._arn_index.get(arn)
-        return self._nodes.get(lid) if lid else None
+            self.add_node(node)
 
-    # ------------------------------------------------------------------
-    # Merge / Clone
-    # ------------------------------------------------------------------
-    def merge(self, other: DependencyGraph) -> None:
-        """Merge another DependencyGraph into this one."""
-        added = 0
-        for lid, node in other._nodes.items():
-            if lid not in self._nodes:
-                self.add_node(deepcopy(node))
-                added += 1
+    # Backwards-compatible alias
+    def resolve_orphans(self) -> None:
+        """Alias used by older builder code."""
+        self.generate_orphans()
 
-        for s, t, attrs in other._g.edges(data=True):
-            self.add_edge(s, t, inferred=attrs.get("inferred", False))
-
-        self.resolve_links()
-        logger.info("[Graph] Merged %d nodes and resolved links from other graph", added)
-
-    def clone_subgraph(self, service: str) -> DependencyGraph:
-        """Clone only nodes and edges from a given AWS service."""
-        sub = DependencyGraph()
-        for lid, node in self._nodes.items():
-            if node.service == service:
-                sub.add_node(deepcopy(node))
-        for s, t, attrs in self._g.edges(data=True):
-            if s in sub._nodes and t in sub._nodes:
-                sub.add_edge(s, t, inferred=attrs.get("inferred", False))
-        return sub
-
-    # ------------------------------------------------------------------
-    # Portable freeze
-    # ------------------------------------------------------------------
-    def freeze_to_portable(self) -> dict[str, str]:
+    # ============================================================
+    # Finalization / freezing
+    # ============================================================
+    def finalize(self) -> None:
         """
-        Convert ARN-based graph into portable logical-ID-based references.
+        Complete the graph:
+          - resolve deferred edges
+          - capture referenced ARNs in metadata
+          - clear referenced_arns (edges are canonical now)
         """
-        arn_to_id = {str(a): lid for a, lid in self._arn_index.items()}
-        logger.info("[Graph] Freezing graph (%d ARN mappings)", len(arn_to_id))
+        self.resolve_deferred_links()
 
         for node in self._nodes.values():
-            node.properties = self.replace_arns_in_obj(deepcopy(node.properties), arn_to_id)
-            node.metadata["Portable"] = True
-            node.metadata["FrozenFrom"] = [str(a) for a in node.arns.values()]
-            node.arns.clear()
+            if node.referenced_arns:
+                node.metadata["OriginalReferencedARNs"] = [
+                    str(a) for a in node.referenced_arns
+                ]
             node.referenced_arns.clear()
 
-        self._arn_index.clear()
+        self.metadata["finalized"] = True
+
+    def _build_arn_map(self) -> dict[str, str]:
+        """
+        ARN string → logical ID mapping.
+        """
+        return {str(arn): lid for arn, lid in self._arn_index.items()}
+
+    @staticmethod
+    def _replace_arns_in_obj(obj: Any, arn_map: dict[str, str]) -> Any:
+        """
+        Pure, safe recursive ARN replacer.
+        """
+        if isinstance(obj, str):
+            if ARN.is_valid(obj) and obj in arn_map:
+                return f"__REF_{arn_map[obj]}__"
+            return obj
+
+        if isinstance(obj, dict):
+            return {
+                k: DependencyGraph._replace_arns_in_obj(v, arn_map)
+                for k, v in obj.items()
+            }
+
+        if isinstance(obj, (list, tuple)):
+            return [
+                DependencyGraph._replace_arns_in_obj(v, arn_map) for v in obj
+            ]
+
+        return obj
+
+    def freeze_to_portable(self) -> None:
+        """
+        Mutate the in-memory graph into a 'portable' state:
+
+          - finalize structural links
+          - replace embedded ARN strings in properties with logical-ID markers
+          - mark graph as Frozen and persist arn_map into metadata
+
+        NOTE: This does *not* remove ARNs from node.arns or the internal
+        ARN index; it only rewrites arbitrary property payloads.
+        """
+        # Ensure links are in a stable, canonical state
+        self.finalize()
+
+        arn_map = self._build_arn_map()
+
+        for node in self._nodes.values():
+            node.properties = self._replace_arns_in_obj(
+                deepcopy(node.properties), arn_map
+            )
+
         self.metadata["Frozen"] = True
-        self.metadata["ARNMap"] = arn_to_id
-        return arn_to_id
+        self.metadata["ArnMap"] = arn_map
 
-    # ------------------------------------------------------------------
-    # Serialization
-    # ------------------------------------------------------------------
-    def to_dict(self, visualizer: bool = False) -> dict:
+    # ============================================================
+    # Portable serialization
+    # ============================================================
+    def to_portable(self) -> dict[str, Any]:
         """
-        Serialize the graph.
+        Produce a portable form:
+          - logical IDs as identity
+          - ARNs removed/replaced
+          - orphans fully represented
+          - reversible via arn_map
+        """
+        arn_map = self._build_arn_map()
 
-        If visualizer=True, emit a ForceGraph-compatible JSON structure:
-        {
-            "nodes": [{"id": "LogicalId", "service": "connect", ...}],
-            "links": [{"source": "A", "target": "B"}]
+        nodes: dict[str, dict[str, Any]] = {}
+        for lid, node in self._nodes.items():
+            nodes[lid] = {
+                "service": node.service,
+                "cfn_type": node.cfn_type,
+                "reference_only": node.reference_only,
+                "properties": self._replace_arns_in_obj(
+                    deepcopy(node.properties), arn_map
+                ),
+                "metadata": deepcopy(node.metadata),
+            }
+
+        edges = [
+            {"from": s, "to": t, "inferred": d.get("inferred", False)}
+            for s, t, d in self._g.edges(data=True)
+        ]
+
+        return {
+            "summary": self.summary(detailed=True),
+            "nodes": nodes,
+            "edges": edges,
+            "arn_map": arn_map,
+            "metadata": deepcopy(self.metadata),
         }
-        Otherwise, produce backend structure with dict-style nodes.
-        """
-        if visualizer:
-            nodes = [
-                {
-                    "id": lid,
-                    "service": n.service,
-                    "cfn_type": n.cfn_type,
-                    "reference_only": n.reference_only,
-                    "properties": n.properties,
-                    "metadata": n.metadata,
-                }
-                for lid, n in self._nodes.items()
-            ]
-            links = [
-                {"source": s, "target": t, "inferred": d.get("inferred", False)}
-                for s, t, d in self._g.edges(data=True)
-            ]
-            return {"nodes": nodes, "links": links, "metadata": self.metadata}
 
-        # Default (backend) representation
+    # ============================================================
+    # Raw serialization
+    # ============================================================
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Raw graph (ARNS intact).
+        """
         nodes = {
             lid: {
                 "service": n.service,
                 "cfn_type": n.cfn_type,
                 "reference_only": n.reference_only,
-                "properties": n.properties,
-                "metadata": n.metadata,
+                "properties": deepcopy(n.properties),
+                "metadata": deepcopy(n.metadata),
             }
             for lid, n in self._nodes.items()
         }
@@ -269,217 +345,46 @@ class DependencyGraph:
         ]
 
         return {
-            "summary": self.summary(),
+            "summary": self.summary(detailed=True),
             "nodes": nodes,
             "edges": edges,
-            "metadata": self.metadata,
+            "metadata": deepcopy(self.metadata),
         }
-        
-    @classmethod
-    def from_dict(cls, data: dict) -> "DependencyGraph":
-        """
-        Reconstruct a DependencyGraph from either backend or visualizer JSON.
 
-        Supports:
-        - Backend: { "nodes": { "id": {...} }, "edges": [...] }
-        - Visualizer: { "nodes": [ {...} ], "links": [ {"source": "A", "target": "B"} ] }
-        - Visualizer (expanded): { "source": {"id": "A"}, "target": {"id": "B"} }
-        """
-        g = cls()
+    # ============================================================
+    # JSON
+    # ============================================================
+    def to_json(self, *, portable: bool = False, indent: int = 2) -> str:
+        data = self.to_portable() if portable else self.to_dict()
+        return json.dumps(data, indent=indent, sort_keys=True, default=str)
 
-        nodes_obj = data.get("nodes", {})
-        edges_obj = data.get("edges", data.get("links", []))
-
-        # --- Case 1: visualizer-style nodes (list)
-        if isinstance(nodes_obj, list):
-            for node_data in nodes_obj:
-                n = cls.from_json_node(node_data)
-                g._nodes[n.logical_id] = n
-                g._g.add_node(n.logical_id)
-
-        # --- Case 2: backend-style nodes (dict)
-        elif isinstance(nodes_obj, dict):
-            for lid, node_data in nodes_obj.items():
-                n = ResourceNode(
-                    logical_id=lid,
-                    service=node_data.get("service", "unknown"),
-                    cfn_type=node_data.get("cfn_type", ""),
-                    properties=node_data.get("properties", {}),
-                    reference_only=node_data.get("reference_only", False),
-                    metadata=node_data.get("metadata", {}),
-                )
-                g._nodes[lid] = n
-                g._g.add_node(lid)
-
-        # --- Edges / Links (normalize nested {"id": "..."} forms)
-        for edge in edges_obj:
-            src = edge.get("from") or edge.get("source")
-            tgt = edge.get("to") or edge.get("target")
-
-            # Unwrap dicts: {"id": "..."} → "..."
-            if isinstance(src, dict):
-                src = src.get("id") or src.get("logical_id")
-            if isinstance(tgt, dict):
-                tgt = tgt.get("id") or tgt.get("logical_id")
-
-            if not isinstance(src, str) or not isinstance(tgt, str):
-                logger.warning("[Graph] Skipping invalid edge with non-string IDs: %r → %r", src, tgt)
-                continue
-
-            g._g.add_edge(src, tgt)
-
-        g.metadata = data.get("metadata", {})
-        return g
-
-
-    def to_json(self, indent: int = 2) -> str:
-        return json.dumps(self.to_dict(), indent=indent, default=str)
-
-    # ------------------------------------------------------------------
-    # Summaries / Stats
-    # ------------------------------------------------------------------
-    def summary(self) -> str:
-        return f"Graph: {len(self._nodes)} nodes, {self._g.number_of_edges()} edges"
-
-    def stats(self) -> dict[str, Any]:
+    # ============================================================
+    # Summary helper
+    # ============================================================
+    def summary(self, detailed: bool = False) -> dict[str, Any]:
         return {
-            "nodes": len(self._nodes),
-            "edges": self._g.number_of_edges(),
-            "services": {s: sum(1 for n in self._nodes.values() if n.service == s)
-                         for s in {n.service for n in self._nodes.values()}},
-            "orphans": len(self.orphan_nodes()),
-            "leaves": len(self.leaf_nodes()),
+            "node_count": len(self._nodes),
+            "edge_count": self._g.number_of_edges(),
+            "services": sorted({n.service for n in self._nodes.values()}),
+            "detailed_nodes": sorted(self._nodes.keys()) if detailed else None,
         }
-
-    # ------------------------------------------------------------------
-    # Subgraph / Analysis utilities
-    # ------------------------------------------------------------------
-    def orphan_nodes(self) -> list[str]:
-        return [n for n in self._nodes if self._g.in_degree(n) == 0]
-
-    def leaf_nodes(self) -> list[str]:
-        return [n for n in self._nodes if self._g.out_degree(n) == 0]
-
-    def edges_summary(self) -> dict[str, int]:
-        return {lid: self._g.out_degree(lid) for lid in self._nodes}
-
-    # ------------------------------------------------------------------
-    # ARN Replacement Helper
-    # ------------------------------------------------------------------
-    @staticmethod
-    def replace_arns_in_obj(obj: Any, arn_map: dict[str, str]) -> Any:
-        """Recursively replace ARNs with __REF_<LogicalID>__ placeholders."""
-        if obj is None:
-            return None
-
-        if isinstance(obj, str):
-            # Direct ARN string
-            if ARN.is_valid(obj):
-                return f"__REF_{arn_map.get(obj, obj)}__"
-            # Embedded JSON or blob with ARN patterns
-            if "arn:aws:" in obj:
-                for ref in extract_dependencies(obj):
-                    ref_str = str(ref)
-                    if ref_str in arn_map:
-                        obj = obj.replace(ref_str, f"__REF_{arn_map[ref_str]}__")
-            return obj
-
-        if isinstance(obj, dict):
-            return {k: DependencyGraph.replace_arns_in_obj(v, arn_map) for k, v in obj.items()}
-
-        if isinstance(obj, list):
-            return [DependencyGraph.replace_arns_in_obj(v, arn_map) for v in obj]
-
-        return obj
     
-    def find_by_property(
-        self,
-        service: str | None = None,
-        property_name: str = "",
-        value: Any = None,
-    ) -> Optional[ResourceNode]:
-        """
-        Return the first node matching a given service/property/value trio.
-        Used by link resolvers (e.g., ConnectLinkResolver) for name-based linking.
-        """
-        for node in self._nodes.values():
-            if service and node.service != service:
-                continue
-            if node.properties.get(property_name) == value:
-                return node
-        return None
-
-    # ------------------------------------------------------------------
-    # Graph ordering utilities
-    # ------------------------------------------------------------------
     def topological_sort(self) -> list[str]:
         """
-        Return nodes in dependency order (parents before dependents).
-        Raises if cycles exist in the dependency graph.
+        Return nodes in dependency order (parents depend on children).
+
+        If cycles exist, raise a clear error so the CDK generator can fall back
+        to heuristic ordering.
         """
         try:
-            return list(nx.topological_sort(self._g))
-        except nx.NetworkXUnfeasible as e:
-            logger.error("[Graph] Cycle detected in dependency graph: %s", e)
-            raise
-    
-    def topological_layers(self) -> list[list[str]]:
-        """
-        Return nodes grouped by dependency layer (topological generations).
-        Each inner list contains nodes that can be processed in parallel.
-        """
-        try:
-            return [list(gen) for gen in nx.topological_generations(self._g)]
-        except nx.NetworkXUnfeasible as e:
-            logger.error("[Graph] Cycle detected in dependency graph: %s", e)
-            raise
-    @staticmethod
-    def from_json_node(node_data: dict) -> ResourceNode:
-        """
-        Convert a visualizer-exported node dict into a ResourceNode.
+            # `networkx` topo sort returns a generator of logical IDs
+            order = list(nx.topological_sort(self._g))
 
-        This allows edited graph JSON (from the UI) to be rehydrated into
-        a fully functional ResourceNode instance for template generation.
+            # Make output stable: if graph contains disconnected components,
+            # networkx does NOT guarantee lexicographic ordering.
+            return sorted(order, key=lambda lid: order.index(lid))
 
-        Expected structure (from visualizer.js export):
-        {
-            "id": "MyLambda",
-            "service": "lambda",
-            "subtype": "function",
-            "cfn_type": "AWS::Lambda::Function",
-            "properties": { ... },
-            "metadata": { ... },
-            "is_error": false,
-            "is_seed": true,
-            "color_key": "lambda:function"
-        }
-        """
-        return ResourceNode(
-            logical_id=node_data.get("id", ""),
-            service=node_data.get("service", "unknown"),
-            cfn_type=node_data.get("cfn_type", ""),
-            properties=node_data.get("properties", {}),
-            metadata=node_data.get("metadata", {}),
-            reference_only=False,
-            arns={},
-            referenced_arns=set(),
-        )
-        
-    # ------------------------------------------------------------------
-    # Ordered node iteration for template generation
-    # ------------------------------------------------------------------
-    def ordered_nodes(self) -> Iterable[tuple[str, ResourceNode]]:
-        """
-        Yield (logical_id, node) tuples in topological order,
-        ensuring dependencies are emitted before dependents.
-
-        Falls back to insertion order if graph is empty or cyclic.
-        """
-        try:
-            for lid in self.topological_sort():
-                if lid in self._nodes:
-                    yield lid, self._nodes[lid]
-        except Exception:
-            logger.warning("[Graph] Falling back to unsorted node order (cycle or missing edges)")
-            for lid, node in self._nodes.items():
-                yield lid, node
+        except nx.NetworkXUnfeasible:
+            # Cycle detected
+            cycles = list(nx.simple_cycles(self._g))
+            raise RuntimeError(f"Dependency cycle detected: {cycles}")

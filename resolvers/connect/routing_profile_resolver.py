@@ -19,24 +19,12 @@ class RoutingProfileResolver(
     resource_type = "routing-profile"
     cfn_type = "AWS::Connect::RoutingProfile"
 
-    def list_resources(self) -> Iterable[ARN]:
-        for prof in self.list_with_instance(
-            "list_routing_profiles", "RoutingProfileSummaryList"
-        ):
-            arn_str = prof.get("Arn")
-            if arn_str:
-                yield ARN.parse_cached(arn_str)
-
     def fetch_resource(self, arn: ARN) -> DescribeRoutingProfileResponseTypeDef:
         self.ensure_instance_id(arn)
-        if not self.instance_id:
-            raise ValueError("Connect instance ID is required")
-
         sub_id = arn.subresource_id()
-        if not sub_id:
-            raise ValueError(f"Invalid RoutingProfile ARN: {arn}")
-
         try:
+            if not self.instance_id or not sub_id:
+                raise ValueError(f"Invalid ARN {arn}")
             return self.client.describe_routing_profile(
                 InstanceId=self.instance_id,
                 RoutingProfileId=sub_id,

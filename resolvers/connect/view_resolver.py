@@ -1,59 +1,44 @@
 from __future__ import annotations
+from typing import Any, Set
 
-from typing import Any, Iterable, cast
 from botocore.exceptions import ClientError
-from boto3 import Session
 from mypy_boto3_connect import ConnectClient
 from mypy_boto3_connect.type_defs import DescribeViewResponseTypeDef
 
-from graph.dependency_graph import ResourceNode
+from resolvers.registry import register_resolver
 from resolvers.connect.base_connect import BaseConnectResolver
+from graph.resource_node import ResourceNode
 from utils.arn import ARN
 
 
+@register_resolver("connect:view")
 class ViewResolver(BaseConnectResolver[ConnectClient, DescribeViewResponseTypeDef]):
-    """Resolver for Amazon Connect Views (agent desktop configuration)."""
-
     resource_type = "view"
     cfn_type = "AWS::Connect::View"
 
-    def list_resources(self) -> Iterable[ARN]:
-        for view in self.list_with_instance("list_views", "ViewsSummaryList"):
-            arn_str = view.get("Arn")
-            if arn_str:
-                yield ARN.parse_cached(arn_str)
-
     def fetch_resource(self, arn: ARN) -> DescribeViewResponseTypeDef:
         self.ensure_instance_id(arn)
-        """Fetch the latest View or ViewVersion data."""
-        if not self.instance_id:
-            raise ValueError("Connect instance ID is required")
-
         sub_id = arn.subresource_id()
-        if not sub_id:
-            raise ValueError(f"Invalid View ARN: {arn}")
-
         try:
-            describe_view_version = getattr(self.client, "describe_view_version", None)
-            if callable(describe_view_version):  # type: ignore[attr-defined]
-                return cast(
-                    DescribeViewResponseTypeDef,
-                    describe_view_version(
-                        InstanceId=self.instance_id,
-                        ViewId=sub_id,
-                        ViewVersion="$LATEST",
-                    ),
-                )
-            return self.client.describe_view(InstanceId=self.instance_id, ViewId=sub_id)
-        except ClientError as e:
-            self.log.error("Failed to fetch Connect View %s: %s", arn, e)
+            if not self.instance_id or not sub_id:
+                raise ValueError(f"Invalid ARN {arn}")
+            return self.client.describe_view(
+                InstanceId=self.instance_id,
+                ViewId=sub_id,
+            )
+        except ClientError:
+            self.log.error("Failed to fetch %s", arn, exc_info=True)
             raise
 
     def to_node(self, arn: ARN, raw: DescribeViewResponseTypeDef) -> ResourceNode:
         view = raw.get("ViewVersion") or raw.get("View") or {}
-        inst_arn = view.get("InstanceArn") or self.instance_arn
+        refs: Set[ARN] = set()
 
-        props: dict[str, Any] = {
+        inst_arn = view.get("InstanceArn") or self.instance_arn
+        if inst_arn:
+            refs.add(ARN.parse_cached(inst_arn))
+
+        props = {
             "Name": view.get("Name"),
             "Description": view.get("Description"),
             "Status": view.get("Status"),
@@ -62,11 +47,11 @@ class ViewResolver(BaseConnectResolver[ConnectClient, DescribeViewResponseTypeDe
             "Tags": view.get("Tags", {}),
         }
 
-        meta = {"Source": "boto3.describe_view"}
-
-        return self.make_node(
+        node = self.make_node(
             arn,
-            logical_id=f"ConnectView{view.get('Name', arn.resource_id)}",
+            logical_id=f"ConnectView{self.make_logical_id(view.get('Name'))}",
             properties=props,
-            metadata=meta,
+            metadata={"Source": "describe_view", "EmbeddedReferenceCount": len(refs)},
         )
+        node.referenced_arns |= refs
+        return node

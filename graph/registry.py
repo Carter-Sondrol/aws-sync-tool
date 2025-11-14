@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Callable, Dict, Optional, Set, TYPE_CHECKING, Union
+from typing import Callable, Dict, Optional, Set, Union
 
-from resolvers.base import BaseResolver
 from boto3.session import Session
 
+from resolvers.base_resolver import BaseResolver
 
-ResolverFactory = Callable[["Session"], BaseResolver]
+ResolverFactory = Callable[[Session], BaseResolver]
 ResolverInput = Union[BaseResolver, ResolverFactory]
 
 
@@ -21,7 +21,9 @@ class ResolverRegistry:
         factories: Optional[Dict[str, ResolverFactory]] = None,
     ) -> None:
         self._session = session
-        self._instances: Dict[str, BaseResolver] = resolvers.copy() if resolvers else {}
+        self._instances: Dict[str, BaseResolver] = (
+            resolvers.copy() if resolvers else {}
+        )
         self._factories: Dict[str, ResolverFactory] = (
             factories.copy() if factories else {}
         )
