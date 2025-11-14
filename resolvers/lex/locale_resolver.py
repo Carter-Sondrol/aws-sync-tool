@@ -1,96 +1,127 @@
 from __future__ import annotations
+from typing import Set
 
-import logging
-from typing import Any, Dict, Set
+from botocore.exceptions import ClientError
+from mypy_boto3_lexv2_models import LexModelsV2Client
 from mypy_boto3_lexv2_models.type_defs import DescribeBotLocaleResponseTypeDef
 
-from resolvers.lex.base_lex import BaseLexSubResolver
-from graph.dependency_graph import ResourceNode
-from utils.arn import ARN, extract_dependencies
+from resolvers.registry import register_resolver
+from resolvers.lex.base_lex import BaseLexResolver
+from graph.resource_node import ResourceNode
+from utils.arn import ARN
 
-logger = logging.getLogger(__name__)
 
-
-class LexLocaleResolver(BaseLexSubResolver[DescribeBotLocaleResponseTypeDef]):
-    """Resolves Lex V2 Locales and links to Intents and SlotTypes."""
-
+@register_resolver("lex:bot-locale")
+class LexBotLocaleResolver(
+    BaseLexResolver[LexModelsV2Client, DescribeBotLocaleResponseTypeDef]
+):
     resource_type = "bot-locale"
     cfn_type = "AWS::Lex::BotLocale"
 
-    def fetch(self, arn: ARN) -> DescribeBotLocaleResponseTypeDef:
-        bot_id = arn.subresource_parent_id("bot") or arn.resource_parts[1]
-        locale_id = arn.subresource_id()
+    # -------------------------------------------------------------
+    # Parse *both* AWS Lex locale ARN patterns
+    # -------------------------------------------------------------
+    def _parse_locale_arn(self, arn: ARN) -> tuple[str, str]:
+        parts = arn.resource_parts
 
-        if not locale_id:
-            raise ValueError(f"Malformed Lex Locale ARN: {arn}")
+        # Pattern 1:
+        #   bot/<botId>/bot-locale/<localeId>
+        if (
+            len(parts) == 4
+            and parts[0] == "bot"
+            and parts[2] == "bot-locale"
+        ):
+            return parts[1], parts[3]
 
-        self.log.info("[LexLocaleResolver] Fetching locale %s", arn)
-        return self.client.describe_bot_locale(
-            botId=bot_id,
-            botVersion="DRAFT",
-            localeId=locale_id,
-        )
+        # Pattern 2:
+        #   bot-locale/<botId>/<localeId>
+        if (
+            len(parts) == 3
+            and parts[0] == "bot-locale"
+        ):
+            return parts[1], parts[2]
 
-    def parse(self, arn: ARN, raw: DescribeBotLocaleResponseTypeDef) -> ResourceNode:
+        raise ValueError(f"Invalid Lex Locale ARN format: {arn}")
+
+    # -------------------------------------------------------------
+    def fetch_resource(self, arn: ARN) -> DescribeBotLocaleResponseTypeDef:
+        bot_id, locale_id = self._parse_locale_arn(arn)
+
+        try:
+            return self.client.describe_bot_locale(  # type: ignore
+                botId=bot_id,
+                botVersion="DRAFT",
+                localeId=locale_id,
+            )
+        except ClientError:
+            self.log.error("Failed to fetch Lex BotLocale %s", arn, exc_info=True)
+            raise
+
+    # -------------------------------------------------------------
+    def to_node(self, arn: ARN, raw: DescribeBotLocaleResponseTypeDef) -> ResourceNode:
         locale = raw.get("botLocale", raw)
-        refs: Set[ARN] = extract_dependencies(locale)
-        bot_id = locale.get("botId") or arn.subresource_parent_id("bot")
-        locale_id = locale.get("localeId")
-        
-        if not bot_id:
-            raise ValueError(f"Invalid Lex locale ARN (missing bot ID): {arn}")
 
-        # Discover intents
-        try:
-            intents = self.client.list_intents(botId=bot_id, botVersion="DRAFT", localeId=locale_id)
-            for i in intents.get("intentSummaries", []):
-                iid = i.get("intentId")
-                if iid:
-                    refs.add(
-                        ARN.from_parts(
-                            "lex",
-                            f"bot/{bot_id}/bot-locale/{locale_id}/intent/{iid}",
-                            region=arn.region,
-                            account_id=arn.account_id,
-                        )
-                    )
-        except Exception as e:
-            self.log.debug("[LexLocaleResolver] list_intents failed for %s: %s", arn, e)
+        bot_id = locale.get("botId") or self._parse_locale_arn(arn)[0]
+        locale_id = locale.get("localeId") or self._parse_locale_arn(arn)[1]
 
-        # Discover slot types
-        try:
-            stypes = self.client.list_slot_types(botId=bot_id, botVersion="DRAFT", localeId=locale_id)
-            for st in stypes.get("slotTypeSummaries", []):
-                stid = st.get("slotTypeId")
-                if stid:
-                    refs.add(
-                        ARN.from_parts(
-                            "lex",
-                            f"bot/{bot_id}/bot-locale/{locale_id}/slot-type/{stid}",
-                            region=arn.region,
-                            account_id=arn.account_id,
-                        )
-                    )
-        except Exception as e:
-            self.log.debug("[LexLocaleResolver] list_slot_types failed for %s: %s", arn, e)
+        name = locale.get("localeName", locale_id)
 
-        props: Dict[str, Any] = {
-            "BotId": bot_id,
-            "LocaleId": locale_id,
-            "Description": locale.get("description"),
-            "NluIntentConfidenceThreshold": locale.get("nluIntentConfidenceThreshold"),
-            "VoiceSettings": locale.get("voiceSettings"),
+        props = {
+            "localeId": locale.get("localeId"),
+            "localeName": locale.get("localeName"),
+            "description": locale.get("description"),
+            "nluIntentConfidenceThreshold": locale.get("nluIntentConfidenceThreshold"),
+            "voiceSettings": locale.get("voiceSettings"),
         }
 
-        meta = {"Source": "boto3.describe_bot_locale"}
+        refs: Set[ARN] = set()
 
-        node = ResourceNode(
-            logical_id=f"LexLocale{locale_id or arn.resource_id}",
-            service="lex",
-            cfn_type=self.cfn_type,
-            properties=props,
-            referenced_arns=refs,
-            arns={"Locale": arn},
-            metadata=meta,
+        # Reference parent bot
+        refs.add(
+            ARN.from_parts(
+                "lex",
+                f"bot/{bot_id}",
+                region=arn.region,
+                account_id=arn.account_id,
+            )
         )
+
+        # Reference intents in this locale
+        for intent in locale.get("intents", []) or []:
+            iid = intent.get("intentId")
+            if iid:
+                refs.add(
+                    ARN.from_parts(
+                        "lex",
+                        f"bot/{bot_id}/intent/{iid}",
+                        region=arn.region,
+                        account_id=arn.account_id,
+                    )
+                )
+
+        # Reference slot types in this locale
+        for slot_type in locale.get("slotTypes", []) or []:
+            stid = slot_type.get("slotTypeId")
+            if stid:
+                refs.add(
+                    ARN.from_parts(
+                        "lex",
+                        f"bot/{bot_id}/slot-type/{stid}",
+                        region=arn.region,
+                        account_id=arn.account_id,
+                    )
+                )
+
+        node = self.make_node(
+            arn,
+            logical_id=f"LexBotLocale{locale_id}",
+            properties=props,
+            metadata={
+                "Source": "describe_bot_locale",
+                "IntentCount": len(locale.get("intents", []) or []),
+                "SlotTypeCount": len(locale.get("slotTypes", []) or []),
+                "EmbeddedReferenceCount": len(refs),
+            },
+        )
+        node.referenced_arns |= refs
         return node

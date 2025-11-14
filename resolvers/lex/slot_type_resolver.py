@@ -1,59 +1,50 @@
 from __future__ import annotations
 
-import logging
-from typing import Any, Dict, Set
+from typing import Set
+from botocore.exceptions import ClientError
+from mypy_boto3_lexv2_models import LexModelsV2Client
 from mypy_boto3_lexv2_models.type_defs import DescribeSlotTypeResponseTypeDef
 
-from resolvers.lex.base_lex import BaseLexSubResolver
-from graph.dependency_graph import ResourceNode
-from utils.arn import ARN, extract_dependencies
+from resolvers.registry import register_resolver
+from resolvers.lex.base_lex import BaseLexResolver
+from graph.resource_node import ResourceNode
+from utils.arn import ARN
 
-logger = logging.getLogger(__name__)
 
-
-class LexSlotTypeResolver(BaseLexSubResolver[DescribeSlotTypeResponseTypeDef]):
-    """Resolves Lex V2 Slot Types."""
-
+@register_resolver("lex:slot-type")
+class LexSlotTypeResolver(BaseLexResolver[LexModelsV2Client, DescribeSlotTypeResponseTypeDef]):
     resource_type = "slot-type"
     cfn_type = "AWS::Lex::SlotType"
 
-    def fetch(self, arn: ARN) -> DescribeSlotTypeResponseTypeDef:
-        parts = arn.resource_parts
-        if len(parts) < 6:
-            raise ValueError(f"Malformed Lex SlotType ARN: {arn}")
+    def fetch_resource(self, arn: ARN) -> DescribeSlotTypeResponseTypeDef:
+        bot_id, slot_id = arn.resource_hierarchy()[1:]
+        try:
+            return self.client.describe_slot_type(  # type: ignore
+                botId=bot_id[1],
+                slotTypeId=slot_id[1],
+                botVersion="DRAFT",
+                localeId="en_US",
+            )
+        except ClientError:
+            self.log.error("Failed to fetch Lex SlotType %s", arn, exc_info=True)
+            raise
 
-        bot_id, locale_id, slot_type_id = parts[1], parts[3], parts[-1]
-        self.log.info("[LexSlotTypeResolver] Fetching slot type %s", arn)
-        return self.client.describe_slot_type(
-            botId=bot_id,
-            botVersion="DRAFT",
-            localeId=locale_id,
-            slotTypeId=slot_type_id,
-        )
+    def to_node(self, arn: ARN, raw: DescribeSlotTypeResponseTypeDef) -> ResourceNode:
+        slot = raw.get("slotType", raw)
 
-    def parse(self, arn: ARN, raw: DescribeSlotTypeResponseTypeDef) -> ResourceNode:
-        slot_type = raw.get("slotType", raw)
-        refs: Set[ARN] = extract_dependencies(slot_type)
-
-        props: Dict[str, Any] = {
-            "SlotTypeName": slot_type.get("slotTypeName"),
-            "Description": slot_type.get("description"),
-            "SlotTypeValues": slot_type.get("slotTypeValues"),
-            "ParentSlotTypeSignature": slot_type.get("parentSlotTypeSignature"),
+        props = {
+            "slotTypeName": slot.get("slotTypeName"),
+            "description": slot.get("description"),
+            "valueSelectionSetting": slot.get("valueSelectionSetting"),
         }
 
-        meta = {
-            "CreationDateTime": slot_type.get("creationDateTime"),
-            "Source": "boto3.describe_slot_type",
-        }
+        refs: Set[ARN] = set()
 
-        node = ResourceNode(
-            logical_id=f"LexSlotType{slot_type.get('slotTypeName', arn.resource_id)}",
-            service="lex",
-            cfn_type=self.cfn_type,
+        node = self.make_node(
+            arn,
+            logical_id=f"LexSlotType{slot.get('slotTypeName', arn.resource_id)}",
             properties=props,
-            referenced_arns=refs,
-            arns={"SlotType": arn},
-            metadata=meta,
+            metadata={"Source": "describe_slot_type", "EmbeddedReferenceCount": len(refs)},
         )
+
         return node

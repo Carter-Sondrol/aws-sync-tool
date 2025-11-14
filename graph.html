@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>AWS Resource Graph</title>
+  <style>
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #0e1117;
+  color: #fff;
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+#graph {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* --- Controls --- */
+#controls {
+  position: fixed;
+  top: 10px; right: 10px;
+  background: rgba(25,25,30,0.85);
+  padding: 6px 8px;
+  border-radius: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 30;
+}
+#controls input {
+  background: #1a1d25;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 8px;
+  color: #ddd;
+  width: 160px;
+}
+#controls button {
+  background: #333;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 6px 10px;
+}
+#controls button:hover { background: #444; }
+
+/* --- Legend --- */
+#legend {
+  position: fixed;
+  top: 10px; left: 10px;
+  background: rgba(20,20,25,0.85);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 12px;
+  color: #ddd;
+  max-height: 90vh;
+  overflow-y: auto;
+  z-index: 20;
+}
+.legend-group { margin-bottom: 6px; }
+.legend-service {
+  font-weight: 600;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s ease, filter 0.2s ease;
+  opacity: 1;
+}
+.legend-item:hover { opacity: 0.8; }
+.legend-item.inactive { opacity: 0.35; }
+.color-box {
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  border-radius: 3px;
+}
+
+/* --- Info panel --- */
+#infoPanel {
+  position: fixed;
+  top: 0; right: 0;
+  width: 380px;
+  height: 100vh;
+  background: rgba(20,22,30,0.95);
+  color: #eee;
+  overflow-y: auto;
+  padding: 16px;
+  box-shadow: -3px 0 10px rgba(0,0,0,0.4);
+  transform: translateX(100%);
+  transition: transform 0.28s ease;
+  z-index: 25;
+}
+#infoPanel.visible { transform: translateX(0); }
+#infoPanel h2 { font-size: 18px; margin: 0 0 12px 0; color: #fff; }
+#infoPanel hr { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 10px 0; }
+
+#closeBtn {
+  position: absolute;
+  top: 10px; right: 12px;
+  font-size: 18px;
+  cursor: pointer;
+  color: #aaa;
+}
+#closeBtn:hover { color: #fff; }
+
+.info-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 4px 0;
+  font-size: 13px;
+}
+.info-row b { min-width: 96px; display: inline-block; color: #cfd8dc; }
+
+.editable-field,
+.editable-textarea {
+  background: #101318;
+  color: #e0e0e0;
+  border: 1px solid #2b2f3a;
+  border-radius: 6px;
+  padding: 6px 8px;
+  width: 100%;
+  font-size: 13px;
+}
+.editable-textarea { min-height: 80px; resize: vertical; }
+
+/* Buttons inside panel */
+.panel-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.panel-actions button {
+  background: #2f3948;
+  border: none;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.panel-actions button:hover { background: #3a4658; }
+
+/* JSON pretty */
+.json-block {
+  background: rgba(0,0,0,0.5);
+  color: #cceeff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  border-radius: 6px;
+  padding: 8px;
+  overflow-x: auto;
+  white-space: pre;
+}
+details summary { cursor: pointer; color: #fff; margin: 6px 0; }
+details summary:hover { color: #0ff; }
+
+/* JSON syntax colors if using highlighter */
+.json-key { color: #66d9ef; }
+.json-string { color: #a6e22e; }
+.json-number { color: #fd971f; }
+.json-boolean { color: #f92672; }
+.json-null { color: #75715e; }
+
+@keyframes shake {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-3px, 0); }
+  40% { transform: translate(3px, 0); }
+  60% { transform: translate(-3px, 0); }
+  80% { transform: translate(3px, 0); }
+  100% { transform: translate(0, 0); }
+}
+.node-shake {
+  animation: shake 0.4s;
+}
+.export-menu {
+  position: absolute;
+  background: #1a1a1d;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 4px 0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+  z-index: 1000;
+  min-width: 160px;
+}
+
+.export-item {
+  padding: 6px 14px;
+  cursor: pointer;
+  color: #ddd;
+}
+
+.export-item:hover {
+  background: #2c2c31;
+  color: #fff;
+}
+
+  </style>
+  <script src="https://unpkg.com/force-graph@1.45.0/dist/force-graph.min.js"></script>
+</head>
+<body>
+  <!-- Controls -->
+  <div id="controls">
+    <input id="searchBox" type="text" placeholder="Search nodes..." />
+    <button id="resetBtn" title="Clear search & re-enable all groups">Reset</button>
+    <button id="editToggleBtn" title="Toggle Edit Mode (Ctrl+E)">Edit: Off</button>
+    <button id="exportBtn" title="Download current graph JSON">Export</button>
+  </div>
+
+  <!-- Legend -->
+  <div id="legend"></div>
+
+  <!-- Info panel -->
+  <div id="infoPanel">
+    <div id="closeBtn">✕</div>
+    <h2 id="nodeTitle">Select a node</h2>
+    <div id="nodeDetails"></div>
+  </div>
+
+  <!-- Graph -->
+  <div id="graph"></div>
+
+  <script>
+    const data = {"nodes": [{"id": "ConnectFlow1UltimateEntry", "service": "connect", "subtype": "contactflow", "cfn_type": "AWS::Connect::ContactFlow", "properties": {"Name": "1. Ultimate Entry", "Type": "CONTACT_FLOW", "Description": "", "Content": "{\"Version\":\"2019-10-30\",\"StartAction\":\"e7fdf26a-16f9-4ba3-b09f-6d53929455aa\",\"Metadata\":{\"entryPointPosition\":{\"x\":-500,\"y\":39.2},\"ActionMetadata\":{\"73f9abfa-8a06-4562-8370-caf67c51e858\":{\"position\":{\"x\":2440.8,\"y\":-53.6},\"children\":[\"d4a37e38-83b6-45cd-afe9-eab643541c56\"],\"parameters\":{\"TextToSpeechVoice\":{\"languageCode\":\"es-US\"}},\"overrideConsoleVoice\":true,\"fragments\":{\"SetContactData\":\"d4a37e38-83b6-45cd-afe9-eab643541c56\"},\"overrideLanguageAttribute\":true},\"d4a37e38-83b6-45cd-afe9-eab643541c56\":{\"position\":{\"x\":2440.8,\"y\":-53.6},\"dynamicParams\":[]},\"Reporting Attriubtes 2\":{\"position\":{\"x\":3711.2,\"y\":1066.4},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Set Spanish After Hours\":{\"position\":{\"x\":4464,\"y\":1104.8},\"isFriendlyName\":true,\"parameters\":{\"QueueId\":{\"displayName\":\"Ultimate After Hours Spanish\"}},\"queue\":{\"text\":\"Ultimate After Hours Spanish\"}},\"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7\":{\"position\":{\"x\":3955.2,\"y\":1215.2},\"parameters\":{\"Text\":{\"useDynamic\":true}},\"useDynamic\":true},\"Check Language\":{\"position\":{\"x\":4230.4,\"y\":1242.4},\"isFriendlyName\":true,\"conditions\":[],\"conditionMetadata\":[{\"id\":\"372e6748-541d-452a-9ca9-965b4e4c74cb\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"es-US\"}]},\"Error\":{\"position\":{\"x\":3660.8,\"y\":1303.2},\"isFriendlyName\":true,\"dynamicParams\":[]},\"3bf2d950-b306-4b2a-9aeb-bde32f0497b5\":{\"position\":{\"x\":4731.2,\"y\":1308}},\"88f8185b-648c-48a5-9283-d2c0908a7da2\":{\"position\":{\"x\":5017.6,\"y\":1369.6}},\"Set English After Hours\":{\"position\":{\"x\":4469.6,\"y\":1411.2},\"isFriendlyName\":true,\"parameters\":{\"QueueId\":{\"displayName\":\"Ultimate After Hours English\"}},\"queue\":{\"text\":\"Ultimate After Hours English\"}},\"Agent Retry Prompt Spanish\":{\"position\":{\"x\":4581.6,\"y\":103.2},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Agent Retry Prompt English\":{\"position\":{\"x\":4519.2,\"y\":330.4},\"isFriendlyName\":true,\"dynamicParams\":[]},\"No Match Retry English\":{\"position\":{\"x\":4187.2,\"y\":728.8},\"isFriendlyName\":true,\"dynamicParams\":[]},\"No Match Retry Spanish\":{\"position\":{\"x\":4164,\"y\":470.4},\"isFriendlyName\":true,\"dynamicParams\":[]},\"estimatedWaitTimeMinutes\":{\"position\":{\"x\":5789.6,\"y\":421.6},\"isFriendlyName\":true,\"conditions\":[],\"conditionMetadata\":[{\"id\":\"350829e1-cc0a-44fc-8dab-5dd6860472d2\",\"operator\":{\"name\":\"Is greater or equal\",\"value\":\"GreaterThanOrEqualTo\",\"shortDisplay\":\">=\"},\"value\":\"5\"}]},\"a4a72b72-fcc5-48ad-8402-f116ea144447\":{\"position\":{\"x\":5520,\"y\":428},\"parameters\":{\"FlowModuleId\":{\"displayName\":\"Get Estimated Wait Time\"}},\"contactFlowModuleName\":\"Get Estimated Wait Time\"},\"Error Transfer to Queue\":{\"position\":{\"x\":7248.8,\"y\":563.2},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Check Language-copy-1\":{\"position\":{\"x\":4267.2,\"y\":212.8},\"isFriendlyName\":true,\"conditions\":[],\"conditionMetadata\":[{\"id\":\"2d24496a-bf86-492c-b57b-ad1697d419f4\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"es-US\"}]},\"Check Language-copy-1-copy-1\":{\"position\":{\"x\":3936.8,\"y\":612},\"isFriendlyName\":true,\"conditions\":[],\"conditionMetadata\":[{\"id\":\"5066075a-8f98-47de-95f2-9157458d1d1a\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"es-US\"}]},\"1 retry\":{\"position\":{\"x\":5129.6,\"y\":368.8},\"isFriendlyName\":true},\"Reporting Attributes\":{\"position\":{\"x\":3622.4,\"y\":-30.4},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Intent Captured Attribute\":{\"position\":{\"x\":4988,\"y\":-155.2},\"isFriendlyName\":true,\"parameters\":{\"Attributes\":{\"LexIntent\":{\"useDynamic\":true}}},\"dynamicParams\":[\"LexIntent\"]},\"How Can I help Bot\":{\"position\":{\"x\":3980.8,\"y\":-330.4},\"isFriendlyName\":true,\"parameters\":{\"Text\":{\"useDynamic\":true},\"LexV2Bot\":{\"AliasArn\":{\"displayName\":\"PROD\",\"useLexBotDropdown\":true,\"lexV2BotName\":\"Ultimate-Intent-Capture-2\"}}},\"useLexBotDropdown\":true,\"lexV2BotName\":\"Ultimate-Intent-Capture-2\",\"lexV2BotAliasName\":\"PROD\",\"useDynamic\":true,\"conditionMetadata\":[{\"id\":\"7a5d252d-931a-492a-85c9-4c04eca57d5d\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"FlexRideActivation\"},{\"id\":\"6d9ece98-c125-4066-bc87-7486be81e827\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"RescueRide\"},{\"id\":\"d44fb6cd-167b-4023-908c-48685d48b31f\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"CancelRide\"},{\"id\":\"d415c09f-2d0e-4bfa-9354-1771528b646f\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"ModifyRide\"},{\"id\":\"6458334b-d7c8-489a-957d-0c62eabbad62\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"DriverStatus\"},{\"id\":\"14aa4ca4-4866-4d43-b6b6-49c751f29f0e\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"RideStatus\"},{\"id\":\"847035ad-9ee9-4f2e-94e5-136b2254f1d5\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"Reservation\"},{\"id\":\"f313eda3-d833-4837-b03d-3cadcd368218\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"Agent\"}]},\"f38f4510-0a6e-4491-b4b0-67daf98e2753\":{\"position\":{\"x\":7459.2,\"y\":316.8}},\"Return from VM Error\":{\"position\":{\"x\":6896.8,\"y\":316.8},\"isFriendlyName\":true,\"dynamicParams\":[]},\"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964\":{\"position\":{\"x\":6021.6,\"y\":428},\"dynamicParams\":[]},\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\":{\"position\":{\"x\":6992.8,\"y\":522.4}},\"Transfer to VM\":{\"position\":{\"x\":6556,\"y\":288},\"isFriendlyName\":true,\"parameters\":{\"FlowModuleId\":{\"displayName\":\"Voicemail to Task\"}},\"contactFlowModuleName\":\"Voicemail to Task\"},\"Press 1 for VM\":{\"position\":{\"x\":6301.6,\"y\":416.8},\"isFriendlyName\":true,\"parameters\":{\"Text\":{\"useDynamic\":true}},\"useDynamic\":true,\"conditionMetadata\":[{\"id\":\"1a21df5f-1f16-457e-8820-492f911a2d2b\",\"value\":\"1\"}]},\"Spanish Prompts\":{\"position\":{\"x\":2695.2,\"y\":-45.6},\"isFriendlyName\":true,\"dynamicParams\":[]},\"461a49e4-1f40-42c9-a012-94b897f9d75c\":{\"position\":{\"x\":3508,\"y\":376.8}},\"Turn to Spanish\":{\"position\":{\"x\":2936,\"y\":-16.8},\"isFriendlyName\":true},\"Transfer to Ultimate Spanish\":{\"position\":{\"x\":3185.6,\"y\":-16.8},\"isFriendlyName\":true,\"parameters\":{\"QueueId\":{\"displayName\":\"Ultimate Spanish\"}},\"queue\":{\"text\":\"Ultimate Spanish\"}},\"English Dynamic Prompt\":{\"position\":{\"x\":426.4,\"y\":14.4},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Reproting Attributes\":{\"position\":{\"x\":657.6,\"y\":16},\"isFriendlyName\":true,\"dynamicParams\":[]},\"New GEN AI Voice\":{\"position\":{\"x\":157.6,\"y\":9.6},\"isFriendlyName\":true,\"children\":[\"New GEN AI Voice-vxGWeESu6F\"],\"parameters\":{\"TextToSpeechVoice\":{\"languageCode\":\"en-US\"}},\"overrideConsoleVoice\":true,\"fragments\":{\"SetContactData\":\"New GEN AI Voice-vxGWeESu6F\"},\"overrideLanguageAttribute\":true},\"New GEN AI Voice-vxGWeESu6F\":{\"position\":{\"x\":157.6,\"y\":9.6},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Turn on All Features\":{\"position\":{\"x\":-96,\"y\":19.2},\"isFriendlyName\":true},\"e7fdf26a-16f9-4ba3-b09f-6d53929455aa\":{\"position\":{\"x\":-348,\"y\":22.4}},\"MOTD Module\":{\"position\":{\"x\":1239.2,\"y\":14.4},\"isFriendlyName\":true,\"parameters\":{\"FlowModuleId\":{\"displayName\":\"Message of the Day Module\"}},\"contactFlowModuleName\":\"Message of the Day Module\"},\"Menu Selection Invalid\":{\"position\":{\"x\":2138.4,\"y\":759.2},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Menu Selection English\":{\"position\":{\"x\":2368.8,\"y\":242.4},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Transfer to Ultimate Regular hours\":{\"position\":{\"x\":3157.6,\"y\":807.2},\"isFriendlyName\":true,\"parameters\":{\"QueueId\":{\"displayName\":\"Ultimate English\"}},\"queue\":{\"text\":\"Ultimate English\"}},\"Menu Selection Timeout\":{\"position\":{\"x\":2195.2,\"y\":508.8},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Menu Selection Spanish\":{\"position\":{\"x\":2172,\"y\":-64.8},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Press 1 for english\":{\"position\":{\"x\":1901.6,\"y\":49.6},\"isFriendlyName\":true,\"parameters\":{\"PromptId\":{\"displayName\":\"Ultimate Language Selection\"}},\"promptName\":\"Ultimate Language Selection\",\"conditionMetadata\":[{\"id\":\"368a28de-fe44-401d-b1d6-b84b360976ea\",\"value\":\"1\"},{\"id\":\"ca5f1a4b-7ec7-40b3-8441-0b005cd6a9e9\",\"value\":\"2\"}]},\"a26ae266-a056-4e48-9b41-9a0de0c81c3f\":{\"position\":{\"x\":1590.4,\"y\":85.6}},\"Blocked Caller Module\":{\"position\":{\"x\":916.8,\"y\":15.2},\"isFriendlyName\":true,\"parameters\":{\"FlowModuleId\":{\"displayName\":\"Blocked Phone Number\"}},\"contactFlowModuleName\":\"Blocked Phone Number\"},\"Return from Module Error\":{\"position\":{\"x\":1221.6,\"y\":292},\"isFriendlyName\":true,\"dynamicParams\":[]}},\"Annotations\":[]},\"Actions\":[{\"Parameters\":{\"TextToSpeechVoice\":\"Pedro\",\"TextToSpeechEngine\":\"Generative\",\"TextToSpeechStyle\":\"None\"},\"Identifier\":\"73f9abfa-8a06-4562-8370-caf67c51e858\",\"Type\":\"UpdateContactTextToSpeechVoice\",\"Transitions\":{\"NextAction\":\"d4a37e38-83b6-45cd-afe9-eab643541c56\",\"Errors\":[{\"NextAction\":\"Spanish Prompts\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"LanguageCode\":\"es-US\"},\"Identifier\":\"d4a37e38-83b6-45cd-afe9-eab643541c56\",\"Type\":\"UpdateContactData\",\"Transitions\":{\"NextAction\":\"Spanish Prompts\",\"Errors\":[{\"NextAction\":\"Spanish Prompts\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"CustomerJourney\":\"$.Attributes.CustomerJourney - Outside Business Hours\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Reporting Attriubtes 2\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7\",\"Errors\":[{\"NextAction\":\"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"QueueId\":\"__REF_UltimateAfterHoursSpanish__\"},\"Identifier\":\"Set Spanish After Hours\",\"Type\":\"UpdateContactTargetQueue\",\"Transitions\":{\"NextAction\":\"3bf2d950-b306-4b2a-9aeb-bde32f0497b5\",\"Errors\":[{\"NextAction\":\"3bf2d950-b306-4b2a-9aeb-bde32f0497b5\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Text\":\"$.Attributes.Closed\"},\"Identifier\":\"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7\",\"Type\":\"MessageParticipant\",\"Transitions\":{\"NextAction\":\"Check Language\",\"Errors\":[{\"NextAction\":\"Check Language\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"ComparisonValue\":\"$.Attributes.LanguageCode\"},\"Identifier\":\"Check Language\",\"Type\":\"Compare\",\"Transitions\":{\"NextAction\":\"Set English After Hours\",\"Conditions\":[{\"NextAction\":\"Set Spanish After Hours\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"es-US\"]}}],\"Errors\":[{\"NextAction\":\"Set English After Hours\",\"ErrorType\":\"NoMatchingCondition\"}]}},{\"Parameters\":{\"Attributes\":{\"Error\":\"CheckHours\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Error\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7\",\"Errors\":[{\"NextAction\":\"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{},\"Identifier\":\"3bf2d950-b306-4b2a-9aeb-bde32f0497b5\",\"Type\":\"TransferContactToQueue\",\"Transitions\":{\"NextAction\":\"88f8185b-648c-48a5-9283-d2c0908a7da2\",\"Errors\":[{\"NextAction\":\"88f8185b-648c-48a5-9283-d2c0908a7da2\",\"ErrorType\":\"QueueAtCapacity\"},{\"NextAction\":\"88f8185b-648c-48a5-9283-d2c0908a7da2\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{},\"Identifier\":\"88f8185b-648c-48a5-9283-d2c0908a7da2\",\"Type\":\"DisconnectParticipant\",\"Transitions\":{}},{\"Parameters\":{\"QueueId\":\"__REF_UltimateAfterHoursEnglish__\"},\"Identifier\":\"Set English After Hours\",\"Type\":\"UpdateContactTargetQueue\",\"Transitions\":{\"NextAction\":\"3bf2d950-b306-4b2a-9aeb-bde32f0497b5\",\"Errors\":[{\"NextAction\":\"3bf2d950-b306-4b2a-9aeb-bde32f0497b5\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"LexPrompt\":\"Con gusto lo conecto con un agente. Para ayudarme a dirigirlo a la persona correcta, \\u00bfpodr\\u00eda decirme brevemente con qu\\u00e9 necesita ayuda? Por ejemplo, \\u00bfest\\u00e1 tratando de reservar un viaje, verificar el estado de un viaje, u otra cosa\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Agent Retry Prompt Spanish\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"1 retry\",\"Errors\":[{\"NextAction\":\"1 retry\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"LexPrompt\":\"I'd be happy to connect you with an agent. To help me route you to the right person, could you briefly tell me what you need help with? For example, are you trying to book a ride, check a ride status, or something else\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Agent Retry Prompt English\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"1 retry\",\"Errors\":[{\"NextAction\":\"1 retry\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"LexPrompt\":\"I'm sorry, I didn't quite catch that. Could you try saying it differently? For example, you can say 'book a ride,' 'check my ride status,' or 'talk to an agent\"},\"TargetContact\":\"Current\"},\"Identifier\":\"No Match Retry English\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"1 retry\",\"Errors\":[{\"NextAction\":\"1 retry\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"LexPrompt\":\"Lo siento, no entend\\u00ed bien. \\u00bfPodr\\u00eda intentar decirlo de otra manera? Por ejemplo, puede decir 'reservar un viaje,' 'verificar el estado de mi viaje,' o 'hablar con un agente\"},\"TargetContact\":\"Current\"},\"Identifier\":\"No Match Retry Spanish\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"1 retry\",\"Errors\":[{\"NextAction\":\"1 retry\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"ComparisonValue\":\"$.Attributes.estimatedWaitTimeMinutes\"},\"Identifier\":\"estimatedWaitTimeMinutes\",\"Type\":\"Compare\",\"Transitions\":{\"NextAction\":\"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964\",\"Conditions\":[{\"NextAction\":\"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964\",\"Condition\":{\"Operator\":\"NumberGreaterOrEqualTo\",\"Operands\":[\"5\"]}}],\"Errors\":[{\"NextAction\":\"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964\",\"ErrorType\":\"NoMatchingCondition\"}]}},{\"Parameters\":{\"FlowModuleId\":\"7d4a6c73-1d6f-4ed3-b55e-8dadfcc200b6\"},\"Identifier\":\"a4a72b72-fcc5-48ad-8402-f116ea144447\",\"Type\":\"InvokeFlowModule\",\"Transitions\":{\"NextAction\":\"estimatedWaitTimeMinutes\",\"Errors\":[{\"NextAction\":\"estimatedWaitTimeMinutes\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"Error\":\"Transfer To Queue \"},\"TargetContact\":\"Current\"},\"Identifier\":\"Error Transfer to Queue\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"f38f4510-0a6e-4491-b4b0-67daf98e2753\",\"Errors\":[{\"NextAction\":\"f38f4510-0a6e-4491-b4b0-67daf98e2753\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"ComparisonValue\":\"$.Attributes.LanguageCode\"},\"Identifier\":\"Check Language-copy-1\",\"Type\":\"Compare\",\"Transitions\":{\"NextAction\":\"Agent Retry Prompt English\",\"Conditions\":[{\"NextAction\":\"Agent Retry Prompt Spanish\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"es-US\"]}}],\"Errors\":[{\"NextAction\":\"Agent Retry Prompt English\",\"ErrorType\":\"NoMatchingCondition\"}]}},{\"Parameters\":{\"ComparisonValue\":\"$.Attributes.LanguageCode\"},\"Identifier\":\"Check Language-copy-1-copy-1\",\"Type\":\"Compare\",\"Transitions\":{\"NextAction\":\"No Match Retry English\",\"Conditions\":[{\"NextAction\":\"No Match Retry Spanish\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"es-US\"]}}],\"Errors\":[{\"NextAction\":\"No Match Retry English\",\"ErrorType\":\"NoMatchingCondition\"}]}},{\"Parameters\":{\"LoopCount\":\"1\"},\"Identifier\":\"1 retry\",\"Type\":\"Loop\",\"Transitions\":{\"NextAction\":\"a4a72b72-fcc5-48ad-8402-f116ea144447\",\"Conditions\":[{\"NextAction\":\"How Can I help Bot\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"ContinueLooping\"]}},{\"NextAction\":\"a4a72b72-fcc5-48ad-8402-f116ea144447\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"DoneLooping\"]}}]}},{\"Parameters\":{\"Attributes\":{\"CustomerJourney\":\"$.Attributes.CustomerJourney - Inside Business Hours\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Reporting Attributes\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"How Can I help Bot\",\"Errors\":[{\"NextAction\":\"How Can I help Bot\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"LexIntent\":\"$.Lex.IntentName\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Intent Captured Attribute\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"a4a72b72-fcc5-48ad-8402-f116ea144447\",\"Errors\":[{\"NextAction\":\"a4a72b72-fcc5-48ad-8402-f116ea144447\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Text\":\"$.Attributes.LexPrompt\",\"LexV2Bot\":{\"AliasArn\":\"__REF_LexBotAliasPROD__\"}},\"Identifier\":\"How Can I help Bot\",\"Type\":\"ConnectParticipantWithLexBot\",\"Transitions\":{\"NextAction\":\"Check Language-copy-1-copy-1\",\"Conditions\":[{\"NextAction\":\"Intent Captured Attribute\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"FlexRideActivation\"]}},{\"NextAction\":\"Intent Captured Attribute\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"RescueRide\"]}},{\"NextAction\":\"Intent Captured Attribute\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"CancelRide\"]}},{\"NextAction\":\"Intent Captured Attribute\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"ModifyRide\"]}},{\"NextAction\":\"Intent Captured Attribute\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"DriverStatus\"]}},{\"NextAction\":\"Intent Captured Attribute\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"RideStatus\"]}},{\"NextAction\":\"Intent Captured Attribute\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"Reservation\"]}},{\"NextAction\":\"Check Language-copy-1\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"Agent\"]}}],\"Errors\":[{\"NextAction\":\"Check Language-copy-1-copy-1\",\"ErrorType\":\"NoMatchingCondition\"},{\"NextAction\":\"Check Language-copy-1-copy-1\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{},\"Identifier\":\"f38f4510-0a6e-4491-b4b0-67daf98e2753\",\"Type\":\"DisconnectParticipant\",\"Transitions\":{}},{\"Parameters\":{\"Attributes\":{\"Error\":\"Return from VM Module Error\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Return from VM Error\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"f38f4510-0a6e-4491-b4b0-67daf98e2753\",\"Errors\":[{\"NextAction\":\"f38f4510-0a6e-4491-b4b0-67daf98e2753\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"CustomerJourney\":\"$.Attributes.CustomerJourney - Customer Selected VoiceMail\"},\"TargetContact\":\"Current\"},\"Identifier\":\"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Press 1 for VM\",\"Errors\":[{\"NextAction\":\"Press 1 for VM\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{},\"Identifier\":\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\",\"Type\":\"TransferContactToQueue\",\"Transitions\":{\"NextAction\":\"Error Transfer to Queue\",\"Errors\":[{\"NextAction\":\"Error Transfer to Queue\",\"ErrorType\":\"QueueAtCapacity\"},{\"NextAction\":\"Error Transfer to Queue\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"FlowModuleId\":\"3546180a-6408-4578-8ddf-64fdad5b58b8\"},\"Identifier\":\"Transfer to VM\",\"Type\":\"InvokeFlowModule\",\"Transitions\":{\"NextAction\":\"f38f4510-0a6e-4491-b4b0-67daf98e2753\",\"Errors\":[{\"NextAction\":\"Return from VM Error\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"StoreInput\":\"False\",\"InputTimeLimitSeconds\":\"5\",\"Text\":\"$.Attributes.EWTPrompt\"},\"Identifier\":\"Press 1 for VM\",\"Type\":\"GetParticipantInput\",\"Transitions\":{\"NextAction\":\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\",\"Conditions\":[{\"NextAction\":\"Transfer to VM\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"1\"]}}],\"Errors\":[{\"NextAction\":\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\",\"ErrorType\":\"InputTimeLimitExceeded\"},{\"NextAction\":\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\",\"ErrorType\":\"NoMatchingCondition\"},{\"NextAction\":\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"Closed\":\"Esta contactando a nuestra linea fuera de horario regular. Por Favor espere al siguiente representante para que le pueda asistir \",\"CustomerJourney\":\"$.Attributes.CustomerJourney - Spanish\",\"LanguageCode\":\"es-US\",\"LexPrompt\":\"C\\u00f3mo puedo ayudarte\",\"EWTPrompt\":\"En este momento estamos ayudando a otros clientes, pero no queremos perderte. Presiona 1 para dejarnos un mensaje r\\u00e1pido, y te llamaremos dentro de un d\\u00eda h\\u00e1bil. Si no, qu\\u00e9date en la l\\u00ednea y alguien te atender\\u00e1 en breve.\\n\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Spanish Prompts\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Turn to Spanish\",\"Errors\":[{\"NextAction\":\"Turn to Spanish\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{},\"Identifier\":\"461a49e4-1f40-42c9-a012-94b897f9d75c\",\"Type\":\"CheckHoursOfOperation\",\"Transitions\":{\"NextAction\":\"Error\",\"Conditions\":[{\"NextAction\":\"Reporting Attributes\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"True\"]}},{\"NextAction\":\"Reporting Attriubtes 2\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"False\"]}}],\"Errors\":[{\"NextAction\":\"Error\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"RecordingBehavior\":{\"RecordedParticipants\":[\"Agent\",\"Customer\"],\"ScreenRecordedParticipants\":[\"Agent\"],\"IVRRecordingBehavior\":\"Enabled\"},\"AnalyticsBehavior\":{\"Enabled\":\"True\",\"AnalyticsLanguage\":\"es-US\",\"AnalyticsRedactionBehavior\":\"Disabled\",\"AnalyticsRedactionResults\":\"RedactedAndOriginal\",\"ChannelConfiguration\":{\"Chat\":{\"AnalyticsModes\":[\"ContactLens\"]},\"Voice\":{\"AnalyticsModes\":[\"RealTime\"]}},\"SentimentConfiguration\":{\"Enabled\":\"True\"}}},\"Identifier\":\"Turn to Spanish\",\"Type\":\"UpdateContactRecordingBehavior\",\"Transitions\":{\"NextAction\":\"Transfer to Ultimate Spanish\"}},{\"Parameters\":{\"QueueId\":\"__REF_UltimateSpanish__\"},\"Identifier\":\"Transfer to Ultimate Spanish\",\"Type\":\"UpdateContactTargetQueue\",\"Transitions\":{\"NextAction\":\"461a49e4-1f40-42c9-a012-94b897f9d75c\",\"Errors\":[{\"NextAction\":\"461a49e4-1f40-42c9-a012-94b897f9d75c\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"Closed\":\"You have reached the afterhours line. Please hold for the next representative to assist you.\",\"Campaign\":\"Ultimate\",\"LexPrompt\":\"How can I help you\",\"EWTPrompt\":\"We\\u2019re helping other customers right now, but we don\\u2019t want to miss you. Press 1 to Leave us a quick message, and we\\u2019ll call you back within one business day\\nOtherwise, Stay on the line and someone will be with you shortly. \"},\"TargetContact\":\"Current\"},\"Identifier\":\"English Dynamic Prompt\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Reproting Attributes\",\"Errors\":[{\"NextAction\":\"Reproting Attributes\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"CustomerJourney\":\"Returned Outbound Call - Main Entry\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Reproting Attributes\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Blocked Caller Module\",\"Errors\":[{\"NextAction\":\"Blocked Caller Module\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"TextToSpeechVoice\":\"Stephen\",\"TextToSpeechEngine\":\"Generative\",\"TextToSpeechStyle\":\"None\"},\"Identifier\":\"New GEN AI Voice\",\"Type\":\"UpdateContactTextToSpeechVoice\",\"Transitions\":{\"NextAction\":\"New GEN AI Voice-vxGWeESu6F\",\"Errors\":[{\"NextAction\":\"English Dynamic Prompt\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"LanguageCode\":\"en-US\"},\"Identifier\":\"New GEN AI Voice-vxGWeESu6F\",\"Type\":\"UpdateContactData\",\"Transitions\":{\"NextAction\":\"English Dynamic Prompt\",\"Errors\":[{\"NextAction\":\"English Dynamic Prompt\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"RecordingBehavior\":{\"RecordedParticipants\":[\"Agent\",\"Customer\"],\"ScreenRecordedParticipants\":[\"Agent\"],\"IVRRecordingBehavior\":\"Enabled\"},\"AnalyticsBehavior\":{\"Enabled\":\"True\",\"AnalyticsLanguage\":\"en-US\",\"AnalyticsRedactionBehavior\":\"Disabled\",\"AnalyticsRedactionResults\":\"RedactedAndOriginal\",\"ChannelConfiguration\":{\"Chat\":{\"AnalyticsModes\":[\"ContactLens\"]},\"Voice\":{\"AnalyticsModes\":[\"RealTime\"]}},\"SummaryConfiguration\":{\"SummaryModes\":[\"PostContact\"]},\"SentimentConfiguration\":{\"Enabled\":\"True\"}}},\"Identifier\":\"Turn on All Features\",\"Type\":\"UpdateContactRecordingBehavior\",\"Transitions\":{\"NextAction\":\"New GEN AI Voice\"}},{\"Parameters\":{\"FlowLoggingBehavior\":\"Enabled\"},\"Identifier\":\"e7fdf26a-16f9-4ba3-b09f-6d53929455aa\",\"Type\":\"UpdateFlowLoggingBehavior\",\"Transitions\":{\"NextAction\":\"Turn on All Features\"}},{\"Parameters\":{\"FlowModuleId\":\"f5420782-47e6-4fcc-aa96-c9b74e8328d3\"},\"Identifier\":\"MOTD Module\",\"Type\":\"InvokeFlowModule\",\"Transitions\":{\"NextAction\":\"a26ae266-a056-4e48-9b41-9a0de0c81c3f\",\"Errors\":[{\"NextAction\":\"a26ae266-a056-4e48-9b41-9a0de0c81c3f\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"MenuSelection\":\"Invalid DTMF Input\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Menu Selection Invalid\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Transfer to Ultimate Regular hours\",\"Errors\":[{\"NextAction\":\"Transfer to Ultimate Regular hours\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"MenuSelection\":\"Ultimate English\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Menu Selection English\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Transfer to Ultimate Regular hours\",\"Errors\":[{\"NextAction\":\"Transfer to Ultimate Regular hours\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"QueueId\":\"__REF_UltimateEnglish__\"},\"Identifier\":\"Transfer to Ultimate Regular hours\",\"Type\":\"UpdateContactTargetQueue\",\"Transitions\":{\"NextAction\":\"461a49e4-1f40-42c9-a012-94b897f9d75c\",\"Errors\":[{\"NextAction\":\"461a49e4-1f40-42c9-a012-94b897f9d75c\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"MenuSelection\":\"Timeout - No Input\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Menu Selection Timeout\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Transfer to Ultimate Regular hours\",\"Errors\":[{\"NextAction\":\"Transfer to Ultimate Regular hours\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"MenuSelection\":\"Ultimate Spanish\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Menu Selection Spanish\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"73f9abfa-8a06-4562-8370-caf67c51e858\",\"Errors\":[{\"NextAction\":\"73f9abfa-8a06-4562-8370-caf67c51e858\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"StoreInput\":\"False\",\"InputTimeLimitSeconds\":\"8\",\"PromptId\":\"__REF_ConnectPromptUltimateLanguageSelection__\"},\"Identifier\":\"Press 1 for english\",\"Type\":\"GetParticipantInput\",\"Transitions\":{\"NextAction\":\"Menu Selection Invalid\",\"Conditions\":[{\"NextAction\":\"Menu Selection English\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"1\"]}},{\"NextAction\":\"Menu Selection Spanish\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"2\"]}}],\"Errors\":[{\"NextAction\":\"Menu Selection Timeout\",\"ErrorType\":\"InputTimeLimitExceeded\"},{\"NextAction\":\"Menu Selection Invalid\",\"ErrorType\":\"NoMatchingCondition\"},{\"NextAction\":\"Transfer to Ultimate Regular hours\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Text\":\"This call is being recorded for quality assurance and training purposes and by continuing, you consent to this recording.\"},\"Identifier\":\"a26ae266-a056-4e48-9b41-9a0de0c81c3f\",\"Type\":\"MessageParticipant\",\"Transitions\":{\"NextAction\":\"Press 1 for english\"}},{\"Parameters\":{\"FlowModuleId\":\"2e906bdf-a23f-47e3-a0de-8d89dae86333\"},\"Identifier\":\"Blocked Caller Module\",\"Type\":\"InvokeFlowModule\",\"Transitions\":{\"NextAction\":\"MOTD Module\",\"Errors\":[{\"NextAction\":\"Return from Module Error\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"Error\":\"Return from Module Error\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Return from Module Error\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"a26ae266-a056-4e48-9b41-9a0de0c81c3f\",\"Errors\":[{\"NextAction\":\"a26ae266-a056-4e48-9b41-9a0de0c81c3f\",\"ErrorType\":\"NoMatchingError\"}]}}]}", "InstanceArn": "__REF_ConnectInstancesrh__", "Tags": {}}, "metadata": {"Source": "describe_contact_flow", "EmbeddedReferenceCount": 7, "Seed": true, "OriginalReferencedARNs": ["arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/f6aeda4b-9341-41fd-a874-45dff680a74c", "arn:aws:lex:us-west-2:523773103726:bot-alias/JH5QVDICLV/HWFCIMRDSP", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/04f60a61-9301-4742-ba1a-7239edde3f62", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/prompt/471c666f-d77f-49c6-b69a-1d32ef78f9cf", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/43df19c1-ee7f-43de-906e-408152e8ad5f", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/7ce5bf5e-63ac-41b4-8b30-76bd985019d0"]}, "color_key": "connect:contactflow", "is_error": false, "error_msg": "", "is_seed": true, "is_portable": true}, {"id": "UltimateAfterHoursEnglish", "service": "connect", "subtype": "queue", "cfn_type": "AWS::Connect::Queue", "properties": {"Name": "Ultimate After Hours English", "Description": "Ultimate After Hours English", "OutboundCallerConfig": {"OutboundCallerIdName": "SafeRide", "OutboundCallerIdNumberId": "199ae2b1-84d0-4620-9ea3-4e18797d1f45", "OutboundFlowId": "75b8e03f-f5c4-47d7-bb54-89fc84e66ffa"}, "InstanceArn": "__REF_ConnectInstancesrh__", "HoursOfOperationArn": null, "Tags": {}}, "metadata": {"Source": "describe_queue", "EmbeddedReferenceCount": 1, "OriginalReferencedARNs": ["arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"]}, "color_key": "connect:queue", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "ConnectInstancesrh", "service": "connect", "subtype": "instance", "cfn_type": "AWS::Connect::Instance", "properties": {"InstanceAlias": "srh", "IdentityManagementType": "SAML", "InboundCallsEnabled": true, "OutboundCallsEnabled": true, "ServiceRole": "__REF_IAMRoleAWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ__", "InstanceStatus": "ACTIVE", "Tags": {}}, "metadata": {"Source": "describe_instance", "OriginalReferencedARNs": ["arn:aws:iam::523773103726:role/aws-service-role/connect.amazonaws.com/AWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ"]}, "color_key": "connect:instance", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "IAMRoleAWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ", "service": "iam", "subtype": "role", "cfn_type": "AWS::IAM::Role", "properties": {"RoleName": "AWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ", "Arn": "__REF_IAMRoleAWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ__"}, "metadata": {"Source": "get_role", "aws_managed": true, "OriginalReferencedARNs": ["arn:aws:iam::523773103726:role/aws-service-role/connect.amazonaws.com/AWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ"]}, "color_key": "iam:role", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "UltimateAfterHoursSpanish", "service": "connect", "subtype": "queue", "cfn_type": "AWS::Connect::Queue", "properties": {"Name": "Ultimate After Hours Spanish", "Description": "Ultimate After Hours Spanish", "OutboundCallerConfig": {"OutboundCallerIdName": "SafeRide", "OutboundCallerIdNumberId": "199ae2b1-84d0-4620-9ea3-4e18797d1f45", "OutboundFlowId": "75b8e03f-f5c4-47d7-bb54-89fc84e66ffa"}, "InstanceArn": "__REF_ConnectInstancesrh__", "HoursOfOperationArn": null, "Tags": {}}, "metadata": {"Source": "describe_queue", "EmbeddedReferenceCount": 1, "OriginalReferencedARNs": ["arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"]}, "color_key": "connect:queue", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "ConnectPromptUltimateLanguageSelection", "service": "connect", "subtype": "prompt", "cfn_type": "AWS::Connect::Prompt", "properties": {"Name": "Ultimate Language Selection", "Description": "Ultimate Language Selection", "S3Uri": null, "InstanceArn": "__REF_ConnectInstancesrh__", "Tags": {}}, "metadata": {"Source": "describe_prompt", "EmbeddedReferenceCount": 1, "OriginalReferencedARNs": ["arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"]}, "color_key": "connect:prompt", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "UltimateEnglish", "service": "connect", "subtype": "queue", "cfn_type": "AWS::Connect::Queue", "properties": {"Name": "Ultimate English", "Description": "Ultimate English", "OutboundCallerConfig": {"OutboundCallerIdName": "SafeRide", "OutboundCallerIdNumberId": "199ae2b1-84d0-4620-9ea3-4e18797d1f45", "OutboundFlowId": "75b8e03f-f5c4-47d7-bb54-89fc84e66ffa"}, "InstanceArn": "__REF_ConnectInstancesrh__", "HoursOfOperationArn": null, "Tags": {}}, "metadata": {"Source": "describe_queue", "EmbeddedReferenceCount": 1, "OriginalReferencedARNs": ["arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"]}, "color_key": "connect:queue", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "LexBotAliasPROD", "service": "lex", "subtype": "botalias", "cfn_type": "AWS::Lex::BotAlias", "properties": {"botAliasName": "PROD", "description": "Production Alias", "botAliasLocaleSettings": {"en_US": {"enabled": true}, "es_US": {"enabled": true}}, "conversationLogSettings": {"textLogSettings": [{"enabled": true, "destination": {"cloudWatch": {"cloudWatchLogGroupArn": "__REF_BotLogs__", "logPrefix": "aws/lex/JH5QVDICLV/HWFCIMRDSP/3/"}}, "selectiveLoggingEnabled": false}], "audioLogSettings": [{"enabled": true, "destination": {"s3Bucket": {"s3BucketArn": "__REF_S3Bucketamazonconnectc575c0ad8ab8__", "logPrefix": "aws/lex/JH5QVDICLV/HWFCIMRDSP/3/"}}, "selectiveLoggingEnabled": false}]}, "sentimentAnalysisSettings": {"detectSentiment": false}}, "metadata": {"Source": "describe_bot_alias", "Locales": ["en_US", "es_US"], "EmbeddedReferenceCount": 3, "OriginalReferencedARNs": ["arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV", "arn:aws:logs:us-west-2:523773103726:log-group:BotLogs", "arn:aws:s3:::amazon-connect-c575c0ad8ab8", "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US", "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US"]}, "color_key": "lex:botalias", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "LexBotLocaleen_US", "service": "lex", "subtype": "botlocale", "cfn_type": "AWS::Lex::BotLocale", "properties": {"localeId": "en_US", "localeName": "English (US)", "description": null, "nluIntentConfidenceThreshold": 0.4, "voiceSettings": {"voiceId": "Stephen", "engine": "neural"}}, "metadata": {"Source": "describe_bot_locale", "IntentCount": 0, "SlotTypeCount": 0, "EmbeddedReferenceCount": 1, "OriginalReferencedARNs": ["arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV"]}, "color_key": "lex:botlocale", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "LexBotUltimate-Intent-Capture-2", "service": "lex", "subtype": "bot", "cfn_type": "AWS::Lex::Bot", "properties": {"botName": "Ultimate-Intent-Capture-2", "description": null, "idleSessionTTLInSeconds": 300, "roleArn": "__REF_IAMRoleAWSServiceRoleForLexV2Bots_G5GKAZB1D9I__", "dataPrivacy": {"childDirected": false}, "botTags": null, "testBotTags": null}, "metadata": {"Source": "describe_bot", "BotStatus": "Available", "OriginalReferencedARNs": ["arn:aws:iam::523773103726:role/aws-service-role/lexv2.amazonaws.com/AWSServiceRoleForLexV2Bots_G5GKAZB1D9I"]}, "color_key": "lex:bot", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "IAMRoleAWSServiceRoleForLexV2Bots_G5GKAZB1D9I", "service": "iam", "subtype": "role", "cfn_type": "AWS::IAM::Role", "properties": {"RoleName": "AWSServiceRoleForLexV2Bots_G5GKAZB1D9I", "Arn": "__REF_IAMRoleAWSServiceRoleForLexV2Bots_G5GKAZB1D9I__"}, "metadata": {"Source": "get_role", "aws_managed": true, "OriginalReferencedARNs": ["arn:aws:iam::523773103726:role/aws-service-role/lexv2.amazonaws.com/AWSServiceRoleForLexV2Bots_G5GKAZB1D9I"]}, "color_key": "iam:role", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "LexBotLocalees_US", "service": "lex", "subtype": "botlocale", "cfn_type": "AWS::Lex::BotLocale", "properties": {"localeId": "es_US", "localeName": "Spanish (US)", "description": null, "nluIntentConfidenceThreshold": 0.4, "voiceSettings": {"voiceId": "Lupe", "engine": "neural"}}, "metadata": {"Source": "describe_bot_locale", "IntentCount": 0, "SlotTypeCount": 0, "EmbeddedReferenceCount": 1, "OriginalReferencedARNs": ["arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV"]}, "color_key": "lex:botlocale", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "S3Bucketamazonconnectc575c0ad8ab8", "service": "s3", "subtype": "bucket", "cfn_type": "AWS::S3::Bucket", "properties": {"BucketName": "amazon-connect-c575c0ad8ab8", "Location": "us-west-2", "Policy": null}, "metadata": {"Source": "get_bucket"}, "color_key": "s3:bucket", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "BotLogs", "service": "logs", "subtype": "loggroup", "cfn_type": "AWS::Logs::LogGroup", "properties": {"logGroupName": "BotLogs", "creationTime": 1761163241966, "metricFilterCount": 0, "arn": "arn:aws:logs:us-west-2:523773103726:log-group:BotLogs:*", "storedBytes": 155509, "logGroupClass": "STANDARD", "logGroupArn": "__REF_BotLogs__", "Tags": {}}, "metadata": {"AWSResponse": {"logGroupName": "BotLogs", "creationTime": 1761163241966, "metricFilterCount": 0, "arn": "arn:aws:logs:us-west-2:523773103726:log-group:BotLogs:*", "storedBytes": 155509, "logGroupClass": "STANDARD", "logGroupArn": "arn:aws:logs:us-west-2:523773103726:log-group:BotLogs", "Tags": {}}, "OriginalReferencedARNs": ["arn:aws:logs:us-west-2:523773103726:log-group:BotLogs"]}, "color_key": "logs:loggroup", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "UltimateSpanish", "service": "connect", "subtype": "queue", "cfn_type": "AWS::Connect::Queue", "properties": {"Name": "Ultimate Spanish", "Description": "Ultimate Spanish", "OutboundCallerConfig": {"OutboundCallerIdName": "SafeRide", "OutboundCallerIdNumberId": "199ae2b1-84d0-4620-9ea3-4e18797d1f45", "OutboundFlowId": "75b8e03f-f5c4-47d7-bb54-89fc84e66ffa"}, "InstanceArn": "__REF_ConnectInstancesrh__", "HoursOfOperationArn": null, "Tags": {}}, "metadata": {"Source": "describe_queue", "EmbeddedReferenceCount": 1, "OriginalReferencedARNs": ["arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"]}, "color_key": "connect:queue", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "ConnectFlow1InitialOutboundCallv1wrecording", "service": "connect", "subtype": "contactflow", "cfn_type": "AWS::Connect::ContactFlow", "properties": {"Name": "1. Initial Outbound Call (v1 w recording)", "Type": "CONTACT_FLOW", "Description": "", "Content": "{\"Version\":\"2019-10-30\",\"StartAction\":\"8e49abfa-bafd-4558-99ea-df84fe4d002a\",\"Metadata\":{\"entryPointPosition\":{\"x\":40,\"y\":40},\"ActionMetadata\":{\"8e49abfa-bafd-4558-99ea-df84fe4d002a\":{\"position\":{\"x\":228.8,\"y\":38.4}},\"Spoof Router's Number\":{\"position\":{\"x\":1252.8,\"y\":-27.2},\"isFriendlyName\":true,\"parameters\":{\"CallerId\":{\"Number\":{\"inputOption\":\"dynamic\"}}},\"setOptionalCallerId\":true,\"callerIdSource\":\"dynamic\",\"useDynamicConnectionTimeout\":false},\"58a18a7a-cd7d-448f-a528-daa0c7349aa8\":{\"position\":{\"x\":2046.4,\"y\":106.4}},\"Reporting Attributes\":{\"position\":{\"x\":1517.6,\"y\":27.2},\"isFriendlyName\":true,\"dynamicParams\":[]},\"545e4cd6-db72-4bc8-bcae-d4b00ddb9d2e\":{\"position\":{\"x\":1793.6,\"y\":60}},\"Turn on All Features\":{\"position\":{\"x\":480.8,\"y\":35.2},\"isFriendlyName\":true},\"Check for Router's to spoof number\":{\"position\":{\"x\":997.6,\"y\":16},\"isFriendlyName\":true,\"conditions\":[],\"conditionMetadata\":[{\"id\":\"e0eb75cb-2b4e-432b-81f0-e21c5942c213\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"Outbound Routers\"}]},\"New GEN AI Voice\":{\"position\":{\"x\":734.4,\"y\":25.6},\"isFriendlyName\":true,\"parameters\":{\"TextToSpeechVoice\":{\"languageCode\":\"en-US\"}},\"overrideConsoleVoice\":true}},\"Annotations\":[{\"type\":\"default\",\"id\":\"3b60ff8d-1ac1-47ca-ac41-dc45e0de7c2d\",\"content\":\"We need Routers number to spoof\",\"actionId\":\"\",\"isFolded\":false,\"position\":{\"x\":1527,\"y\":-335},\"size\":{\"height\":295,\"width\":300}},{\"type\":\"default\",\"id\":\"84b20151-7842-4e3c-8947-a6990b35ec36\",\"content\":\"Attach outbound called if missed to inbound call. Pending DEV access\",\"actionId\":\"\",\"isFolded\":false,\"position\":{\"x\":1994,\"y\":-298},\"size\":{\"height\":295,\"width\":300}}]},\"Actions\":[{\"Parameters\":{\"FlowLoggingBehavior\":\"Enabled\"},\"Identifier\":\"8e49abfa-bafd-4558-99ea-df84fe4d002a\",\"Type\":\"UpdateFlowLoggingBehavior\",\"Transitions\":{\"NextAction\":\"Turn on All Features\"}},{\"Parameters\":{\"CallerId\":{\"Number\":\"$.Attributes.ROUTERS CALLERID\"}},\"Identifier\":\"Spoof Router's Number\",\"Type\":\"CompleteOutboundCall\",\"Transitions\":{\"NextAction\":\"Reporting Attributes\"}},{\"Parameters\":{},\"Identifier\":\"58a18a7a-cd7d-448f-a528-daa0c7349aa8\",\"Type\":\"EndFlowExecution\",\"Transitions\":{}},{\"Parameters\":{\"Attributes\":{\"CustomerJourney\":\"Initial Outbound Call\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Reporting Attributes\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"545e4cd6-db72-4bc8-bcae-d4b00ddb9d2e\",\"Errors\":[{\"NextAction\":\"545e4cd6-db72-4bc8-bcae-d4b00ddb9d2e\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Text\":\"This call is being recorded for quality assurance and training purposes and by continuing, you consent to this recording.\"},\"Identifier\":\"545e4cd6-db72-4bc8-bcae-d4b00ddb9d2e\",\"Type\":\"MessageParticipant\",\"Transitions\":{\"NextAction\":\"58a18a7a-cd7d-448f-a528-daa0c7349aa8\"}},{\"Parameters\":{\"RecordingBehavior\":{\"RecordedParticipants\":[\"Agent\",\"Customer\"],\"ScreenRecordedParticipants\":[\"Agent\"],\"IVRRecordingBehavior\":\"Enabled\"},\"AnalyticsBehavior\":{\"Enabled\":\"True\",\"AnalyticsLanguage\":\"en-US\",\"AnalyticsRedactionBehavior\":\"Disabled\",\"AnalyticsRedactionResults\":\"RedactedAndOriginal\",\"ChannelConfiguration\":{\"Chat\":{\"AnalyticsModes\":[\"ContactLens\"]},\"Voice\":{\"AnalyticsModes\":[\"RealTime\"]}},\"SummaryConfiguration\":{\"SummaryModes\":[\"PostContact\"]},\"SentimentConfiguration\":{\"Enabled\":\"True\"}}},\"Identifier\":\"Turn on All Features\",\"Type\":\"UpdateContactRecordingBehavior\",\"Transitions\":{\"NextAction\":\"New GEN AI Voice\"}},{\"Parameters\":{\"ComparisonValue\":\"$.Metrics.Queue.Name\"},\"Identifier\":\"Check for Router's to spoof number\",\"Type\":\"Compare\",\"Transitions\":{\"NextAction\":\"Reporting Attributes\",\"Conditions\":[{\"NextAction\":\"Spoof Router's Number\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"Outbound Routers\"]}}],\"Errors\":[{\"NextAction\":\"Reporting Attributes\",\"ErrorType\":\"NoMatchingCondition\"}]}},{\"Parameters\":{\"TextToSpeechVoice\":\"Stephen\",\"TextToSpeechEngine\":\"Generative\",\"TextToSpeechStyle\":\"None\"},\"Identifier\":\"New GEN AI Voice\",\"Type\":\"UpdateContactTextToSpeechVoice\",\"Transitions\":{\"NextAction\":\"Check for Router's to spoof number\",\"Errors\":[{\"NextAction\":\"Check for Router's to spoof number\",\"ErrorType\":\"NoMatchingError\"}]}}]}", "InstanceArn": "__REF_ConnectInstancesrh__", "Tags": {}}, "metadata": {"Source": "describe_contact_flow", "EmbeddedReferenceCount": 1, "Seed": true, "OriginalReferencedARNs": ["arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"]}, "color_key": "connect:contactflow", "is_error": false, "error_msg": "", "is_seed": true, "is_portable": true}, {"id": "ConnectFlow1InitialOutboundCall", "service": "connect", "subtype": "contactflow", "cfn_type": "AWS::Connect::ContactFlow", "properties": {"Name": "1. Initial Outbound Call", "Type": "OUTBOUND_WHISPER", "Description": "", "Content": "{\"Version\":\"2019-10-30\",\"StartAction\":\"8e49abfa-bafd-4558-99ea-df84fe4d002a\",\"Metadata\":{\"entryPointPosition\":{\"x\":40,\"y\":40},\"ActionMetadata\":{\"8e49abfa-bafd-4558-99ea-df84fe4d002a\":{\"position\":{\"x\":228.8,\"y\":38.4}},\"Turn on All Features\":{\"position\":{\"x\":480.8,\"y\":35.2},\"isFriendlyName\":true},\"New GEN AI Voice\":{\"position\":{\"x\":734.4,\"y\":25.6},\"isFriendlyName\":true,\"parameters\":{\"TextToSpeechVoice\":{\"languageCode\":\"en-US\"}},\"overrideConsoleVoice\":true},\"Spoof Router's Number\":{\"position\":{\"x\":1252.8,\"y\":-27.2},\"isFriendlyName\":true,\"parameters\":{\"CallerId\":{\"Number\":{\"inputOption\":\"dynamic\"}}},\"setOptionalCallerId\":true,\"callerIdSource\":\"dynamic\",\"useDynamicConnectionTimeout\":false},\"Check for Router's to spoof number\":{\"position\":{\"x\":997.6,\"y\":16},\"isFriendlyName\":true,\"conditions\":[],\"conditionMetadata\":[{\"id\":\"5266fecf-24b5-4a5f-94a5-43dccf777052\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"Outbound Routers\"}]},\"Reporting Attributes\":{\"position\":{\"x\":1517.6,\"y\":27.2},\"isFriendlyName\":true,\"parameters\":{\"Attributes\":{\"Campaign\":{\"useDynamic\":true}}},\"dynamicParams\":[\"Campaign\"]},\"58a18a7a-cd7d-448f-a528-daa0c7349aa8\":{\"position\":{\"x\":1808.8,\"y\":76.8}}},\"Annotations\":[{\"type\":\"default\",\"id\":\"3b60ff8d-1ac1-47ca-ac41-dc45e0de7c2d\",\"content\":\"We need Routers number to spoof\",\"actionId\":\"\",\"isFolded\":false,\"position\":{\"x\":1527,\"y\":-335},\"size\":{\"height\":295,\"width\":300}}]},\"Actions\":[{\"Parameters\":{\"FlowLoggingBehavior\":\"Enabled\"},\"Identifier\":\"8e49abfa-bafd-4558-99ea-df84fe4d002a\",\"Type\":\"UpdateFlowLoggingBehavior\",\"Transitions\":{\"NextAction\":\"Turn on All Features\"}},{\"Parameters\":{\"RecordingBehavior\":{\"RecordedParticipants\":[\"Agent\",\"Customer\"],\"ScreenRecordedParticipants\":[\"Agent\"],\"IVRRecordingBehavior\":\"Enabled\"},\"AnalyticsBehavior\":{\"Enabled\":\"True\",\"AnalyticsLanguage\":\"en-US\",\"AnalyticsRedactionBehavior\":\"Disabled\",\"AnalyticsRedactionResults\":\"RedactedAndOriginal\",\"ChannelConfiguration\":{\"Chat\":{\"AnalyticsModes\":[\"ContactLens\"]},\"Voice\":{\"AnalyticsModes\":[\"RealTime\"]}},\"SummaryConfiguration\":{\"SummaryModes\":[\"PostContact\"]},\"SentimentConfiguration\":{\"Enabled\":\"True\"}}},\"Identifier\":\"Turn on All Features\",\"Type\":\"UpdateContactRecordingBehavior\",\"Transitions\":{\"NextAction\":\"New GEN AI Voice\"}},{\"Parameters\":{\"TextToSpeechVoice\":\"Stephen\",\"TextToSpeechEngine\":\"Generative\",\"TextToSpeechStyle\":\"None\"},\"Identifier\":\"New GEN AI Voice\",\"Type\":\"UpdateContactTextToSpeechVoice\",\"Transitions\":{\"NextAction\":\"Check for Router's to spoof number\",\"Errors\":[{\"NextAction\":\"Check for Router's to spoof number\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"CallerId\":{\"Number\":\"$.Attributes.ROUTERS CALLERID\"}},\"Identifier\":\"Spoof Router's Number\",\"Type\":\"CompleteOutboundCall\",\"Transitions\":{\"NextAction\":\"Reporting Attributes\"}},{\"Parameters\":{\"ComparisonValue\":\"$.Metrics.Queue.Name\"},\"Identifier\":\"Check for Router's to spoof number\",\"Type\":\"Compare\",\"Transitions\":{\"NextAction\":\"Reporting Attributes\",\"Conditions\":[{\"NextAction\":\"Spoof Router's Number\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"Outbound Routers\"]}}],\"Errors\":[{\"NextAction\":\"Reporting Attributes\",\"ErrorType\":\"NoMatchingCondition\"}]}},{\"Parameters\":{\"Attributes\":{\"CustomerJourney\":\"Initial Outbound Call\",\"Campaign\":\"$.Queue.Name\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Reporting Attributes\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"58a18a7a-cd7d-448f-a528-daa0c7349aa8\",\"Errors\":[{\"NextAction\":\"58a18a7a-cd7d-448f-a528-daa0c7349aa8\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{},\"Identifier\":\"58a18a7a-cd7d-448f-a528-daa0c7349aa8\",\"Type\":\"EndFlowExecution\",\"Transitions\":{}}]}", "InstanceArn": "__REF_ConnectInstancesrh__", "Tags": {}}, "metadata": {"Source": "describe_contact_flow", "EmbeddedReferenceCount": 1, "Seed": true, "OriginalReferencedARNs": ["arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"]}, "color_key": "connect:contactflow", "is_error": false, "error_msg": "", "is_seed": true, "is_portable": true}, {"id": "ConnectFlow1FraudWasteandAbuseEntry", "service": "connect", "subtype": "contactflow", "cfn_type": "AWS::Connect::ContactFlow", "properties": {"Name": "1. Fraud Waste and Abuse Entry", "Type": "CONTACT_FLOW", "Description": "", "Content": "{\"Version\":\"2019-10-30\",\"StartAction\":\"2139e26c-86a6-4d67-a783-c5509160cc11\",\"Metadata\":{\"entryPointPosition\":{\"x\":-162.4,\"y\":72.8},\"ActionMetadata\":{\"Menu Selection Invalid\":{\"position\":{\"x\":2468,\"y\":567.2},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Menu Selection Timeout\":{\"position\":{\"x\":2509.6,\"y\":352},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Escalation Queue\":{\"position\":{\"x\":2882.4,\"y\":151.2},\"isFriendlyName\":true,\"parameters\":{\"QueueId\":{\"displayName\":\"Fraud, Waste & Abuse Escalations\"}},\"queue\":{\"text\":\"Fraud, Waste & Abuse Escalations\"}},\"Menu Selection FWA Escalation\":{\"position\":{\"x\":2548,\"y\":111.2},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Claim Denial Queue\":{\"position\":{\"x\":2858.4,\"y\":-144.8},\"isFriendlyName\":true,\"parameters\":{\"QueueId\":{\"displayName\":\"Claim Denial Inquiries\"}},\"queue\":{\"text\":\"Claim Denial Inquiries\"}},\"Menu Selection Complaint\":{\"position\":{\"x\":2516,\"y\":-100.8},\"isFriendlyName\":true,\"dynamicParams\":[]},\"f061231a-2d79-40f9-aa57-2055a21fe9b1\":{\"position\":{\"x\":3312.8,\"y\":24.8}},\"Reporting Attributes\":{\"position\":{\"x\":3568,\"y\":0.8},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Return from Module Error-copy-1\":{\"position\":{\"x\":4040,\"y\":139.2},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Error Transfer to Queue\":{\"position\":{\"x\":5748,\"y\":194.4},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Error\":{\"position\":{\"x\":3518.4,\"y\":561.6},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Reporting Attriubtes 2\":{\"position\":{\"x\":3568.8,\"y\":318.4},\"isFriendlyName\":true,\"dynamicParams\":[]},\"c457a779-a585-4c7f-a7da-d39ff57281e2\":{\"position\":{\"x\":6028,\"y\":413.6}},\"514327c5-6fc1-4f8a-bb16-6d58bedd0cdc\":{\"position\":{\"x\":3859.2,\"y\":520.8}},\"Get EWT\":{\"position\":{\"x\":3815.2,\"y\":-116.8},\"isFriendlyName\":true,\"parameters\":{\"FlowModuleId\":{\"displayName\":\"Get Estimated Wait Time\"}},\"contactFlowModuleName\":\"Get Estimated Wait Time\"},\"estimatedWaitTimeMinutes\":{\"position\":{\"x\":4219.2,\"y\":-160.8},\"isFriendlyName\":true,\"conditions\":[],\"conditionMetadata\":[{\"id\":\"6f2d7ca7-f0b1-4aeb-9d08-9e3633d1d726\",\"operator\":{\"name\":\"Is greater or equal\",\"value\":\"GreaterThanOrEqualTo\",\"shortDisplay\":\">=\"},\"value\":\"5\"}]},\"b1a1b633-d850-4ee5-90dd-ff78ffcbf9ab\":{\"position\":{\"x\":4557.6,\"y\":-296.8},\"dynamicParams\":[]},\"3f5d48e4-9fe8-44cf-9d2f-0ceb5e411fc6\":{\"position\":{\"x\":5460,\"y\":188.8}},\"Transfer to Callback\":{\"position\":{\"x\":5175.2,\"y\":-388.8},\"isFriendlyName\":true,\"parameters\":{\"FlowModuleId\":{\"displayName\":\"Call Back Module\"}},\"contactFlowModuleName\":\"Call Back Module\"},\"Press 1 for VM\":{\"position\":{\"x\":4837.6,\"y\":-308},\"isFriendlyName\":true,\"conditionMetadata\":[{\"id\":\"74e9174b-470c-4ce9-9490-4c5a633cb470\",\"value\":\"1\"}]},\"Reproting Attributes\":{\"position\":{\"x\":636.8,\"y\":52.8},\"isFriendlyName\":true,\"dynamicParams\":[]},\"New GEN AI Voice\":{\"position\":{\"x\":406.4,\"y\":58.4},\"isFriendlyName\":true,\"parameters\":{\"TextToSpeechVoice\":{\"languageCode\":\"en-US\"}},\"overrideConsoleVoice\":true},\"2139e26c-86a6-4d67-a783-c5509160cc11\":{\"position\":{\"x\":-80,\"y\":72.8}},\"Turn on All Features\":{\"position\":{\"x\":171.2,\"y\":75.2},\"isFriendlyName\":true},\"English Callback\":{\"position\":{\"x\":876,\"y\":68},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Menu Selection\":{\"position\":{\"x\":2229.6,\"y\":56.8},\"isFriendlyName\":true,\"conditionMetadata\":[{\"id\":\"fa76b68e-5a5b-40aa-a9b8-086be711f3a3\",\"value\":\"1\"},{\"id\":\"f4dcf5a9-21cc-4af4-9066-d10e2d7e8e70\",\"value\":\"2\"}]},\"7d72c9a5-6773-4f42-bb83-7b02c8b8475b\":{\"position\":{\"x\":1801.6,\"y\":68}},\"Blocked Caller Module\":{\"position\":{\"x\":1128.8,\"y\":80},\"isFriendlyName\":true,\"parameters\":{\"FlowModuleId\":{\"displayName\":\"Blocked Phone Number\"}},\"contactFlowModuleName\":\"Blocked Phone Number\"},\"MOTD\":{\"position\":{\"x\":1439.2,\"y\":75.2},\"isFriendlyName\":true,\"parameters\":{\"FlowModuleId\":{\"displayName\":\"Message of the Day Module\"}},\"contactFlowModuleName\":\"Message of the Day Module\"},\"Return from Module Error\":{\"position\":{\"x\":1442.4,\"y\":346.4},\"isFriendlyName\":true,\"dynamicParams\":[]}},\"Annotations\":[]},\"Actions\":[{\"Parameters\":{\"Attributes\":{\"MenuSelection\":\"Invalid DTMF Input\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Menu Selection Invalid\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Claim Denial Queue\",\"Errors\":[{\"NextAction\":\"Claim Denial Queue\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"MenuSelection\":\"Timeout - No Input\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Menu Selection Timeout\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Claim Denial Queue\",\"Errors\":[{\"NextAction\":\"Claim Denial Queue\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"QueueId\":\"__REF_FraudWasteAbuseEscalations__\"},\"Identifier\":\"Escalation Queue\",\"Type\":\"UpdateContactTargetQueue\",\"Transitions\":{\"NextAction\":\"f061231a-2d79-40f9-aa57-2055a21fe9b1\",\"Errors\":[{\"NextAction\":\"f061231a-2d79-40f9-aa57-2055a21fe9b1\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"MenuSelection\":\"FWA Escalation\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Menu Selection FWA Escalation\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Escalation Queue\",\"Errors\":[{\"NextAction\":\"Escalation Queue\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"QueueId\":\"__REF_ClaimDenialInquiries__\"},\"Identifier\":\"Claim Denial Queue\",\"Type\":\"UpdateContactTargetQueue\",\"Transitions\":{\"NextAction\":\"f061231a-2d79-40f9-aa57-2055a21fe9b1\",\"Errors\":[{\"NextAction\":\"f061231a-2d79-40f9-aa57-2055a21fe9b1\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"MenuSelection\":\"Compalint Call\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Menu Selection Complaint\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Claim Denial Queue\",\"Errors\":[{\"NextAction\":\"Claim Denial Queue\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{},\"Identifier\":\"f061231a-2d79-40f9-aa57-2055a21fe9b1\",\"Type\":\"CheckHoursOfOperation\",\"Transitions\":{\"NextAction\":\"Error\",\"Conditions\":[{\"NextAction\":\"Reporting Attributes\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"True\"]}},{\"NextAction\":\"Reporting Attriubtes 2\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"False\"]}}],\"Errors\":[{\"NextAction\":\"Error\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"CustomerJourney\":\"$.Attributes.CustomerJourney - Inside Business Hours\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Reporting Attributes\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Get EWT\",\"Errors\":[{\"NextAction\":\"Get EWT\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"Error\":\"Return from Module Error\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Return from Module Error-copy-1\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"3f5d48e4-9fe8-44cf-9d2f-0ceb5e411fc6\",\"Errors\":[{\"NextAction\":\"3f5d48e4-9fe8-44cf-9d2f-0ceb5e411fc6\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"Error\":\"Transfer To Queue \"},\"TargetContact\":\"Current\"},\"Identifier\":\"Error Transfer to Queue\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"c457a779-a585-4c7f-a7da-d39ff57281e2\",\"Errors\":[{\"NextAction\":\"c457a779-a585-4c7f-a7da-d39ff57281e2\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"Error\":\"CheckHours\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Error\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"514327c5-6fc1-4f8a-bb16-6d58bedd0cdc\",\"Errors\":[{\"NextAction\":\"514327c5-6fc1-4f8a-bb16-6d58bedd0cdc\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"CustomerJourney\":\"$.Attributes.CustomerJourney - Outside Business Hours\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Reporting Attriubtes 2\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"514327c5-6fc1-4f8a-bb16-6d58bedd0cdc\",\"Errors\":[{\"NextAction\":\"514327c5-6fc1-4f8a-bb16-6d58bedd0cdc\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{},\"Identifier\":\"c457a779-a585-4c7f-a7da-d39ff57281e2\",\"Type\":\"DisconnectParticipant\",\"Transitions\":{}},{\"Parameters\":{\"Text\":\"Thank you for calling SafeRide. This line is currently closed. Our normal hours are Monday through Friday from 7 A M to 7 P M Central Standard Time. Please call back during these hours, and we\\u2019ll be happy to assist you. Thank you for choosing SafeRide.\\n\"},\"Identifier\":\"514327c5-6fc1-4f8a-bb16-6d58bedd0cdc\",\"Type\":\"MessageParticipant\",\"Transitions\":{\"NextAction\":\"c457a779-a585-4c7f-a7da-d39ff57281e2\",\"Errors\":[{\"NextAction\":\"c457a779-a585-4c7f-a7da-d39ff57281e2\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"FlowModuleId\":\"7d4a6c73-1d6f-4ed3-b55e-8dadfcc200b6\"},\"Identifier\":\"Get EWT\",\"Type\":\"InvokeFlowModule\",\"Transitions\":{\"NextAction\":\"estimatedWaitTimeMinutes\",\"Errors\":[{\"NextAction\":\"Return from Module Error-copy-1\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"ComparisonValue\":\"$.Attributes.estimatedWaitTimeMinutes\"},\"Identifier\":\"estimatedWaitTimeMinutes\",\"Type\":\"Compare\",\"Transitions\":{\"NextAction\":\"b1a1b633-d850-4ee5-90dd-ff78ffcbf9ab\",\"Conditions\":[{\"NextAction\":\"b1a1b633-d850-4ee5-90dd-ff78ffcbf9ab\",\"Condition\":{\"Operator\":\"NumberGreaterOrEqualTo\",\"Operands\":[\"5\"]}}],\"Errors\":[{\"NextAction\":\"b1a1b633-d850-4ee5-90dd-ff78ffcbf9ab\",\"ErrorType\":\"NoMatchingCondition\"}]}},{\"Parameters\":{\"Attributes\":{\"CustomerJourney\":\"$.Attributes.CustomerJourney - Customer Selected VoiceMail\"},\"TargetContact\":\"Current\"},\"Identifier\":\"b1a1b633-d850-4ee5-90dd-ff78ffcbf9ab\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Press 1 for VM\",\"Errors\":[{\"NextAction\":\"Press 1 for VM\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{},\"Identifier\":\"3f5d48e4-9fe8-44cf-9d2f-0ceb5e411fc6\",\"Type\":\"TransferContactToQueue\",\"Transitions\":{\"NextAction\":\"Error Transfer to Queue\",\"Errors\":[{\"NextAction\":\"Error Transfer to Queue\",\"ErrorType\":\"QueueAtCapacity\"},{\"NextAction\":\"Error Transfer to Queue\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"FlowModuleId\":\"43e96a6d-0c93-460e-8f3d-173daeee488d\"},\"Identifier\":\"Transfer to Callback\",\"Type\":\"InvokeFlowModule\",\"Transitions\":{\"NextAction\":\"3f5d48e4-9fe8-44cf-9d2f-0ceb5e411fc6\",\"Errors\":[{\"NextAction\":\"3f5d48e4-9fe8-44cf-9d2f-0ceb5e411fc6\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"StoreInput\":\"False\",\"InputTimeLimitSeconds\":\"5\",\"Text\":\"We\\u2019re helping other customers right now, but we don\\u2019t want to miss you. Press 1 to receive a callback and hold your place in line.\\nOr, stay on the line and the next available agent will be with you shortly.\"},\"Identifier\":\"Press 1 for VM\",\"Type\":\"GetParticipantInput\",\"Transitions\":{\"NextAction\":\"3f5d48e4-9fe8-44cf-9d2f-0ceb5e411fc6\",\"Conditions\":[{\"NextAction\":\"Transfer to Callback\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"1\"]}}],\"Errors\":[{\"NextAction\":\"3f5d48e4-9fe8-44cf-9d2f-0ceb5e411fc6\",\"ErrorType\":\"InputTimeLimitExceeded\"},{\"NextAction\":\"3f5d48e4-9fe8-44cf-9d2f-0ceb5e411fc6\",\"ErrorType\":\"NoMatchingCondition\"},{\"NextAction\":\"3f5d48e4-9fe8-44cf-9d2f-0ceb5e411fc6\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"CustomerJourney\":\"Returned Outbound Call - Main Entry\",\"Campaign\":\"Fraud Waste and Abuse\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Reproting Attributes\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"English Callback\",\"Errors\":[{\"NextAction\":\"English Callback\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"TextToSpeechVoice\":\"Stephen\",\"TextToSpeechEngine\":\"Generative\",\"TextToSpeechStyle\":\"None\"},\"Identifier\":\"New GEN AI Voice\",\"Type\":\"UpdateContactTextToSpeechVoice\",\"Transitions\":{\"NextAction\":\"Reproting Attributes\",\"Errors\":[{\"NextAction\":\"Reproting Attributes\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"FlowLoggingBehavior\":\"Enabled\"},\"Identifier\":\"2139e26c-86a6-4d67-a783-c5509160cc11\",\"Type\":\"UpdateFlowLoggingBehavior\",\"Transitions\":{\"NextAction\":\"Turn on All Features\"}},{\"Parameters\":{\"RecordingBehavior\":{\"RecordedParticipants\":[\"Agent\",\"Customer\"],\"ScreenRecordedParticipants\":[\"Agent\"],\"IVRRecordingBehavior\":\"Enabled\"},\"AnalyticsBehavior\":{\"Enabled\":\"True\",\"AnalyticsLanguage\":\"en-US\",\"AnalyticsRedactionBehavior\":\"Disabled\",\"AnalyticsRedactionResults\":\"RedactedAndOriginal\",\"ChannelConfiguration\":{\"Chat\":{\"AnalyticsModes\":[\"ContactLens\"]},\"Voice\":{\"AnalyticsModes\":[\"RealTime\"]}},\"SummaryConfiguration\":{\"SummaryModes\":[\"PostContact\"]},\"SentimentConfiguration\":{\"Enabled\":\"True\"}}},\"Identifier\":\"Turn on All Features\",\"Type\":\"UpdateContactRecordingBehavior\",\"Transitions\":{\"NextAction\":\"New GEN AI Voice\"}},{\"Parameters\":{\"Attributes\":{\"NewNumberCallbackPrompt\":\"<speak>Please enter the number you\\u2019d like to be called back at</speak>\",\"ConfirmNumberPrompt\":\"<speak>\\nThank you! We\\u2019ve saved your number.\\n</speak>\",\"FinalAttemptPrompt\":\"<speak>\\n  I\\u2019m sorry, we\\u2019re still having trouble getting your number. \\n  Please call us back when you\\u2019re ready, and we\\u2019ll be happy to assist you. \\n  Goodbye.\\n</speak>\\n\\n\",\"CallbackNumberPrompt\":\"<speak>Please confirm the best number for a callback. Press 1 to use the number you\\u2019re calling from, or press 2 to enter a different number </speak>\\n\"},\"TargetContact\":\"Current\"},\"Identifier\":\"English Callback\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Blocked Caller Module\",\"Errors\":[{\"NextAction\":\"Blocked Caller Module\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"StoreInput\":\"False\",\"InputTimeLimitSeconds\":\"8\",\"Text\":\"Thank you for calling the SafeRide Fraud Waste and Abuse line. Please press 1 for Gas Mileage Re-imbursement Claims or Press 2 for other Fraud Waste and Abuse escalations\"},\"Identifier\":\"Menu Selection\",\"Type\":\"GetParticipantInput\",\"Transitions\":{\"NextAction\":\"Menu Selection Invalid\",\"Conditions\":[{\"NextAction\":\"Menu Selection Complaint\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"1\"]}},{\"NextAction\":\"Menu Selection FWA Escalation\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"2\"]}}],\"Errors\":[{\"NextAction\":\"Menu Selection Timeout\",\"ErrorType\":\"InputTimeLimitExceeded\"},{\"NextAction\":\"Menu Selection Invalid\",\"ErrorType\":\"NoMatchingCondition\"},{\"NextAction\":\"Claim Denial Queue\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Text\":\"This call is being recorded for quality assurance and training purposes and by continuing, you consent to this recording.\"},\"Identifier\":\"7d72c9a5-6773-4f42-bb83-7b02c8b8475b\",\"Type\":\"MessageParticipant\",\"Transitions\":{\"NextAction\":\"Menu Selection\"}},{\"Parameters\":{\"FlowModuleId\":\"2e906bdf-a23f-47e3-a0de-8d89dae86333\"},\"Identifier\":\"Blocked Caller Module\",\"Type\":\"InvokeFlowModule\",\"Transitions\":{\"NextAction\":\"MOTD\",\"Errors\":[{\"NextAction\":\"Return from Module Error\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"FlowModuleId\":\"f5420782-47e6-4fcc-aa96-c9b74e8328d3\"},\"Identifier\":\"MOTD\",\"Type\":\"InvokeFlowModule\",\"Transitions\":{\"NextAction\":\"7d72c9a5-6773-4f42-bb83-7b02c8b8475b\",\"Errors\":[{\"NextAction\":\"Return from Module Error\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"Error\":\"Return from Module Error\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Return from Module Error\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"7d72c9a5-6773-4f42-bb83-7b02c8b8475b\",\"Errors\":[{\"NextAction\":\"7d72c9a5-6773-4f42-bb83-7b02c8b8475b\",\"ErrorType\":\"NoMatchingError\"}]}}]}", "InstanceArn": "__REF_ConnectInstancesrh__", "Tags": {}}, "metadata": {"Source": "describe_contact_flow", "EmbeddedReferenceCount": 3, "Seed": true, "OriginalReferencedARNs": ["arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/8c641867-517a-434c-992b-89ff838e31a1", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/fea228b2-05c2-400d-be67-f98bc2d8cc3b"]}, "color_key": "connect:contactflow", "is_error": false, "error_msg": "", "is_seed": true, "is_portable": true}, {"id": "FraudWasteAbuseEscalations", "service": "connect", "subtype": "queue", "cfn_type": "AWS::Connect::Queue", "properties": {"Name": "Fraud, Waste & Abuse Escalations", "Description": "Fraud, Waste & Abuse Escalations", "OutboundCallerConfig": {"OutboundCallerIdName": "SafeRide", "OutboundCallerIdNumberId": "6b8d4ad5-646e-41ef-a401-8357147d29ba", "OutboundFlowId": "75b8e03f-f5c4-47d7-bb54-89fc84e66ffa"}, "InstanceArn": "__REF_ConnectInstancesrh__", "HoursOfOperationArn": null, "Tags": {}}, "metadata": {"Source": "describe_queue", "EmbeddedReferenceCount": 1, "OriginalReferencedARNs": ["arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"]}, "color_key": "connect:queue", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "ClaimDenialInquiries", "service": "connect", "subtype": "queue", "cfn_type": "AWS::Connect::Queue", "properties": {"Name": "Claim Denial Inquiries", "Description": "Claim Denial Inquiries", "OutboundCallerConfig": {"OutboundCallerIdName": "SafeRide", "OutboundCallerIdNumberId": "6b8d4ad5-646e-41ef-a401-8357147d29ba", "OutboundFlowId": "75b8e03f-f5c4-47d7-bb54-89fc84e66ffa"}, "InstanceArn": "__REF_ConnectInstancesrh__", "HoursOfOperationArn": null, "Tags": {}}, "metadata": {"Source": "describe_queue", "EmbeddedReferenceCount": 1, "OriginalReferencedARNs": ["arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"]}, "color_key": "connect:queue", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "ConnectFlow1ComplaintEntry", "service": "connect", "subtype": "contactflow", "cfn_type": "AWS::Connect::ContactFlow", "properties": {"Name": "1. Complaint Entry", "Type": "CONTACT_FLOW", "Description": "", "Content": "{\"Version\":\"2019-10-30\",\"StartAction\":\"e7fdf26a-16f9-4ba3-b09f-6d53929455aa\",\"Metadata\":{\"entryPointPosition\":{\"x\":-527.2,\"y\":56.8},\"ActionMetadata\":{\"73f9abfa-8a06-4562-8370-caf67c51e858\":{\"position\":{\"x\":2440.8,\"y\":-53.6},\"children\":[\"e48f5ed3-cc64-45f9-99b7-9435442012c3\"],\"parameters\":{\"TextToSpeechVoice\":{\"languageCode\":\"es-US\"}},\"overrideConsoleVoice\":true,\"fragments\":{\"SetContactData\":\"e48f5ed3-cc64-45f9-99b7-9435442012c3\"},\"overrideLanguageAttribute\":true},\"e48f5ed3-cc64-45f9-99b7-9435442012c3\":{\"position\":{\"x\":2440.8,\"y\":-53.6},\"dynamicParams\":[]},\"Reporting Attriubtes 2\":{\"position\":{\"x\":3773.6,\"y\":536.8},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Error\":{\"position\":{\"x\":3723.2,\"y\":773.6},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Menu Selection Invalid\":{\"position\":{\"x\":2138.4,\"y\":759.2},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Menu Selection Timeout\":{\"position\":{\"x\":2195.2,\"y\":508.8},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Menu Selection Spanish\":{\"position\":{\"x\":2173.6,\"y\":-63.2},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Transfer to Complaint's English\":{\"position\":{\"x\":3157.6,\"y\":807.2},\"isFriendlyName\":true,\"parameters\":{\"QueueId\":{\"displayName\":\"Complaint Callback English\"}},\"queue\":{\"text\":\"Complaint Callback English\"}},\"Menu Selection English\":{\"position\":{\"x\":2368.8,\"y\":242.4},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Transfer to Complaint's Spanish\":{\"position\":{\"x\":3185.6,\"y\":-16.8},\"isFriendlyName\":true,\"parameters\":{\"QueueId\":{\"displayName\":\"Compaint Callback Spanish\"}},\"queue\":{\"text\":\"Compaint Callback Spanish\"}},\"Turn to Spanish\":{\"position\":{\"x\":2936,\"y\":-16.8},\"isFriendlyName\":true},\"Spanish Prompts\":{\"position\":{\"x\":2695.2,\"y\":-45.6},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Transfer to VM\":{\"position\":{\"x\":4963.2,\"y\":-64},\"isFriendlyName\":true,\"parameters\":{\"FlowModuleId\":{\"displayName\":\"Voicemail to Task\"}},\"contactFlowModuleName\":\"Voicemail to Task\"},\"Press 1 for VM\":{\"position\":{\"x\":4625.6,\"y\":16.8},\"isFriendlyName\":true,\"parameters\":{\"Text\":{\"useDynamic\":true}},\"useDynamic\":true,\"conditionMetadata\":[{\"id\":\"58f4b381-c86f-4075-aa16-b6c5b2f9511e\",\"value\":\"1\"}]},\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\":{\"position\":{\"x\":5393.6,\"y\":484}},\"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7\":{\"position\":{\"x\":4087.2,\"y\":614.4},\"parameters\":{\"Text\":{\"useDynamic\":true}},\"useDynamic\":true},\"Error Transfer to Queue\":{\"position\":{\"x\":5730.4,\"y\":405.6},\"isFriendlyName\":true,\"dynamicParams\":[]},\"f38f4510-0a6e-4491-b4b0-67daf98e2753\":{\"position\":{\"x\":6154.4,\"y\":494.4}},\"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964\":{\"position\":{\"x\":4345.6,\"y\":28},\"dynamicParams\":[]},\"461a49e4-1f40-42c9-a012-94b897f9d75c\":{\"position\":{\"x\":3508,\"y\":376.8}},\"estimatedWaitTimeMinutes\":{\"position\":{\"x\":4113.6,\"y\":21.6},\"isFriendlyName\":true,\"conditions\":[],\"conditionMetadata\":[{\"id\":\"d66a6b84-4814-4108-9af9-b7cea1bfd73f\",\"operator\":{\"name\":\"Is greater or equal\",\"value\":\"GreaterThanOrEqualTo\",\"shortDisplay\":\">=\"},\"value\":\"5\"}]},\"Reporting Attributes\":{\"position\":{\"x\":3776.8,\"y\":310.4},\"isFriendlyName\":true,\"dynamicParams\":[]},\"a4a72b72-fcc5-48ad-8402-f116ea144447\":{\"position\":{\"x\":3844,\"y\":28},\"parameters\":{\"FlowModuleId\":{\"displayName\":\"Get Estimated Wait Time\"}},\"contactFlowModuleName\":\"Get Estimated Wait Time\"},\"Turn on All Features\":{\"position\":{\"x\":-123.2,\"y\":36.8},\"isFriendlyName\":true},\"e7fdf26a-16f9-4ba3-b09f-6d53929455aa\":{\"position\":{\"x\":-375.2,\"y\":40}},\"Press 1 for english\":{\"position\":{\"x\":1901.6,\"y\":49.6},\"isFriendlyName\":true,\"parameters\":{\"PromptId\":{\"displayName\":\"Male Lang Selection\"}},\"promptName\":\"Male Lang Selection\",\"conditionMetadata\":[{\"id\":\"24d6c158-31be-4d66-8349-cd2ce82531b7\",\"value\":\"1\"},{\"id\":\"a1c15292-ad48-4a6d-89cc-976d8d6c65f3\",\"value\":\"2\"}]},\"Return from Module Error\":{\"position\":{\"x\":1285.6,\"y\":334.4},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Blocked Caller Module\":{\"position\":{\"x\":889.6,\"y\":32.8},\"isFriendlyName\":true,\"parameters\":{\"FlowModuleId\":{\"displayName\":\"Blocked Phone Number\"}},\"contactFlowModuleName\":\"Blocked Phone Number\"},\"6a858c35-6a9e-4943-9790-53afc5918fb6\":{\"position\":{\"x\":1654.4,\"y\":26.4}},\"MOTD Module\":{\"position\":{\"x\":1212,\"y\":32},\"isFriendlyName\":true,\"parameters\":{\"FlowModuleId\":{\"displayName\":\"Message of the Day Module\"}},\"contactFlowModuleName\":\"Message of the Day Module\"},\"Customer Journey\":{\"position\":{\"x\":630.4,\"y\":33.6},\"isFriendlyName\":true,\"dynamicParams\":[]},\"New GEN AI Voice\":{\"position\":{\"x\":130.4,\"y\":27.2},\"isFriendlyName\":true,\"parameters\":{\"TextToSpeechVoice\":{\"languageCode\":\"en-US\"}},\"overrideConsoleVoice\":true},\"English Dynamic Prompt\":{\"position\":{\"x\":399.2,\"y\":32},\"isFriendlyName\":true,\"dynamicParams\":[]}},\"Annotations\":[]},\"Actions\":[{\"Parameters\":{\"TextToSpeechVoice\":\"Pedro\",\"TextToSpeechEngine\":\"Generative\",\"TextToSpeechStyle\":\"None\"},\"Identifier\":\"73f9abfa-8a06-4562-8370-caf67c51e858\",\"Type\":\"UpdateContactTextToSpeechVoice\",\"Transitions\":{\"NextAction\":\"e48f5ed3-cc64-45f9-99b7-9435442012c3\",\"Errors\":[{\"NextAction\":\"Spanish Prompts\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"LanguageCode\":\"es-US\"},\"Identifier\":\"e48f5ed3-cc64-45f9-99b7-9435442012c3\",\"Type\":\"UpdateContactData\",\"Transitions\":{\"NextAction\":\"Spanish Prompts\",\"Errors\":[{\"NextAction\":\"Spanish Prompts\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"CustomerJourney\":\"$.Attributes.CustomerJourney - Outside Business Hours\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Reporting Attriubtes 2\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7\",\"Errors\":[{\"NextAction\":\"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"Error\":\"CheckHours\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Error\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7\",\"Errors\":[{\"NextAction\":\"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"MenuSelection\":\"Invalid DTMF Input\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Menu Selection Invalid\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Transfer to Complaint's English\",\"Errors\":[{\"NextAction\":\"Transfer to Complaint's English\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"MenuSelection\":\"Timeout - No Input\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Menu Selection Timeout\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Transfer to Complaint's English\",\"Errors\":[{\"NextAction\":\"Transfer to Complaint's English\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"MenuSelection\":\"Complaint Spanish\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Menu Selection Spanish\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"73f9abfa-8a06-4562-8370-caf67c51e858\",\"Errors\":[{\"NextAction\":\"73f9abfa-8a06-4562-8370-caf67c51e858\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"QueueId\":\"__REF_ComplaintCallbackEnglish__\"},\"Identifier\":\"Transfer to Complaint's English\",\"Type\":\"UpdateContactTargetQueue\",\"Transitions\":{\"NextAction\":\"461a49e4-1f40-42c9-a012-94b897f9d75c\",\"Errors\":[{\"NextAction\":\"461a49e4-1f40-42c9-a012-94b897f9d75c\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"MenuSelection\":\"Complaint English\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Menu Selection English\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Transfer to Complaint's English\",\"Errors\":[{\"NextAction\":\"Transfer to Complaint's English\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"QueueId\":\"__REF_CompaintCallbackSpanish__\"},\"Identifier\":\"Transfer to Complaint's Spanish\",\"Type\":\"UpdateContactTargetQueue\",\"Transitions\":{\"NextAction\":\"461a49e4-1f40-42c9-a012-94b897f9d75c\",\"Errors\":[{\"NextAction\":\"461a49e4-1f40-42c9-a012-94b897f9d75c\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"RecordingBehavior\":{\"RecordedParticipants\":[\"Agent\",\"Customer\"],\"ScreenRecordedParticipants\":[\"Agent\"],\"IVRRecordingBehavior\":\"Enabled\"},\"AnalyticsBehavior\":{\"Enabled\":\"True\",\"AnalyticsLanguage\":\"es-US\",\"AnalyticsRedactionBehavior\":\"Disabled\",\"AnalyticsRedactionResults\":\"RedactedAndOriginal\",\"ChannelConfiguration\":{\"Chat\":{\"AnalyticsModes\":[\"ContactLens\"]},\"Voice\":{\"AnalyticsModes\":[\"RealTime\"]}},\"SentimentConfiguration\":{\"Enabled\":\"True\"}}},\"Identifier\":\"Turn to Spanish\",\"Type\":\"UpdateContactRecordingBehavior\",\"Transitions\":{\"NextAction\":\"Transfer to Complaint's Spanish\"}},{\"Parameters\":{\"Attributes\":{\"Closed\":\"Gracias por llamar a SafeRide. Esta l\\u00ednea est\\u00e1 cerrada actualmente. Nuestro horario habitual es de lunes a viernes de 8:00 a. m. a 6:00 p. m., hora est\\u00e1ndar del centro. Vuelva a llamar durante este horario y con gusto le atenderemos. Gracias por elegir SafeRide.\",\"CustomerJourney\":\"$.Attributes.CustomerJourney - Spanish\",\"LanguageCode\":\"es-US\",\"EWTPrompt\":\"Estamos ayudando a otros clientes, pero no queremos perderte. Presiona 1 para dejarnos un mensaje r\\u00e1pido y te llamaremos en un d\\u00eda h\\u00e1bil.\\nDe lo contrario, qu\\u00e9date en l\\u00ednea y te atenderemos en breve.\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Spanish Prompts\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Turn to Spanish\",\"Errors\":[{\"NextAction\":\"Turn to Spanish\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"FlowModuleId\":\"3546180a-6408-4578-8ddf-64fdad5b58b8\"},\"Identifier\":\"Transfer to VM\",\"Type\":\"InvokeFlowModule\",\"Transitions\":{\"NextAction\":\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\",\"Errors\":[{\"NextAction\":\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"StoreInput\":\"False\",\"InputTimeLimitSeconds\":\"5\",\"Text\":\"$.Attributes.EWTPrompt\"},\"Identifier\":\"Press 1 for VM\",\"Type\":\"GetParticipantInput\",\"Transitions\":{\"NextAction\":\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\",\"Conditions\":[{\"NextAction\":\"Transfer to VM\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"1\"]}}],\"Errors\":[{\"NextAction\":\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\",\"ErrorType\":\"InputTimeLimitExceeded\"},{\"NextAction\":\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\",\"ErrorType\":\"NoMatchingCondition\"},{\"NextAction\":\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{},\"Identifier\":\"99af5eb3-6bc6-4b5a-b07f-a3a630785727\",\"Type\":\"TransferContactToQueue\",\"Transitions\":{\"NextAction\":\"Error Transfer to Queue\",\"Errors\":[{\"NextAction\":\"Error Transfer to Queue\",\"ErrorType\":\"QueueAtCapacity\"},{\"NextAction\":\"Error Transfer to Queue\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Text\":\"$.Attributes.Closed\"},\"Identifier\":\"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7\",\"Type\":\"MessageParticipant\",\"Transitions\":{\"NextAction\":\"f38f4510-0a6e-4491-b4b0-67daf98e2753\",\"Errors\":[{\"NextAction\":\"f38f4510-0a6e-4491-b4b0-67daf98e2753\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"Error\":\"Transfer To Queue \"},\"TargetContact\":\"Current\"},\"Identifier\":\"Error Transfer to Queue\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"f38f4510-0a6e-4491-b4b0-67daf98e2753\",\"Errors\":[{\"NextAction\":\"f38f4510-0a6e-4491-b4b0-67daf98e2753\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{},\"Identifier\":\"f38f4510-0a6e-4491-b4b0-67daf98e2753\",\"Type\":\"DisconnectParticipant\",\"Transitions\":{}},{\"Parameters\":{\"Attributes\":{\"CustomerJourney\":\"$.Attributes.CustomerJourney - Customer Selected VoiceMail\"},\"TargetContact\":\"Current\"},\"Identifier\":\"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Press 1 for VM\",\"Errors\":[{\"NextAction\":\"Press 1 for VM\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{},\"Identifier\":\"461a49e4-1f40-42c9-a012-94b897f9d75c\",\"Type\":\"CheckHoursOfOperation\",\"Transitions\":{\"NextAction\":\"Error\",\"Conditions\":[{\"NextAction\":\"Reporting Attributes\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"True\"]}},{\"NextAction\":\"Reporting Attriubtes 2\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"False\"]}}],\"Errors\":[{\"NextAction\":\"Error\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"ComparisonValue\":\"$.Attributes.estimatedWaitTimeMinutes\"},\"Identifier\":\"estimatedWaitTimeMinutes\",\"Type\":\"Compare\",\"Transitions\":{\"NextAction\":\"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964\",\"Conditions\":[{\"NextAction\":\"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964\",\"Condition\":{\"Operator\":\"NumberGreaterOrEqualTo\",\"Operands\":[\"5\"]}}],\"Errors\":[{\"NextAction\":\"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964\",\"ErrorType\":\"NoMatchingCondition\"}]}},{\"Parameters\":{\"Attributes\":{\"CustomerJourney\":\"$.Attributes.CustomerJourney - Inside Business Hours\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Reporting Attributes\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"a4a72b72-fcc5-48ad-8402-f116ea144447\",\"Errors\":[{\"NextAction\":\"a4a72b72-fcc5-48ad-8402-f116ea144447\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"FlowModuleId\":\"7d4a6c73-1d6f-4ed3-b55e-8dadfcc200b6\"},\"Identifier\":\"a4a72b72-fcc5-48ad-8402-f116ea144447\",\"Type\":\"InvokeFlowModule\",\"Transitions\":{\"NextAction\":\"estimatedWaitTimeMinutes\",\"Errors\":[{\"NextAction\":\"estimatedWaitTimeMinutes\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"RecordingBehavior\":{\"RecordedParticipants\":[\"Agent\",\"Customer\"],\"ScreenRecordedParticipants\":[\"Agent\"],\"IVRRecordingBehavior\":\"Enabled\"},\"AnalyticsBehavior\":{\"Enabled\":\"True\",\"AnalyticsLanguage\":\"en-US\",\"AnalyticsRedactionBehavior\":\"Disabled\",\"AnalyticsRedactionResults\":\"RedactedAndOriginal\",\"ChannelConfiguration\":{\"Chat\":{\"AnalyticsModes\":[\"ContactLens\"]},\"Voice\":{\"AnalyticsModes\":[\"RealTime\"]}},\"SummaryConfiguration\":{\"SummaryModes\":[\"PostContact\"]},\"SentimentConfiguration\":{\"Enabled\":\"True\"}}},\"Identifier\":\"Turn on All Features\",\"Type\":\"UpdateContactRecordingBehavior\",\"Transitions\":{\"NextAction\":\"New GEN AI Voice\"}},{\"Parameters\":{\"FlowLoggingBehavior\":\"Enabled\"},\"Identifier\":\"e7fdf26a-16f9-4ba3-b09f-6d53929455aa\",\"Type\":\"UpdateFlowLoggingBehavior\",\"Transitions\":{\"NextAction\":\"Turn on All Features\"}},{\"Parameters\":{\"PromptId\":\"__REF_ConnectPromptComplaintLanguageSelection__\",\"StoreInput\":\"False\",\"InputTimeLimitSeconds\":\"8\"},\"Identifier\":\"Press 1 for english\",\"Type\":\"GetParticipantInput\",\"Transitions\":{\"NextAction\":\"Menu Selection Invalid\",\"Conditions\":[{\"NextAction\":\"Menu Selection English\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"1\"]}},{\"NextAction\":\"Menu Selection Spanish\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"2\"]}}],\"Errors\":[{\"NextAction\":\"Menu Selection Timeout\",\"ErrorType\":\"InputTimeLimitExceeded\"},{\"NextAction\":\"Menu Selection Invalid\",\"ErrorType\":\"NoMatchingCondition\"},{\"NextAction\":\"Transfer to Complaint's English\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"Error\":\"Return from Module Error\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Return from Module Error\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"6a858c35-6a9e-4943-9790-53afc5918fb6\",\"Errors\":[{\"NextAction\":\"6a858c35-6a9e-4943-9790-53afc5918fb6\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"FlowModuleId\":\"__REF_ConnectModuleBlockedPhoneNumber__\"},\"Identifier\":\"Blocked Caller Module\",\"Type\":\"InvokeFlowModule\",\"Transitions\":{\"NextAction\":\"MOTD Module\",\"Errors\":[{\"NextAction\":\"Return from Module Error\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Text\":\"This call is being recorded for quality assurance and training purposes and by continuing, you consent to this recording.\"},\"Identifier\":\"6a858c35-6a9e-4943-9790-53afc5918fb6\",\"Type\":\"MessageParticipant\",\"Transitions\":{\"NextAction\":\"Press 1 for english\"}},{\"Parameters\":{\"FlowModuleId\":\"f5420782-47e6-4fcc-aa96-c9b74e8328d3\"},\"Identifier\":\"MOTD Module\",\"Type\":\"InvokeFlowModule\",\"Transitions\":{\"NextAction\":\"6a858c35-6a9e-4943-9790-53afc5918fb6\",\"Errors\":[{\"NextAction\":\"Return from Module Error\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"CustomerJourney\":\"Returned Outbound Call - Main Entry\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Customer Journey\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Blocked Caller Module\",\"Errors\":[{\"NextAction\":\"Blocked Caller Module\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"TextToSpeechVoice\":\"Stephen\",\"TextToSpeechEngine\":\"Generative\",\"TextToSpeechStyle\":\"None\"},\"Identifier\":\"New GEN AI Voice\",\"Type\":\"UpdateContactTextToSpeechVoice\",\"Transitions\":{\"NextAction\":\"English Dynamic Prompt\",\"Errors\":[{\"NextAction\":\"English Dynamic Prompt\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"Attributes\":{\"Closed\":\" Thank you for calling SafeRide. This line is currently closed. Our normal hours are Monday through Friday from 8 A M to 6 P M Central Standard Time. Please call back during these hours, and we\\u2019ll be happy to assist you. Thank you for choosing SafeRide.\",\"Campaign\":\"Complaint\",\"EWTPrompt\":\"We\\u2019re helping other customers right now, but we don\\u2019t want to miss you. Press 1 to Leave us a quick message, and we\\u2019ll call you back within one business day\\nOtherwise, Stay on the line and someone will be with you shortly. \"},\"TargetContact\":\"Current\"},\"Identifier\":\"English Dynamic Prompt\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Customer Journey\",\"Errors\":[{\"NextAction\":\"Customer Journey\",\"ErrorType\":\"NoMatchingError\"}]}}]}", "InstanceArn": "__REF_ConnectInstancesrh__", "Tags": {}}, "metadata": {"Source": "describe_contact_flow", "EmbeddedReferenceCount": 5, "Seed": true, "OriginalReferencedARNs": ["arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/6d45b8c5-07e9-41b4-89bb-e19906bc258a", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/flow-module/2e906bdf-a23f-47e3-a0de-8d89dae86333", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/ee314de7-2974-48a0-9668-9d4f133251bf", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/prompt/560ab6ac-7117-4bf1-9eff-4e6f74ed3348"]}, "color_key": "connect:contactflow", "is_error": false, "error_msg": "", "is_seed": true, "is_portable": true}, {"id": "ConnectPromptComplaintLanguageSelection", "service": "connect", "subtype": "prompt", "cfn_type": "AWS::Connect::Prompt", "properties": {"Name": "Complaint Language Selection", "Description": "Complaint Language Selection", "S3Uri": null, "InstanceArn": "__REF_ConnectInstancesrh__", "Tags": {}}, "metadata": {"Source": "describe_prompt", "EmbeddedReferenceCount": 1, "OriginalReferencedARNs": ["arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"]}, "color_key": "connect:prompt", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "ComplaintCallbackEnglish", "service": "connect", "subtype": "queue", "cfn_type": "AWS::Connect::Queue", "properties": {"Name": "Complaint Callback English", "Description": "Complaint Callback English", "OutboundCallerConfig": {"OutboundCallerIdName": "SafeRide", "OutboundCallerIdNumberId": "a0ff4ca8-f557-44d6-94b2-64c4154845e1", "OutboundFlowId": "75b8e03f-f5c4-47d7-bb54-89fc84e66ffa"}, "InstanceArn": "__REF_ConnectInstancesrh__", "HoursOfOperationArn": null, "Tags": {}}, "metadata": {"Source": "describe_queue", "EmbeddedReferenceCount": 1, "OriginalReferencedARNs": ["arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"]}, "color_key": "connect:queue", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "ConnectModuleBlockedPhoneNumber", "service": "connect", "subtype": "contactflowmodule", "cfn_type": "AWS::Connect::ContactFlowModule", "properties": {"Name": "Blocked Phone Number", "Description": "", "Content": "{\"Version\":\"2019-10-30\",\"StartAction\":\"ad166656-652a-4ea2-9d55-4b1c32312288\",\"Metadata\":{\"entryPointPosition\":{\"x\":40,\"y\":40},\"ActionMetadata\":{\"e81481cd-2937-47fb-ac2a-da14f955cc9a\":{\"position\":{\"x\":1564,\"y\":289.6}},\"Reporting attribute to add for lambda error\":{\"position\":{\"x\":1085.6,\"y\":-8.8},\"isFriendlyName\":true,\"dynamicParams\":[]},\"Check if Lambda Error\":{\"position\":{\"x\":855.2,\"y\":56.8},\"isFriendlyName\":true,\"conditions\":[],\"conditionMetadata\":[{\"id\":\"d43df71e-2efb-4b0a-8338-6f3439124da1\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"True\"}]},\"ad166656-652a-4ea2-9d55-4b1c32312288\":{\"position\":{\"x\":156.8,\"y\":65.6}},\"Attributes returned from lambda\":{\"position\":{\"x\":636.8,\"y\":60},\"isFriendlyName\":true,\"parameters\":{\"Attributes\":{\"blocked\":{\"useDynamic\":true},\"Error\":{\"useDynamic\":true}}},\"dynamicParams\":[\"blocked\",\"Error\"]},\"Blocked Number Lambda\":{\"position\":{\"x\":392,\"y\":56},\"isFriendlyName\":true,\"parameters\":{\"LambdaFunctionARN\":{\"displayName\":\"dev-srh-blocklist-checker\"}},\"dynamicMetadata\":{}},\"c67b9ff6-15e5-4db4-870d-ad1fa373239b\":{\"position\":{\"x\":1828.8,\"y\":40.8}},\"Check if Number is Blocked d\":{\"position\":{\"x\":1327.2,\"y\":132.8},\"isFriendlyName\":true,\"conditions\":[],\"conditionMetadata\":[{\"id\":\"8c8d7540-a19f-4ff7-9d68-c95f910544e2\",\"operator\":{\"name\":\"Equals\",\"value\":\"Equals\",\"shortDisplay\":\"=\"},\"value\":\"True\"}]},\"a89629cb-cf60-4753-bf1e-5a4ac25f7a35\":{\"position\":{\"x\":1545.6,\"y\":-16.8}}},\"Annotations\":[]},\"Actions\":[{\"Parameters\":{},\"Identifier\":\"e81481cd-2937-47fb-ac2a-da14f955cc9a\",\"Type\":\"EndFlowModuleExecution\",\"Transitions\":{}},{\"Parameters\":{\"Attributes\":{\"LambdaError\":\"Blocked Phone Number Error\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Reporting attribute to add for lambda error\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Check if Number is Blocked d\",\"Errors\":[{\"NextAction\":\"Check if Number is Blocked d\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"ComparisonValue\":\"$.Attributes.Error\"},\"Identifier\":\"Check if Lambda Error\",\"Type\":\"Compare\",\"Transitions\":{\"NextAction\":\"Check if Number is Blocked d\",\"Conditions\":[{\"NextAction\":\"Reporting attribute to add for lambda error\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"True\"]}}],\"Errors\":[{\"NextAction\":\"Check if Number is Blocked d\",\"ErrorType\":\"NoMatchingCondition\"}]}},{\"Parameters\":{\"FlowLoggingBehavior\":\"Enabled\"},\"Identifier\":\"ad166656-652a-4ea2-9d55-4b1c32312288\",\"Type\":\"UpdateFlowLoggingBehavior\",\"Transitions\":{\"NextAction\":\"Blocked Number Lambda\"}},{\"Parameters\":{\"Attributes\":{\"blocked\":\"$.External.blocked\",\"Error\":\"$.External.Error\"},\"TargetContact\":\"Current\"},\"Identifier\":\"Attributes returned from lambda\",\"Type\":\"UpdateContactAttributes\",\"Transitions\":{\"NextAction\":\"Check if Lambda Error\",\"Errors\":[{\"NextAction\":\"Check if Lambda Error\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{\"LambdaFunctionARN\":\"__REF_Unresolved_dev-srh-blocklist-checker__\",\"InvocationTimeLimitSeconds\":\"3\",\"InvocationType\":\"SYNCHRONOUS\",\"ResponseValidation\":{\"ResponseType\":\"STRING_MAP\"}},\"Identifier\":\"Blocked Number Lambda\",\"Type\":\"InvokeLambdaFunction\",\"Transitions\":{\"NextAction\":\"Attributes returned from lambda\",\"Errors\":[{\"NextAction\":\"Attributes returned from lambda\",\"ErrorType\":\"NoMatchingError\"}]}},{\"Parameters\":{},\"Identifier\":\"c67b9ff6-15e5-4db4-870d-ad1fa373239b\",\"Type\":\"DisconnectParticipant\",\"Transitions\":{}},{\"Parameters\":{\"ComparisonValue\":\"$.Attributes.blocked\"},\"Identifier\":\"Check if Number is Blocked d\",\"Type\":\"Compare\",\"Transitions\":{\"NextAction\":\"e81481cd-2937-47fb-ac2a-da14f955cc9a\",\"Conditions\":[{\"NextAction\":\"a89629cb-cf60-4753-bf1e-5a4ac25f7a35\",\"Condition\":{\"Operator\":\"Equals\",\"Operands\":[\"True\"]}}],\"Errors\":[{\"NextAction\":\"e81481cd-2937-47fb-ac2a-da14f955cc9a\",\"ErrorType\":\"NoMatchingCondition\"}]}},{\"Parameters\":{\"Text\":\"Thank you for calling SafeRide Health. The account associated with this phone number is not eligible for a transportation benefit at this time. Goodbye.\"},\"Identifier\":\"a89629cb-cf60-4753-bf1e-5a4ac25f7a35\",\"Type\":\"MessageParticipant\",\"Transitions\":{\"NextAction\":\"c67b9ff6-15e5-4db4-870d-ad1fa373239b\",\"Errors\":[{\"NextAction\":\"c67b9ff6-15e5-4db4-870d-ad1fa373239b\",\"ErrorType\":\"NoMatchingError\"}]}}],\"Settings\":{\"InputParameters\":[],\"OutputParameters\":[],\"Transitions\":[{\"DisplayName\":\"Success\",\"ReferenceName\":\"Success\",\"Description\":\"\"},{\"DisplayName\":\"Error\",\"ReferenceName\":\"Error\",\"Description\":\"\"}]}}", "InstanceArn": "__REF_ConnectInstancesrh__", "Tags": {}}, "metadata": {"Source": "describe_contact_flow_module", "EmbeddedReferenceCount": 2, "OriginalReferencedARNs": ["arn:aws:lambda:us-west-2:523773103726:function:dev-srh-blocklist-checker", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"]}, "color_key": "connect:contactflowmodule", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "Unresolved_dev-srh-blocklist-checker", "service": "unresolved", "subtype": "", "cfn_type": "Unresolved::Resource", "properties": {}, "metadata": {"Error": "Parse failure for arn:aws:lambda:us-west-2:523773103726:function:dev-srh-blocklist-checker: Could not connect to the endpoint URL: \"https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/dev-srh-blocklist-checker\"", "Unresolved": true, "SourceARN": "arn:aws:lambda:us-west-2:523773103726:function:dev-srh-blocklist-checker", "Seed": false}, "color_key": "unresolved", "is_error": true, "error_msg": "Parse failure for arn:aws:lambda:us-west-2:523773103726:function:dev-srh-blocklist-checker: Could not connect to the endpoint URL: \"https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/dev-srh-blocklist-checker\"", "is_seed": false, "is_portable": true}, {"id": "CompaintCallbackSpanish", "service": "connect", "subtype": "queue", "cfn_type": "AWS::Connect::Queue", "properties": {"Name": "Compaint Callback Spanish", "Description": "Compaint Callback Spanish", "OutboundCallerConfig": {"OutboundCallerIdName": "SafeRide", "OutboundCallerIdNumberId": "a0ff4ca8-f557-44d6-94b2-64c4154845e1", "OutboundFlowId": "75b8e03f-f5c4-47d7-bb54-89fc84e66ffa"}, "InstanceArn": "__REF_ConnectInstancesrh__", "HoursOfOperationArn": null, "Tags": {}}, "metadata": {"Source": "describe_queue", "EmbeddedReferenceCount": 1, "OriginalReferencedARNs": ["arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"]}, "color_key": "connect:queue", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "Unresolved_dev-srh-vm-transcribe-recordings", "service": "unresolved", "subtype": "", "cfn_type": "Unresolved::Resource", "properties": {}, "metadata": {"Error": "Parse failure for arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-transcribe-recordings: Could not connect to the endpoint URL: \"https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/dev-srh-vm-transcribe-recordings\"", "Unresolved": true, "SourceARN": "arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-transcribe-recordings", "Seed": true}, "color_key": "unresolved", "is_error": true, "error_msg": "Parse failure for arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-transcribe-recordings: Could not connect to the endpoint URL: \"https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/dev-srh-vm-transcribe-recordings\"", "is_seed": true, "is_portable": true}, {"id": "Unresolved_dev-srh-vm-presigner", "service": "unresolved", "subtype": "", "cfn_type": "Unresolved::Resource", "properties": {}, "metadata": {"Error": "Parse failure for arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-presigner: Could not connect to the endpoint URL: \"https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/dev-srh-vm-presigner\"", "Unresolved": true, "SourceARN": "arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-presigner", "Seed": true}, "color_key": "unresolved", "is_error": true, "error_msg": "Parse failure for arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-presigner: Could not connect to the endpoint URL: \"https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/dev-srh-vm-presigner\"", "is_seed": true, "is_portable": true}, {"id": "Unresolved_dev-srh-vm-dump-to-s3", "service": "unresolved", "subtype": "", "cfn_type": "Unresolved::Resource", "properties": {}, "metadata": {"Error": "Parse failure for arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-dump-to-s3: Could not connect to the endpoint URL: \"https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/dev-srh-vm-dump-to-s3\"", "Unresolved": true, "SourceARN": "arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-dump-to-s3", "Seed": true}, "color_key": "unresolved", "is_error": true, "error_msg": "Parse failure for arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-dump-to-s3: Could not connect to the endpoint URL: \"https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/dev-srh-vm-dump-to-s3\"", "is_seed": true, "is_portable": true}, {"id": "dev-srh-vm-Packager", "service": "lambda", "subtype": "function", "cfn_type": "AWS::Lambda::Function", "properties": {"FunctionName": "dev-srh-vm-Packager", "Handler": "index.lambda_handler", "Runtime": "python3.12", "Role": "__REF_IAMRoleConnectVoicemailStack-PackagerRole36C0D21E-i862RgyMBcAT__", "MemorySize": 512, "Timeout": 300, "Description": "", "PackageType": "Zip", "Architectures": ["x86_64"], "Environment": {"Variables": {"DESTINATION_BUCKET": "__PARAM_DESTINATION_BUCKETParam__", "CONNECT_INSTANCE_ID": "__PARAM_CONNECT_INSTANCE_IDParam__", "PRESIGNER_FUNCTION": "__PARAM_PRESIGNER_FUNCTIONParam__", "RECORDINGS_FOLDER": "__PARAM_RECORDINGS_FOLDERParam__", "REGION": "__PARAM_REGIONParam__", "TASK_TEMPLATE_ID": "__PARAM_TASK_TEMPLATE_IDParam__"}}, "Tags": {"aws:cloudformation:stack-name": "ConnectVoicemailStack", "aws:cloudformation:stack-id": "arn:aws:cloudformation:us-west-2:523773103726:stack/ConnectVoicemailStack/c7b27fe0-bb4f-11f0-8052-0618f01532ad", "aws:cloudformation:logical-id": "PackagerLambda3927A4B8"}, "Layers": []}, "metadata": {"Seed": true, "OriginalReferencedARNs": ["arn:aws:iam::523773103726:role/ConnectVoicemailStack-PackagerRole36C0D21E-i862RgyMBcAT"]}, "color_key": "lambda:function", "is_error": false, "error_msg": "", "is_seed": true, "is_portable": true}, {"id": "IAMRoleConnectVoicemailStack-PackagerRole36C0D21E-i862RgyMBcAT", "service": "iam", "subtype": "role", "cfn_type": "AWS::IAM::Role", "properties": {"RoleName": "ConnectVoicemailStack-PackagerRole36C0D21E-i862RgyMBcAT", "Path": "/", "Description": "", "MaxSessionDuration": 3600, "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Service": "lambda.amazonaws.com"}, "Action": "sts:AssumeRole"}]}, "InlinePolicies": {"PackagerRoleDefaultPolicy2AEA391F": {"Version": "2012-10-17", "Statement": [{"Action": "lambda:InvokeFunction", "Resource": "arn:aws:lambda:us-west-2:523773103726:function:dev-srh-*", "Effect": "Allow"}, {"Action": ["s3:CopyObject", "s3:GetObject", "s3:GetObjectTagging", "s3:ListBucket", "s3:PutObject", "s3:PutObjectTagging"], "Resource": "arn:aws:s3:::connectvoicemailstack-voicemailbucket6df79c0c-awvswq8brunq/*", "Effect": "Allow"}, {"Action": "connect:*", "Resource": "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/*", "Effect": "Allow"}, {"Action": ["ses:SendEmail", "ses:SendTemplatedEmail", "transcribe:DeleteTranscriptionJob"], "Resource": "*", "Effect": "Allow"}]}}, "AttachedPolicies": [{"PolicyName": "AWSLambdaBasicExecutionRole", "PolicyArn": "__REF_IAMPolicyAWSLambdaBasicExecutionRole__"}], "Arn": "__REF_IAMRoleConnectVoicemailStack-PackagerRole36C0D21E-i862RgyMBcAT__"}, "metadata": {"Source": "get_role", "InlinePolicyCount": 1, "AttachedPolicyCount": 1, "OriginalReferencedARNs": ["arn:aws:iam::523773103726:role/ConnectVoicemailStack-PackagerRole36C0D21E-i862RgyMBcAT", "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]}, "color_key": "iam:role", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "IAMPolicyAWSLambdaBasicExecutionRole", "service": "iam", "subtype": "managedpolicy", "cfn_type": "AWS::IAM::ManagedPolicy", "properties": {"PolicyName": "AWSLambdaBasicExecutionRole", "Arn": "__REF_IAMPolicyAWSLambdaBasicExecutionRole__"}, "metadata": {"Source": "get_policy", "aws_managed": true, "OriginalReferencedARNs": ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]}, "color_key": "iam:managedpolicy", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}, {"id": "dev-srh-estimated-wait-time", "service": "lambda", "subtype": "function", "cfn_type": "AWS::Lambda::Function", "properties": {"FunctionName": "dev-srh-estimated-wait-time", "Handler": "index.lambda_handler", "Runtime": "python3.12", "Role": "__REF_IAMRoleEstimatedWaitTimeStack-waittimelambdaServiceRole6FD-Q7ux0WrzPHlw__", "MemorySize": 128, "Timeout": 30, "Description": "", "PackageType": "Zip", "Architectures": ["x86_64"], "Environment": {"Variables": {"INSTANCE_ARN": "__REF_ConnectInstancesrh__"}}, "Tags": {"aws:cloudformation:stack-name": "EstimatedWaitTimeStack", "aws:cloudformation:stack-id": "arn:aws:cloudformation:us-west-2:523773103726:stack/EstimatedWaitTimeStack/fb362420-ab78-11f0-8988-0a7ebbabfb9d", "aws:cloudformation:logical-id": "waittimelambda39FAD2A7"}, "Layers": []}, "metadata": {"Seed": true, "OriginalReferencedARNs": ["arn:aws:iam::523773103726:role/EstimatedWaitTimeStack-waittimelambdaServiceRole6FD-Q7ux0WrzPHlw", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34"]}, "color_key": "lambda:function", "is_error": false, "error_msg": "", "is_seed": true, "is_portable": true}, {"id": "IAMRoleEstimatedWaitTimeStack-waittimelambdaServiceRole6FD-Q7ux0WrzPHlw", "service": "iam", "subtype": "role", "cfn_type": "AWS::IAM::Role", "properties": {"RoleName": "EstimatedWaitTimeStack-waittimelambdaServiceRole6FD-Q7ux0WrzPHlw", "Path": "/", "Description": "", "MaxSessionDuration": 3600, "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Service": "lambda.amazonaws.com"}, "Action": "sts:AssumeRole"}]}, "InlinePolicies": {"waittimelambdaServiceRoleDefaultPolicy5121280E": {"Version": "2012-10-17", "Statement": [{"Action": ["connect:GetContactMetrics", "connect:GetCurrentMetricData", "connect:GetMetricData", "connect:GetMetricDataV2"], "Resource": ["__REF_ConnectInstancesrh__", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/*"], "Effect": "Allow"}]}}, "AttachedPolicies": [{"PolicyName": "AWSLambdaBasicExecutionRole", "PolicyArn": "__REF_IAMPolicyAWSLambdaBasicExecutionRole__"}], "Arn": "__REF_IAMRoleEstimatedWaitTimeStack-waittimelambdaServiceRole6FD-Q7ux0WrzPHlw__"}, "metadata": {"Source": "get_role", "InlinePolicyCount": 1, "AttachedPolicyCount": 1, "OriginalReferencedARNs": ["arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34", "arn:aws:iam::523773103726:role/EstimatedWaitTimeStack-waittimelambdaServiceRole6FD-Q7ux0WrzPHlw", "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]}, "color_key": "iam:role", "is_error": false, "error_msg": "", "is_seed": false, "is_portable": true}], "links": [{"source": "ConnectFlow1UltimateEntry", "target": "ConnectInstancesrh", "inferred": false}, {"source": "ConnectFlow1UltimateEntry", "target": "UltimateSpanish", "inferred": false}, {"source": "ConnectFlow1UltimateEntry", "target": "LexBotAliasPROD", "inferred": false}, {"source": "ConnectFlow1UltimateEntry", "target": "UltimateEnglish", "inferred": false}, {"source": "ConnectFlow1UltimateEntry", "target": "ConnectPromptUltimateLanguageSelection", "inferred": false}, {"source": "ConnectFlow1UltimateEntry", "target": "UltimateAfterHoursSpanish", "inferred": false}, {"source": "ConnectFlow1UltimateEntry", "target": "UltimateAfterHoursEnglish", "inferred": false}, {"source": "UltimateAfterHoursEnglish", "target": "ConnectInstancesrh", "inferred": false}, {"source": "ConnectInstancesrh", "target": "IAMRoleAWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ", "inferred": false}, {"source": "UltimateAfterHoursSpanish", "target": "ConnectInstancesrh", "inferred": false}, {"source": "ConnectPromptUltimateLanguageSelection", "target": "ConnectInstancesrh", "inferred": false}, {"source": "UltimateEnglish", "target": "ConnectInstancesrh", "inferred": false}, {"source": "LexBotAliasPROD", "target": "LexBotUltimate-Intent-Capture-2", "inferred": false}, {"source": "LexBotAliasPROD", "target": "BotLogs", "inferred": false}, {"source": "LexBotAliasPROD", "target": "S3Bucketamazonconnectc575c0ad8ab8", "inferred": false}, {"source": "LexBotAliasPROD", "target": "LexBotLocalees_US", "inferred": false}, {"source": "LexBotAliasPROD", "target": "LexBotLocaleen_US", "inferred": false}, {"source": "LexBotLocaleen_US", "target": "LexBotUltimate-Intent-Capture-2", "inferred": false}, {"source": "LexBotUltimate-Intent-Capture-2", "target": "IAMRoleAWSServiceRoleForLexV2Bots_G5GKAZB1D9I", "inferred": false}, {"source": "LexBotLocalees_US", "target": "LexBotUltimate-Intent-Capture-2", "inferred": false}, {"source": "UltimateSpanish", "target": "ConnectInstancesrh", "inferred": false}, {"source": "ConnectFlow1InitialOutboundCallv1wrecording", "target": "ConnectInstancesrh", "inferred": false}, {"source": "ConnectFlow1InitialOutboundCall", "target": "ConnectInstancesrh", "inferred": false}, {"source": "ConnectFlow1FraudWasteandAbuseEntry", "target": "ConnectInstancesrh", "inferred": false}, {"source": "ConnectFlow1FraudWasteandAbuseEntry", "target": "ClaimDenialInquiries", "inferred": false}, {"source": "ConnectFlow1FraudWasteandAbuseEntry", "target": "FraudWasteAbuseEscalations", "inferred": false}, {"source": "FraudWasteAbuseEscalations", "target": "ConnectInstancesrh", "inferred": false}, {"source": "ClaimDenialInquiries", "target": "ConnectInstancesrh", "inferred": false}, {"source": "ConnectFlow1ComplaintEntry", "target": "ConnectInstancesrh", "inferred": false}, {"source": "ConnectFlow1ComplaintEntry", "target": "CompaintCallbackSpanish", "inferred": false}, {"source": "ConnectFlow1ComplaintEntry", "target": "ConnectModuleBlockedPhoneNumber", "inferred": false}, {"source": "ConnectFlow1ComplaintEntry", "target": "ComplaintCallbackEnglish", "inferred": false}, {"source": "ConnectFlow1ComplaintEntry", "target": "ConnectPromptComplaintLanguageSelection", "inferred": false}, {"source": "ConnectPromptComplaintLanguageSelection", "target": "ConnectInstancesrh", "inferred": false}, {"source": "ComplaintCallbackEnglish", "target": "ConnectInstancesrh", "inferred": false}, {"source": "ConnectModuleBlockedPhoneNumber", "target": "ConnectInstancesrh", "inferred": false}, {"source": "ConnectModuleBlockedPhoneNumber", "target": "Unresolved_dev-srh-blocklist-checker", "inferred": false}, {"source": "CompaintCallbackSpanish", "target": "ConnectInstancesrh", "inferred": false}, {"source": "dev-srh-vm-Packager", "target": "IAMRoleConnectVoicemailStack-PackagerRole36C0D21E-i862RgyMBcAT", "inferred": false}, {"source": "IAMRoleConnectVoicemailStack-PackagerRole36C0D21E-i862RgyMBcAT", "target": "IAMPolicyAWSLambdaBasicExecutionRole", "inferred": false}, {"source": "dev-srh-estimated-wait-time", "target": "ConnectInstancesrh", "inferred": false}, {"source": "dev-srh-estimated-wait-time", "target": "IAMRoleEstimatedWaitTimeStack-waittimelambdaServiceRole6FD-Q7ux0WrzPHlw", "inferred": false}, {"source": "IAMRoleEstimatedWaitTimeStack-waittimelambdaServiceRole6FD-Q7ux0WrzPHlw", "target": "ConnectInstancesrh", "inferred": false}, {"source": "IAMRoleEstimatedWaitTimeStack-waittimelambdaServiceRole6FD-Q7ux0WrzPHlw", "target": "IAMPolicyAWSLambdaBasicExecutionRole", "inferred": false}], "metadata": {"UnresolvedNodes": ["arn:aws:lambda:us-west-2:523773103726:function:dev-srh-blocklist-checker", "arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-transcribe-recordings", "arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-presigner", "arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-dump-to-s3"], "PendingParams": {"DESTINATION_BUCKETParam": "connectvoicemailstack-voicemailbucket6df79c0c-awvswq8brunq", "CONNECT_INSTANCE_IDParam": "17d7794d-9d83-46fd-a6dc-07c38873db34", "PRESIGNER_FUNCTIONParam": "dev-srh-vm-presigner", "RECORDINGS_FOLDERParam": "recordings", "REGIONParam": "us-west-2", "TASK_TEMPLATE_IDParam": "424c907f-c377-4163-9f99-23f84478fddc"}, "finalized": true, "Frozen": true, "ArnMap": {"arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/contact-flow/31d89347-aab3-4704-af89-2c591b7ca888": "ConnectFlow1UltimateEntry", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/7ce5bf5e-63ac-41b4-8b30-76bd985019d0": "UltimateAfterHoursEnglish", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34": "ConnectInstancesrh", "arn:aws:iam::523773103726:role/aws-service-role/connect.amazonaws.com/AWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ": "IAMRoleAWSServiceRoleForAmazonConnect_9T4ubSKZ1l25jbfwkKUQ", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/43df19c1-ee7f-43de-906e-408152e8ad5f": "UltimateAfterHoursSpanish", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/prompt/471c666f-d77f-49c6-b69a-1d32ef78f9cf": "ConnectPromptUltimateLanguageSelection", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/04f60a61-9301-4742-ba1a-7239edde3f62": "UltimateEnglish", "arn:aws:lex:us-west-2:523773103726:bot-alias/JH5QVDICLV/HWFCIMRDSP": "LexBotAliasPROD", "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/en_US": "LexBotLocaleen_US", "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV": "LexBotUltimate-Intent-Capture-2", "arn:aws:iam::523773103726:role/aws-service-role/lexv2.amazonaws.com/AWSServiceRoleForLexV2Bots_G5GKAZB1D9I": "IAMRoleAWSServiceRoleForLexV2Bots_G5GKAZB1D9I", "arn:aws:lex:us-west-2:523773103726:bot/JH5QVDICLV/bot-locale/es_US": "LexBotLocalees_US", "arn:aws:s3:::amazon-connect-c575c0ad8ab8": "S3Bucketamazonconnectc575c0ad8ab8", "arn:aws:logs:us-west-2:523773103726:log-group:BotLogs": "BotLogs", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/f6aeda4b-9341-41fd-a874-45dff680a74c": "UltimateSpanish", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/contact-flow/c6ea3453-c57a-4398-801d-8f63233bbea4": "ConnectFlow1InitialOutboundCallv1wrecording", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/contact-flow/75b8e03f-f5c4-47d7-bb54-89fc84e66ffa": "ConnectFlow1InitialOutboundCall", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/contact-flow/142ee939-711d-49e9-b566-13e140204a13": "ConnectFlow1FraudWasteandAbuseEntry", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/fea228b2-05c2-400d-be67-f98bc2d8cc3b": "FraudWasteAbuseEscalations", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/8c641867-517a-434c-992b-89ff838e31a1": "ClaimDenialInquiries", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/contact-flow/61f71032-389a-45a5-aab9-df50a7da51e1": "ConnectFlow1ComplaintEntry", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/prompt/560ab6ac-7117-4bf1-9eff-4e6f74ed3348": "ConnectPromptComplaintLanguageSelection", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/ee314de7-2974-48a0-9668-9d4f133251bf": "ComplaintCallbackEnglish", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/flow-module/2e906bdf-a23f-47e3-a0de-8d89dae86333": "ConnectModuleBlockedPhoneNumber", "arn:aws:lambda:us-west-2:523773103726:function:dev-srh-blocklist-checker": "Unresolved_dev-srh-blocklist-checker", "arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/6d45b8c5-07e9-41b4-89bb-e19906bc258a": "CompaintCallbackSpanish", "arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-transcribe-recordings": "Unresolved_dev-srh-vm-transcribe-recordings", "arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-presigner": "Unresolved_dev-srh-vm-presigner", "arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-dump-to-s3": "Unresolved_dev-srh-vm-dump-to-s3", "arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-Packager": "dev-srh-vm-Packager", "arn:aws:iam::523773103726:role/ConnectVoicemailStack-PackagerRole36C0D21E-i862RgyMBcAT": "IAMRoleConnectVoicemailStack-PackagerRole36C0D21E-i862RgyMBcAT", "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole": "IAMPolicyAWSLambdaBasicExecutionRole", "arn:aws:lambda:us-west-2:523773103726:function:dev-srh-estimated-wait-time": "dev-srh-estimated-wait-time", "arn:aws:iam::523773103726:role/EstimatedWaitTimeStack-waittimelambdaServiceRole6FD-Q7ux0WrzPHlw": "IAMRoleEstimatedWaitTimeStack-waittimelambdaServiceRole6FD-Q7ux0WrzPHlw"}}};
+    const colorMap = {
+  "lambda": "#4e9cff",
+  "s3": "#2ecc71",
+  "dynamodb": "#f39c12",
+  "connect": "#9b59b6",
+  "iam": "#e74c3c",
+  "sns": "#e67e22",
+  "sqs": "#f1c40f",
+  "cloudformation": "#16a085",
+  "lex": "#3498db",
+  "unresolved": "#555555",
+  "connect:contactflow": "#ed2a2a",
+  "connect:queue": "#ed842a",
+  "connect:instance": "#edde2a",
+  "iam:role": "#a2ed2a",
+  "connect:prompt": "#48ed2a",
+  "lex:botalias": "#2aed66",
+  "lex:botlocale": "#2aedc0",
+  "lex:bot": "#2ac0ed",
+  "s3:bucket": "#2a66ed",
+  "logs:loggroup": "#482aed",
+  "connect:contactflowmodule": "#a22aed",
+  "lambda:function": "#ed2ade",
+  "iam:managedpolicy": "#ed2a84"
+};
+// graph.js — Unified Editable AWS Resource Graph Visualizer
+// ---------------------------------------------------------------------------
+
+// -------------------------------------------
+// State and utilities
+// -------------------------------------------
+let editMode = false;
+let searchTerm = "";
+
+function hashColor(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue},70%,55%)`;
+}
+
+// Group color keys
+const grouped = {};
+Object.keys(colorMap).forEach(k => {
+  const idx = k.indexOf(":");
+  const svc = idx === -1 ? k : k.slice(0, idx);
+  const subtype = idx === -1 ? "default" : k.slice(idx + 1);
+  if (!grouped[svc]) grouped[svc] = {};
+  grouped[svc][subtype || "default"] = colorMap[k];
+});
+
+let activeKeys = new Set(Object.keys(colorMap));
+
+function getConnectedNodes(nodeId, direction = "out") {
+  const gData = Graph.graphData();
+  const out = new Set();
+  if (direction === "out" || direction === "both") {
+    gData.links.forEach(l => {
+      if (l.source.id === nodeId || l.source === nodeId) out.add(l.target.id || l.target);
+    });
+  }
+  if (direction === "in" || direction === "both") {
+    gData.links.forEach(l => {
+      if (l.target.id === nodeId || l.target === nodeId) out.add(l.source.id || l.source);
+    });
+  }
+  return Array.from(out);
+}
+
+function markDownstreamParameters(nodeId, newState, visited = new Set()) {
+  if (visited.has(nodeId)) return;
+  visited.add(nodeId);
+
+  const gData = Graph.graphData();
+  const node = gData.nodes.find(n => n.id === nodeId);
+  if (!node) return;
+
+  const locked =
+    node.metadata?.implicit_aws_managed ||
+    node.metadata?.immutable_reference ||
+    node.service === "bedrock";
+  if (locked) return;
+
+  node.is_parameter = newState;
+  node.metadata = node.metadata || {};
+  node.metadata.Parameter = newState;
+
+  const downstream = getConnectedNodes(nodeId, "out");
+  downstream.forEach(childId => markDownstreamParameters(childId, newState, visited));
+}
+
+// -------------------------------------------
+// DOM references
+// -------------------------------------------
+const legendDiv = document.getElementById("legend");
+const infoPanel = document.getElementById("infoPanel");
+const nodeTitle = document.getElementById("nodeTitle");
+const nodeDetails = document.getElementById("nodeDetails");
+const closeBtn = document.getElementById("closeBtn");
+const searchBox = document.getElementById("searchBox");
+const resetBtn = document.getElementById("resetBtn");
+const exportBtn = document.getElementById("exportBtn");
+const editToggleBtn = document.getElementById("editToggleBtn");
+
+closeBtn.onclick = () => infoPanel.classList.remove("visible");
+
+// -------------------------------------------
+// Legend
+// -------------------------------------------
+function createLegend() {
+  legendDiv.innerHTML = "";
+  Object.entries(grouped).forEach(([svc, subs]) => {
+    const keys = Object.keys(subs);
+    const groupDiv = document.createElement("div");
+    groupDiv.className = "legend-group";
+
+    const title = document.createElement("div");
+    title.className = "legend-service";
+    title.textContent = svc;
+    title.onclick = () => toggleGroup(svc);
+    groupDiv.appendChild(title);
+
+    const showAll = keys.length > 1;
+    keys.forEach(sub => {
+      if (sub === "default" && !showAll) return;
+      const key = sub === "default" ? svc : `${svc}:${sub}`;
+      const color = subs[sub];
+      const colorBox =
+        sub === "default"
+          ? `<div class='color-box' style='background:none;border:1px solid #999'></div>`
+          : `<div class='color-box' style='background:${color}'></div>`;
+      const label = sub === "default" ? "(all)" : sub;
+      const item = document.createElement("div");
+      item.className = "legend-item";
+      item.dataset.key = key;
+      item.innerHTML = `${colorBox}${label}`;
+      item.onclick = () => toggleGroup(key);
+      groupDiv.appendChild(item);
+    });
+
+    legendDiv.appendChild(groupDiv);
+  });
+  updateLegendStyles();
+}
+
+function rebuildLegendFromGraph() {
+  const gData = Graph.graphData();
+  const newColors = { ...colorMap };
+
+  gData.nodes.forEach(n => {
+    n.subtype = (n.subtype || "").toLowerCase();
+    n.service = (n.service || "unknown").toLowerCase();
+    n.color_key = n.subtype ? `${n.service}:${n.subtype}` : n.service;
+    if (!newColors[n.color_key]) newColors[n.color_key] = hashColor(n.color_key);
+  });
+
+  Object.assign(colorMap, newColors);
+  activeKeys = new Set(Object.keys(colorMap));
+  Object.keys(grouped).forEach(k => delete grouped[k]);
+  Object.keys(colorMap).forEach(k => {
+    const idx = k.indexOf(":");
+    const svc = idx === -1 ? k : k.slice(0, idx);
+    const sub = idx === -1 ? "default" : k.slice(idx + 1);
+    if (!grouped[svc]) grouped[svc] = {};
+    grouped[svc][sub] = colorMap[k];
+  });
+
+  createLegend();
+}
+
+function toggleGroup(key) {
+  const affected = Object.keys(colorMap).filter(k => k === key || k.startsWith(`${key}:`));
+  const active = affected.some(k => activeKeys.has(k));
+  if (active) affected.forEach(k => activeKeys.delete(k));
+  else affected.forEach(k => activeKeys.add(k));
+  updateLegendStyles();
+  Graph.graphData(Graph.graphData());
+}
+
+function updateLegendStyles() {
+  document.querySelectorAll(".legend-item").forEach(el => {
+    const key = el.dataset.key;
+    const on = activeKeys.has(key);
+    el.classList.toggle("inactive", !on);
+    const box = el.querySelector(".color-box");
+    if (box) box.style.filter = on ? "brightness(1)" : "brightness(0.55)";
+  });
+}
+createLegend();
+
+// -------------------------------------------
+// Graph Setup
+// -------------------------------------------
+const fg = document.getElementById("graph");
+const Graph = ForceGraph()(fg)
+  .graphData(data)
+  .nodeId("id")
+  .nodeLabel(n => `${n.id}\n(${n.service}${n.subtype ? ":" + n.subtype : ""})`)
+  .nodeColor(n => colorMap[n.color_key] || "#777")
+  .linkColor(link => (link.inferred ? "#999999" : "#aaaaaa"))
+  .linkWidth(link => (link.inferred ? 1.5 : 2.0))
+  .linkDirectionalParticles(link => (link.inferred ? 0 : 2))
+  .linkCurvature(link => (link.inferred ? 0.2 : 0))
+  .backgroundColor("#0e1117")
+  .onNodeClick(n => {
+    if (editMode) showEditPanel(n);
+    else {
+      Graph.centerAt(n.x, n.y, 800);
+      Graph.zoom(4, 800);
+      showNodeInfo(n);
+    }
+  })
+  .onNodeRightClick(n => {
+    const locked =
+      n.metadata?.implicit_aws_managed || n.metadata?.immutable_reference || n.service === "bedrock";
+    if (locked) {
+      const canvas = document.getElementById("graph");
+      canvas.classList.add("node-shake");
+      setTimeout(() => canvas.classList.remove("node-shake"), 400);
+      return;
+    }
+    const newState = !n.is_parameter;
+    markDownstreamParameters(n.id, newState);
+    Graph.graphData(Graph.graphData());
+  })
+  .nodeVisibility(n => !searchTerm || n.id.toLowerCase().includes(searchTerm))
+  .nodeCanvasObject((n, ctx, scale) => {
+    const r = 6;
+    const active = activeKeys.has(n.color_key);
+    const color = colorMap[n.color_key] || "#777";
+    const err = n.is_error || n.metadata?.Unresolved || n.metadata?.Error;
+    const seed = n.is_seed || n.metadata?.Seed;
+    const param = n.is_parameter || n.metadata?.Parameter;
+    const implicit = n.metadata?.implicit_aws_managed;
+    const locked = implicit || n.metadata?.immutable_reference || n.service === "bedrock";
+
+    if (locked) {
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r + 2, 0, 2 * Math.PI);
+      ctx.strokeStyle = "#00ffff";
+      ctx.setLineDash([3, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 0.7;
+    }
+
+    if (param) {
+      ctx.beginPath();
+      ctx.moveTo(n.x, n.y - r);
+      ctx.lineTo(n.x + r, n.y);
+      ctx.lineTo(n.x, n.y + r);
+      ctx.lineTo(n.x - r, n.y);
+      ctx.closePath();
+      ctx.fillStyle = active ? color : "rgba(150,150,150,0.25)";
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff55";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r, 0, 2 * Math.PI);
+      ctx.fillStyle = active ? color : "rgba(150,150,150,0.25)";
+      ctx.fill();
+    }
+
+    if (err) {
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = "#ff3333";
+      ctx.stroke();
+    } else if (seed) {
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "#f1ff33ff";
+      ctx.stroke();
+    }
+
+    const fs = 10 / scale;
+    ctx.font = `${fs}px Sans-Serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillStyle = active ? "#fff" : "rgba(255,255,255,0.35)";
+    ctx.fillText(n.id, n.x, n.y + 6);
+    ctx.globalAlpha = 1.0;
+  });
+
+// -------------------------------------------
+// Info / Edit Panels
+// -------------------------------------------
+let currentNode = null;
+function showNodeInfo(node) {
+  currentNode = node;
+  infoPanel.classList.add("visible");
+  nodeTitle.textContent = node.id;
+  nodeDetails.innerHTML = "";
+
+  const meta = [
+    ["Service", node.service],
+    ["Subtype", node.subtype],
+    ["CFN Type", node.cfn_type],
+    ["Error", node.error_msg || ""],
+  ];
+  meta.forEach(([k, v]) => {
+    const row = document.createElement("div");
+    row.className = "info-row";
+    row.innerHTML = `<b>${k}:</b> <div>${v ?? ""}</div>`;
+    nodeDetails.appendChild(row);
+  });
+
+  if (node.properties && Object.keys(node.properties).length) {
+    nodeDetails.appendChild(document.createElement("hr"));
+    const pTitle = document.createElement("div");
+    pTitle.innerHTML = "<b>Properties</b>";
+    nodeDetails.appendChild(pTitle);
+    for (const [k, v] of Object.entries(node.properties)) {
+      const row = document.createElement("div");
+      row.className = "info-row";
+      const pre = document.createElement("pre");
+      pre.className = "json-block";
+      pre.textContent = typeof v === "object" ? JSON.stringify(v, null, 2) : v;
+      row.innerHTML = `<b>${k}:</b>`;
+      row.appendChild(pre);
+      nodeDetails.appendChild(row);
+    }
+  }
+
+  nodeDetails.appendChild(document.createElement("hr"));
+  const det = document.createElement("details");
+  det.innerHTML = `<summary><b>Raw Node Data</b></summary>
+  <pre class='json-block'>${JSON.stringify(node, null, 2)}</pre>`;
+  nodeDetails.appendChild(det);
+}
+
+function showEditPanel(node) {
+  currentNode = node;
+  infoPanel.classList.add("visible");
+  nodeTitle.textContent = `Edit: ${node.id}`;
+  nodeDetails.innerHTML = `
+    <label>Logical ID:</label>
+    <input id="editLogicalId" class="editable-field" value="${node.id}" />
+    <label>Service:</label>
+    <input id="editService" class="editable-field" value="${node.service}" />
+    <label>Subtype:</label>
+    <input id="editSubtype" class="editable-field" value="${node.subtype}" />
+    <label>Properties (JSON):</label>
+    <textarea id="editProperties" class="editable-textarea">${JSON.stringify(node.properties, null, 2)}</textarea>
+    <div class="panel-actions">
+      <button id="saveBtn">Save</button>
+    </div>
+  `;
+  document.getElementById("saveBtn").onclick = () => saveNodeChanges(node);
+}
+
+function saveNodeChanges(node) {
+  try {
+    const newId = document.getElementById("editLogicalId").value.trim();
+    const service = document.getElementById("editService").value.trim();
+    const subtype = document.getElementById("editSubtype").value.trim();
+    const props = JSON.parse(document.getElementById("editProperties").value);
+
+    node.id = newId;
+    node.service = service;
+    node.subtype = subtype;
+    node.properties = props;
+
+    rebuildLegendFromGraph();
+    Graph.nodeLabel(n => `${n.id}\n(${n.service}${n.subtype ? ":" + n.subtype : ""})`);
+    Graph.graphData(Graph.graphData());
+    alert("Node updated successfully.");
+    infoPanel.classList.remove("visible");
+  } catch (err) {
+    alert("Error saving node: " + err.message);
+  }
+}
+
+// -------------------------------------------
+// Controls
+// -------------------------------------------
+resetBtn.onclick = () => {
+  searchTerm = "";
+  searchBox.value = "";
+  activeKeys = new Set(Object.keys(colorMap));
+  updateLegendStyles();
+  Graph.graphData(Graph.graphData());
+};
+searchBox.oninput = () => {
+  searchTerm = searchBox.value.trim().toLowerCase();
+  Graph.graphData(Graph.graphData());
+};
+editToggleBtn.onclick = () => {
+  editMode = !editMode;
+  editToggleBtn.textContent = `Edit: ${editMode ? "On" : "Off"}`;
+  document.body.classList.toggle("edit-mode", editMode);
+};
+
+// -------------------------------------------
+// Export menu
+// -------------------------------------------
+const exportMenu = document.createElement("div");
+exportMenu.className = "export-menu";
+exportMenu.style.display = "none";
+
+const exportJSON = document.createElement("div");
+exportJSON.className = "export-item";
+exportJSON.textContent = "Export JSON";
+exportJSON.onclick = () => exportGraphAsJSON();
+
+const exportCDK = document.createElement("div");
+exportCDK.className = "export-item";
+exportCDK.textContent = "Export CDK Template";
+exportCDK.onclick = () => exportGraphAsCDK();
+
+exportMenu.appendChild(exportJSON);
+exportMenu.appendChild(exportCDK);
+document.body.appendChild(exportMenu);
+
+exportBtn.onclick = e => {
+  e.stopPropagation();
+  const rect = exportBtn.getBoundingClientRect();
+  exportMenu.style.left = `${rect.left}px`;
+  exportMenu.style.top = `${rect.bottom + 5}px`;
+  exportMenu.style.display = exportMenu.style.display === "none" ? "block" : "none";
+};
+document.addEventListener("click", () => (exportMenu.style.display = "none"));
+
+function exportGraphAsJSON() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "graph-edited.json";
+  a.click();
+  URL.revokeObjectURL(url);
+  exportMenu.style.display = "none";
+}
+
+async function exportGraphAsCDK() {
+  exportMenu.style.display = "none";
+  try {
+    const response = await fetch("/api/export-cdk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error(await response.text());
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "cdk-template.json";
+    a.click();
+    URL.revokeObjectURL(url);
+    console.log("[INFO] CDK template exported successfully.");
+  } catch (err) {
+    alert("CDK export failed: " + err.message);
+    console.error(err);
+  }
+}
+
+// -------------------------------------------
+// Initialize
+// -------------------------------------------
+rebuildLegendFromGraph();
+updateLegendStyles();
+
+  </script>
+</body>
+</html>

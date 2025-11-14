@@ -224,47 +224,105 @@ class ARN:
     def resource_type(self) -> str:
         parts = self.resource_parts
 
+        #
+        # CONNECT — full fix (handles versions, nested resources, files)
+        #
         if self.service == "connect":
+            if len(parts) == 2 and parts[0] == "instance":
+                return "instance"            
             if len(parts) >= 3 and parts[0] == "instance":
-                if parts[-1].startswith("$") and len(parts) >= 4:
-                    return parts[-3]
-                return parts[-2]
-        elif self.service == "apigateway":
-            if len(parts) >= 3 and parts[0] in ("restapis", "vpclinks"):
-                return parts[-2]
-        elif self.service == "elasticloadbalancing":
-            if len(parts) >= 2 and parts[0] in ("loadbalancer", "targetgroup"):
+                return parts[2]  # ALWAYS correct primary type
+            return "unknown"
+
+        #
+        # LAMBDA — functions vs layers vs layer-versions
+        #
+        if self.service == "lambda":
+            if len(parts) >= 1:
+                if parts[0] == "function":
+                    return "function"
+                if parts[0] == "layer":
+                    return "layer"
+            return "unknown"
+
+        #
+        # API GATEWAY — restapis/*/*
+        #
+        if self.service == "apigateway":
+            # Patterns:
+            #   restapis/<id>/resources/<id>
+            #   restapis/<id>/stages/<stage>
+            if len(parts) >= 3 and parts[0] == "restapis":
+                return parts[2]
+            return "restapi"
+
+        #
+        # ELB / ELBv2 — loadbalancer | targetgroup
+        #
+        if self.service == "elasticloadbalancing":
+            if len(parts) >= 1:
+                if parts[0] in ("loadbalancer", "targetgroup"):
+                    return parts[0]
+            return "unknown"
+
+        #
+        # IAM — roles, policies, instance-profiles, users, groups
+        #
+        if self.service == "iam":
+            # iam:role/<name>
+            # iam:user/<name>
+            # iam:policy/<name>
+            # iam:instance-profile/<name>
+            if len(parts) >= 1:
                 return parts[0]
-        elif self.service == "lambda" and parts and parts[0] == "function":
-            return "function"
-        elif self.service == "iam" and parts:
-            return parts[0]
-        elif self.service == "s3":
+            return "unknown"
+
+        #
+        # S3 — bucket vs objects
+        #
+        if self.service == "s3":
+            # arn:aws:s3:::bucket
+            # arn:aws:s3:::bucket/object
             return "object" if len(parts) > 1 else "bucket"
-        elif self.service == "lex":
-            if len(parts) >= 8 and parts[0:7:2] == ["bot", "bot-locale", "intent"]:
-                return "slot"
-            if len(parts) >= 6 and parts[0:5:2] == ["bot", "bot-locale", "intent"]:
-                return "intent"
-            if len(parts) >= 6 and parts[0:5:2] == ["bot", "bot-locale", "slot-type"]:
-                return "slot-type"
+
+        #
+        # LEX V2 — handle bots, locales, intents, slots, slot-types, aliases
+        #
+        if self.service == "lex":
+            # Lex has complex multi-layer structure.
+            # We always examine even-numbered hierarchy pairs.
             if "bot-alias" in parts:
                 return "bot-alias"
             if "bot-locale" in parts:
                 return "bot-locale"
+            if "intent" in parts:
+                return "intent"
+            if "slot" in parts:
+                return "slot"
+            if "slot-type" in parts:
+                return "slot-type"
             if parts[:1] == ["bot"]:
                 return "bot"
+            return "unknown"
 
+        #
+        # DEFAULT fallback
+        #
         if len(parts) >= 2:
             return parts[-2]
         return parts[0] if parts else "unknown"
 
     @cached_property
     def resource_id(self) -> str:
-        for sep in (":", "/"):
-            if sep in self.resource:
-                return self.resource.split(sep)[-1]
-        return self.resource
+        """
+        The final identifier for the ARN's primary resource.
+        For example:
+        - lambda:function/MyFunc → MyFunc
+        - connect:instance/X/contact-flow/Y → Y
+        - lex:bot/BOT/bot-alias/Alias → Alias
+        - s3:::bucket/key → key
+        """
+        return self.resource_parts[-1] if self.resource_parts else self.resource
 
     def resource_hierarchy(self) -> list[tuple[str, str]]:
         parts = self.resource_parts
@@ -351,7 +409,6 @@ class ARN:
             self.raw,
         )
 
-
 def extract_dependencies(
     obj: object,
     *,
@@ -359,66 +416,91 @@ def extract_dependencies(
     service_filter: tuple[str, ...] | None = None,
 ) -> set[ARN]:
     """
-    Recursively extract valid ARN references from arbitrary Python objects.
+    Recursively extract valid, *resolvable* ARN references from arbitrary
+    Python objects.
 
-    Designed for high-performance graph building — avoids redundant regex
-    matches and ignores large binary-like blobs.
-
-    Parameters
-    ----------
-    obj : Any
-        Arbitrary Python structure: dict, list, tuple, set, or scalar.
-    allow_partial : bool, default False
-        If True, tolerate slightly malformed ARNs (e.g. missing region/account).
-    service_filter : tuple[str, ...], optional
-        Only include ARNs from these AWS services (e.g. ("lambda", "connect")).
-
-    Returns
-    -------
-    set[ARN]
-        Unique ARN objects discovered recursively.
+    FIXED BEHAVIOR:
+      - Wildcard ARNs (those containing '*') are excluded.
+      - IAM/Cross-service policy patterns like arn:aws:s3:::bucket/* are excluded.
+      - CFN stack ARNs are excluded unless explicitly seeded.
+      - Keeps same high-performance design as original version.
     """
+
     found_arns: set[str] = set()
+
+    def is_wildcard_arn(s: str) -> bool:
+        # Any '*' inside the resource component makes it unresolvable.
+        # Matches IAM policy patterns: arn:aws:s3:::bucket/*, lambda:* etc.
+        if "*" not in s:
+            return False
+        # Never treat wildcard ARNs as resolvable graph dependencies
+        return True
 
     def _walk(value: object):
         if value is None:
             return
 
+        # ---------------------------------------------------------------
+        # String fast-path
+        # ---------------------------------------------------------------
         if isinstance(value, str):
-            # Cheap fast-path checks
             if not value.startswith("arn:"):
                 return
             if len(value) > 512 or " " in value:
-                # skip very long or invalid-looking strings
                 return
 
-            # Use regex match once
+            # Quick wildcard check BEFORE regex parsing
+            if is_wildcard_arn(value):
+                return
+
+            # Regex parse (fast path)
             m = _arn_regex.match(value)
             if not m:
                 if not allow_partial:
                     return
-                # try partial pattern (e.g. missing region)
+                # fallback partial parsing
                 if not value.startswith("arn:"):
                     return
 
+            # Filter by service
             service = (
-                m.group("service") if m else value.split(":")[2] if ":" in value else ""
+                m.group("service")
+                if m
+                else value.split(":")[2]
+                if ":" in value
+                else ""
             )
             if service_filter and service not in service_filter:
+                return
+
+            # Additional suppression of known non-resolvable patterns:
+            # CloudFormation stacks often appear in IAM policies
+            if service == "cloudformation":
                 return
 
             found_arns.add(value.rstrip(":/"))
             return
 
+        # ---------------------------------------------------------------
+        # Dict-like
+        # ---------------------------------------------------------------
         if isinstance(value, Mapping):
             for v in value.values():
                 _walk(v)
-        elif isinstance(value, (list, tuple, set, frozenset)):
+            return
+
+        # ---------------------------------------------------------------
+        # Iterable (list, tuple, set)
+        # ---------------------------------------------------------------
+        if isinstance(value, (list, tuple, set, frozenset)):
             for v in value:
                 _walk(v)
-        # scalars (int, float, bool, etc.) ignored
+            return
 
+        # Scalars ignored
+
+    # Begin walk
     _walk(obj)
 
-    # Convert once to ARN objects with caching
+    # Convert to ARN objects using cached parser
     return {ARN.parse_cached(v) for v in found_arns}

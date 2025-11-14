@@ -1,65 +1,79 @@
 from __future__ import annotations
+from typing import Set, Any
 
-import logging
-from typing import Any, Dict, Set
+from botocore.exceptions import ClientError
 from mypy_boto3_lexv2_models import LexModelsV2Client
 from mypy_boto3_lexv2_models.type_defs import DescribeBotResponseTypeDef
 
-from resolvers.lex.base_lex import BaseLexSubResolver
-from utils.arn import ARN, extract_dependencies
-from graph.dependency_graph import ResourceNode
+from resolvers.registry import register_resolver
+from resolvers.lex.base_lex import BaseLexResolver
+from graph.resource_node import ResourceNode
+from utils.arn import ARN
 
-logger = logging.getLogger(__name__)
 
-
-class LexBotResolver(BaseLexSubResolver[DescribeBotResponseTypeDef]):
-    """Resolves Lex V2 bots and their locales."""
-
+@register_resolver("lex:bot")
+class LexBotResolver(BaseLexResolver[LexModelsV2Client, DescribeBotResponseTypeDef]):
     resource_type = "bot"
     cfn_type = "AWS::Lex::Bot"
 
-    def fetch(self, arn: ARN) -> DescribeBotResponseTypeDef:
-        logger.info("[LexBotResolver] Fetching bot %s", arn)
-        return self.client.describe_bot(botId=arn.resource_id)
+    # -------------------------------------------------------------
+    # Parse *both* Lex bot ARN formats
+    # -------------------------------------------------------------
+    def _parse_bot_arn(self, arn: ARN) -> str:
+        parts = arn.resource_parts
 
-    def parse(self, arn: ARN, raw: DescribeBotResponseTypeDef) -> ResourceNode:
-        bot = raw.get("bot", raw)
-        refs: Set[ARN] = extract_dependencies(bot)
+        # Format 1 — standard
+        #   bot/<botId>
+        if len(parts) == 2 and parts[0] == "bot":
+            return parts[1]
 
-        # Discover locales for this bot
+        # Format 2 — sometimes returned by APIs:
+        #   bot/<botId>/bot-version/<ver>
+        if len(parts) == 4 and parts[0] == "bot" and parts[2] == "bot-version":
+            return parts[1]
+
+        raise ValueError(f"Unrecognized Lex Bot ARN: {arn}")
+
+    # -------------------------------------------------------------
+    def fetch_resource(self, arn: ARN) -> DescribeBotResponseTypeDef:
+        bot_id = self._parse_bot_arn(arn)
+
         try:
-            resp = self.client.list_bot_locales(botId=arn.resource_id, botVersion="DRAFT")
-            for loc in resp.get("botLocaleSummaries", []):
-                locale_id = loc.get("localeId")
-                if locale_id:
-                    refs.add(
-                        ARN.from_parts(
-                            "lex",
-                            f"bot/{arn.resource_id}/bot-locale/{locale_id}",
-                            region=arn.region,
-                            account_id=arn.account_id,
-                        )
-                    )
-        except Exception as e:
-            logger.debug("[LexBotResolver] list_bot_locales failed for %s: %s", arn, e)
+            return self.client.describe_bot(  # type: ignore
+                botId=bot_id
+            )
+        except ClientError:
+            self.log.error("Failed to fetch Lex Bot %s", arn, exc_info=True)
+            raise
 
-        props: Dict[str, Any] = {
-            "Name": bot.get("botName"),
-            "Description": bot.get("description"),
-            "RoleArn": bot.get("roleArn"),
-            "DataPrivacy": bot.get("dataPrivacy"),
-            "IdleSessionTTLInSeconds": bot.get("idleSessionTTLInSeconds"),
+    # -------------------------------------------------------------
+    def to_node(self, arn: ARN, raw: DescribeBotResponseTypeDef) -> ResourceNode:
+        bot = raw.get("bot", raw)
+
+        bot_id = bot.get("botId") or self._parse_bot_arn(arn)
+        name = bot.get("botName") or bot_id
+
+        props = {
+            "botName": bot.get("botName"),
+            "description": bot.get("description"),
+            "idleSessionTTLInSeconds": bot.get("idleSessionTTLInSeconds"),
+            "roleArn": bot.get("roleArn"),
+            "dataPrivacy": bot.get("dataPrivacy"),
+            "botTags": bot.get("botTags"),
+            "testBotTags": bot.get("testBotTags"),
         }
 
-        meta = {"BotStatus": bot.get("botStatus"), "Source": "boto3.describe_bot"}
+        # Reference-only at this level; versions/locales resolved downstream
+        refs: Set[ARN] = set()
 
-        node = ResourceNode(
+        node = self.make_node(
+            arn,
             logical_id=f"LexBot{bot.get('botName', arn.resource_id)}",
-            service="lex",
-            cfn_type=self.cfn_type,
             properties=props,
-            referenced_arns=refs,
-            arns={"Bot": arn},
-            metadata=meta,
+            metadata={
+                "Source": "describe_bot",
+                "BotStatus": bot.get("botStatus"),
+            },
         )
+        node.referenced_arns |= refs
         return node
