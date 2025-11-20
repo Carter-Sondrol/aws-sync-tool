@@ -100,6 +100,10 @@ def render_interactive_graph(
         if key not in color_keys:
             color_keys.append(key)
 
+        metadata = dict(getattr(n, "metadata", {}) or {})
+        if getattr(n, "reference_only", False):
+            metadata.setdefault("ReferenceOnly", True)
+
         nodes_json.append({
             "id": lid,
             "service": service,
@@ -111,6 +115,8 @@ def render_interactive_graph(
             "is_error": is_error,
             "error_msg": n.metadata.get("Error", ""),
             "is_seed": bool(n.metadata.get("Seed")),
+            "reference_only": bool(getattr(n, "reference_only", False)),
+            "metadata": metadata,
         })
 
     # assign colors
@@ -127,6 +133,7 @@ def render_interactive_graph(
     graph_data = {
         "nodes": nodes_json,
         "links": [{"source": s, "target": t} for s, t in graph._g.edges()],
+        "metadata": graph.metadata,
     }
 
     html = (

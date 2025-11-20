@@ -36,13 +36,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     return p
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = build_parser()
     try:
         argcomplete.autocomplete(parser)
     except Exception:
         pass
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def configure_logging(verbosity: int):

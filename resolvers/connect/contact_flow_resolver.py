@@ -62,6 +62,9 @@ class ContactFlowResolver(BaseConnectSubResolver[DescribeContactFlowResponseType
             "Type": flow.get("Type"),
             "Description": flow.get("Description"),
             "Content": content_str,
+            "State": flow.get("State"),
+            "InstanceArn": instance_arn_str,
+            "Tags": flow.get("Tags"),
         }
 
         return ResourceNode(

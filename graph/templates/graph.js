@@ -3,6 +3,7 @@
 // -------------------------------------------
 let editMode = false;
 let searchTerm = "";
+let currentNode = null;
 
 function hashColor(str) {
   let hash = 0;
@@ -22,6 +23,29 @@ Object.keys(colorMap).forEach(k => {
 });
 
 let activeKeys = new Set(Object.keys(colorMap));
+
+function getNodeMetadata(node) {
+  if (!node.metadata || typeof node.metadata !== "object") node.metadata = {};
+  return node.metadata;
+}
+
+function isReferenceNode(node) {
+  const meta = node ? getNodeMetadata(node) : {};
+  return Boolean(node?.reference_only || meta.ReferenceOnly);
+}
+
+function setNodeReference(node, value) {
+  const meta = getNodeMetadata(node);
+  node.reference_only = Boolean(value);
+  if (node.reference_only) meta.ReferenceOnly = true;
+  else delete meta.ReferenceOnly;
+}
+
+function toggleReferenceOnly(node) {
+  setNodeReference(node, !isReferenceNode(node));
+  Graph.graphData(Graph.graphData());
+  showNodeInfo(node);
+}
 
 // -------------------------------------------
 // DOM references
@@ -131,7 +155,10 @@ const fg = document.getElementById("graph");
 const Graph = ForceGraph()(fg)
   .graphData(data)
   .nodeId("id")
-  .nodeLabel(n => `${n.id}\n(${n.service}${n.subtype ? ":" + n.subtype : ""})`)
+  .nodeLabel(n => {
+    const ref = isReferenceNode(n);
+    return `${n.id}${ref ? " [ref]" : ""}\n(${n.service}${n.subtype ? ":" + n.subtype : ""})`;
+  })
   .nodeColor(n => colorMap[n.color_key] || "#777")
   .linkColor(() => "rgba(255,255,255,0.25)")
   .backgroundColor("#0e1117")
@@ -147,6 +174,7 @@ const Graph = ForceGraph()(fg)
     const r = 6;
     const err = n.is_error || n.metadata?.Unresolved || n.metadata?.Error;
     const seed = n.is_seed || n.metadata?.Seed;
+    const reference = isReferenceNode(n);
 
     if (err) {
       ctx.beginPath();
@@ -157,8 +185,19 @@ const Graph = ForceGraph()(fg)
 
     ctx.beginPath();
     ctx.arc(n.x, n.y, r, 0, 2 * Math.PI);
-    ctx.fillStyle = active ? color : "rgba(150,150,150,0.25)";
-    ctx.fill();
+    if (reference) {
+      ctx.fillStyle = active ? "rgba(0,0,0,0.25)" : "rgba(40,40,40,0.15)";
+      ctx.fill();
+      ctx.save();
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = active ? color : "rgba(150,150,150,0.55)";
+      ctx.stroke();
+      ctx.restore();
+    } else {
+      ctx.fillStyle = active ? color : "rgba(150,150,150,0.25)";
+      ctx.fill();
+    }
 
     if (err) {
       ctx.lineWidth = 2.5;
@@ -174,25 +213,29 @@ const Graph = ForceGraph()(fg)
     ctx.font = `${fs}px Sans-Serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillStyle = active ? "#fff" : "rgba(255,255,255,0.35)";
-    ctx.fillText(n.id, n.x, n.y + 6);
+    ctx.fillStyle = active
+      ? (reference ? "#8fe6ff" : "#fff")
+      : "rgba(255,255,255,0.35)";
+    const label = reference ? `${n.id} (ref)` : n.id;
+    ctx.fillText(label, n.x, n.y + 6);
   });
 
 // -------------------------------------------
 // Info Panel
 // -------------------------------------------
-let currentNode = null;
 function showNodeInfo(node) {
   currentNode = node;
   infoPanel.classList.add("visible");
-  nodeTitle.textContent = node.id;
+  const ref = isReferenceNode(node);
+  nodeTitle.textContent = ref ? `${node.id} (Reference Only)` : node.id;
   nodeDetails.innerHTML = "";
 
   const meta = [
     ["Service", node.service],
     ["Subtype", node.subtype],
     ["CFN Type", node.cfn_type],
-    ["Error", node.error_msg || ""],
+    ["Reference Only", ref ? "Yes" : "No"],
+    ["Error", node.error_msg || node.metadata?.Error || ""],
   ];
   meta.forEach(([k, v]) => {
     const row = document.createElement("div");
@@ -200,6 +243,16 @@ function showNodeInfo(node) {
     row.innerHTML = `<b>${k}:</b> <div>${v ?? ""}</div>`;
     nodeDetails.appendChild(row);
   });
+
+  if (editMode) {
+    const actions = document.createElement("div");
+    actions.className = "panel-actions";
+    const toggleBtn = document.createElement("button");
+    toggleBtn.textContent = ref ? "Mark as Managed Resource" : "Mark as Reference Only";
+    toggleBtn.onclick = () => toggleReferenceOnly(node);
+    actions.appendChild(toggleBtn);
+    nodeDetails.appendChild(actions);
+  }
 
   if (node.properties && Object.keys(node.properties).length) {
     nodeDetails.appendChild(document.createElement("hr"));
@@ -268,6 +321,7 @@ editToggleBtn.onclick = () => {
   editMode = !editMode;
   editToggleBtn.textContent = `Edit: ${editMode ? "On" : "Off"}`;
   document.body.classList.toggle("edit-mode", editMode);
+  if (currentNode) showNodeInfo(currentNode);
 };
 
 // -------------------------------------------

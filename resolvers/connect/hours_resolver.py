@@ -17,6 +17,7 @@ def _infer_instance_arn_from_subresource(arn: ARN) -> str:
 
 class HoursResolver(BaseConnectSubResolver[DescribeHoursOfOperationResponseTypeDef]):
     resource_type = "hours-of-operation"
+    aliases = ("operating-hours",)
     cfn_type = "AWS::Connect::HoursOfOperation"
 
     def fetch(self, instance_id: str, arn: ARN):
