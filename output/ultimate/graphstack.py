@@ -20,16 +20,105 @@ class GraphStack(Stack):
     def __init__(self, scope: Construct, id: str, **kwargs):
         super().__init__(scope, id, **kwargs)
 
-        project_name = self.node.try_get_context("ProjectName")
-        env = self.node.try_get_context("Environment")
-        connect_bucket_name = self.node.try_get_context("ConnectBucket")
-        region = self.node.try_get_context("Region")
-        account_id = self.node.try_get_context("Account")
-        connect_instance_id = self.node.try_get_context("ConnectInstanceID")
-        vm_task_template_id = self.node.try_get_context("TaskTemplateId")
+        def context_or_parameter(
+            context_key: str,
+            parameter_id: str,
+            *,
+            description: str,
+            default: str | None = None,
+        ) -> str:
+            value = self.node.try_get_context(context_key)
+            if value not in (None, ""):
+                return value
+
+            param_kwargs: dict[str, object] = {
+                "type": "String",
+                "description": description,
+            }
+            if default is not None:
+                param_kwargs["default"] = default
+
+            parameter = CfnParameter(self, parameter_id, **param_kwargs)
+            return parameter.value_as_string
+
+        project_name = context_or_parameter(
+            "ProjectName",
+            "ProjectName",
+            description="Project name used for tagging Connect resources.",
+            default="Ultimate",
+        )
+        env = context_or_parameter(
+            "Environment",
+            "Environment",
+            description="Environment label such as dev, test, or prod.",
+            default="dev",
+        )
+        connect_bucket_name = context_or_parameter(
+            "ConnectBucket",
+            "ConnectBucket",
+            description="Existing S3 bucket name that stores Lex and Connect assets.",
+            default="ultimate-connect-bucket",
+        )
+        region = context_or_parameter(
+            "Region",
+            "Region",
+            description="AWS region that hosts the Amazon Connect instance.",
+            default="us-west-2",
+        )
+        account_id = context_or_parameter(
+            "Account",
+            "AccountId",
+            description="AWS account ID that owns the Amazon Connect instance.",
+        )
+        connect_instance_id = context_or_parameter(
+            "ConnectInstanceID",
+            "ConnectInstanceId",
+            description="Identifier of the existing Amazon Connect instance.",
+        )
+        vm_task_template_id = context_or_parameter(
+            "TaskTemplateId",
+            "TaskTemplateId",
+            description="Identifier of the Amazon Connect task template used by flows.",
+        )
 
         self.connect_bucket = s3.Bucket.from_bucket_name(
             self, "ConnectBucket", connect_bucket_name
+        )
+
+        connect_instance_arn = aws_cdk.Fn.join(
+            "",
+            [
+                "arn:aws:connect:",
+                region,
+                ":",
+                account_id,
+                ":instance/",
+                connect_instance_id,
+            ],
+        )
+        connect_bucket_arn = aws_cdk.Fn.join(
+            "",
+            [
+                "arn:aws:s3:::",
+                connect_bucket_name,
+            ],
+        )
+        connect_bucket_objects_arn = aws_cdk.Fn.join(
+            "",
+            [
+                connect_bucket_arn,
+                "/*",
+            ],
+        )
+        log_group_arn = aws_cdk.Fn.join(
+            "",
+            [
+                "arn:aws:logs:",
+                region,
+                ":",
+                account_id,
+                ":log-group:BotLogs",
+            ],
         )
 
         self.custom_handler_arn = CfnParameter(self, "CustomHandlerArn", type="String")
@@ -73,7 +162,7 @@ class GraphStack(Stack):
                 # (omit SUNDAY if closed during regular hours)
             ],
             time_zone="America/New_York",
-            instance_arn=f"arn:aws:connect:{region}:{account_id}:instance/{connect_instance_id}",
+            instance_arn=connect_instance_arn,
             tags=[],
         )
 
@@ -105,7 +194,7 @@ class GraphStack(Stack):
                 # (add other days’ after-hour slices as needed)
             ],
             time_zone="America/New_York",
-            instance_arn=f"arn:aws:connect:{region}:{account_id}:instance/{connect_instance_id}",
+            instance_arn=connect_instance_arn,
             tags=[],
         )
         
@@ -117,7 +206,7 @@ class GraphStack(Stack):
             description="",
             content='{"Version":"2019-10-30","StartAction":"e7fdf26a-16f9-4ba3-b09f-6d53929455aa","Metadata":{"entryPointPosition":{"x":-500,"y":39.2},"ActionMetadata":{"73f9abfa-8a06-4562-8370-caf67c51e858":{"position":{"x":2440.8,"y":-53.6},"children":["d4a37e38-83b6-45cd-afe9-eab643541c56"],"parameters":{"TextToSpeechVoice":{"languageCode":"es-US"}},"overrideConsoleVoice":True,"fragments":{"SetContactData":"d4a37e38-83b6-45cd-afe9-eab643541c56"},"overrideLanguageAttribute":True},"d4a37e38-83b6-45cd-afe9-eab643541c56":{"position":{"x":2440.8,"y":-53.6},"dynamicParams":[]},"Reporting Attriubtes 2":{"position":{"x":3711.2,"y":1066.4},"isFriendlyName":True,"dynamicParams":[]},"Set Spanish After Hours":{"position":{"x":4464,"y":1104.8},"isFriendlyName":True,"parameters":{"QueueId":{"displayName":"Ultimate After Hours Spanish"}},"queue":{"text":"Ultimate After Hours Spanish"}},"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7":{"position":{"x":3955.2,"y":1215.2},"parameters":{"Text":{"useDynamic":True}},"useDynamic":True},"Check Language":{"position":{"x":4230.4,"y":1242.4},"isFriendlyName":True,"conditions":[],"conditionMetadata":[{"id":"372e6748-541d-452a-9ca9-965b4e4c74cb","operator":{"name":"Equals","value":"Equals","shortDisplay":"="},"value":"es-US"}]},"Error":{"position":{"x":3660.8,"y":1303.2},"isFriendlyName":True,"dynamicParams":[]},"3bf2d950-b306-4b2a-9aeb-bde32f0497b5":{"position":{"x":4731.2,"y":1308}},"88f8185b-648c-48a5-9283-d2c0908a7da2":{"position":{"x":5017.6,"y":1369.6}},"Set English After Hours":{"position":{"x":4469.6,"y":1411.2},"isFriendlyName":True,"parameters":{"QueueId":{"displayName":"Ultimate After Hours English"}},"queue":{"text":"Ultimate After Hours English"}},"Agent Retry Prompt Spanish":{"position":{"x":4581.6,"y":103.2},"isFriendlyName":True,"dynamicParams":[]},"Agent Retry Prompt English":{"position":{"x":4519.2,"y":330.4},"isFriendlyName":True,"dynamicParams":[]},"No Match Retry English":{"position":{"x":4187.2,"y":728.8},"isFriendlyName":True,"dynamicParams":[]},"No Match Retry Spanish":{"position":{"x":4164,"y":470.4},"isFriendlyName":True,"dynamicParams":[]},"estimatedWaitTimeMinutes":{"position":{"x":5789.6,"y":421.6},"isFriendlyName":True,"conditions":[],"conditionMetadata":[{"id":"350829e1-cc0a-44fc-8dab-5dd6860472d2","operator":{"name":"Is greater or equal","value":"GreaterThanOrEqualTo","shortDisplay":">="},"value":"5"}]},"a4a72b72-fcc5-48ad-8402-f116ea144447":{"position":{"x":5520,"y":428},"parameters":{"FlowModuleId":{"displayName":"Get Estimated Wait Time"}},"contactFlowModuleName":"Get Estimated Wait Time"},"Error Transfer to Queue":{"position":{"x":7248.8,"y":563.2},"isFriendlyName":True,"dynamicParams":[]},"Check Language-copy-1":{"position":{"x":4267.2,"y":212.8},"isFriendlyName":True,"conditions":[],"conditionMetadata":[{"id":"2d24496a-bf86-492c-b57b-ad1697d419f4","operator":{"name":"Equals","value":"Equals","shortDisplay":"="},"value":"es-US"}]},"Check Language-copy-1-copy-1":{"position":{"x":3936.8,"y":612},"isFriendlyName":True,"conditions":[],"conditionMetadata":[{"id":"5066075a-8f98-47de-95f2-9157458d1d1a","operator":{"name":"Equals","value":"Equals","shortDisplay":"="},"value":"es-US"}]},"1 retry":{"position":{"x":5129.6,"y":368.8},"isFriendlyName":True},"Reporting Attributes":{"position":{"x":3622.4,"y":-30.4},"isFriendlyName":True,"dynamicParams":[]},"Intent Captured Attribute":{"position":{"x":4988,"y":-155.2},"isFriendlyName":True,"parameters":{"Attributes":{"LexIntent":{"useDynamic":True}}},"dynamicParams":["LexIntent"]},"How Can I help Bot":{"position":{"x":3980.8,"y":-330.4},"isFriendlyName":True,"parameters":{"Text":{"useDynamic":True},"LexV2Bot":{"AliasArn":{"displayName":"PROD","useLexBotDropdown":True,"lexV2BotName":"Ultimate-Intent-Capture-2"}}},"useLexBotDropdown":True,"lexV2BotName":"Ultimate-Intent-Capture-2","lexV2BotAliasName":"PROD","useDynamic":True,"conditionMetadata":[{"id":"7a5d252d-931a-492a-85c9-4c04eca57d5d","operator":{"name":"Equals","value":"Equals","shortDisplay":"="},"value":"FlexRideActivation"},{"id":"6d9ece98-c125-4066-bc87-7486be81e827","operator":{"name":"Equals","value":"Equals","shortDisplay":"="},"value":"RescueRide"},{"id":"d44fb6cd-167b-4023-908c-48685d48b31f","operator":{"name":"Equals","value":"Equals","shortDisplay":"="},"value":"CancelRide"},{"id":"d415c09f-2d0e-4bfa-9354-1771528b646f","operator":{"name":"Equals","value":"Equals","shortDisplay":"="},"value":"ModifyRide"},{"id":"6458334b-d7c8-489a-957d-0c62eabbad62","operator":{"name":"Equals","value":"Equals","shortDisplay":"="},"value":"DriverStatus"},{"id":"14aa4ca4-4866-4d43-b6b6-49c751f29f0e","operator":{"name":"Equals","value":"Equals","shortDisplay":"="},"value":"RideStatus"},{"id":"847035ad-9ee9-4f2e-94e5-136b2254f1d5","operator":{"name":"Equals","value":"Equals","shortDisplay":"="},"value":"Reservation"},{"id":"f313eda3-d833-4837-b03d-3cadcd368218","operator":{"name":"Equals","value":"Equals","shortDisplay":"="},"value":"Agent"}]},"f38f4510-0a6e-4491-b4b0-67daf98e2753":{"position":{"x":7459.2,"y":316.8}},"Return from VM Error":{"position":{"x":6896.8,"y":316.8},"isFriendlyName":True,"dynamicParams":[]},"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964":{"position":{"x":6021.6,"y":428},"dynamicParams":[]},"99af5eb3-6bc6-4b5a-b07f-a3a630785727":{"position":{"x":6992.8,"y":522.4}},"Transfer to VM":{"position":{"x":6556,"y":288},"isFriendlyName":True,"parameters":{"FlowModuleId":{"displayName":"Voicemail to Task"}},"contactFlowModuleName":"Voicemail to Task"},"Press 1 for VM":{"position":{"x":6301.6,"y":416.8},"isFriendlyName":True,"parameters":{"Text":{"useDynamic":True}},"useDynamic":True,"conditionMetadata":[{"id":"1a21df5f-1f16-457e-8820-492f911a2d2b","value":"1"}]},"Spanish Prompts":{"position":{"x":2695.2,"y":-45.6},"isFriendlyName":True,"dynamicParams":[]},"461a49e4-1f40-42c9-a012-94b897f9d75c":{"position":{"x":3508,"y":376.8}},"Turn to Spanish":{"position":{"x":2936,"y":-16.8},"isFriendlyName":True},"Transfer to Ultimate Spanish":{"position":{"x":3185.6,"y":-16.8},"isFriendlyName":True,"parameters":{"QueueId":{"displayName":"Ultimate Spanish"}},"queue":{"text":"Ultimate Spanish"}},"English Dynamic Prompt":{"position":{"x":426.4,"y":14.4},"isFriendlyName":True,"dynamicParams":[]},"Reproting Attributes":{"position":{"x":657.6,"y":16},"isFriendlyName":True,"dynamicParams":[]},"New GEN AI Voice":{"position":{"x":157.6,"y":9.6},"isFriendlyName":True,"children":["New GEN AI Voice-vxGWeESu6F"],"parameters":{"TextToSpeechVoice":{"languageCode":"en-US"}},"overrideConsoleVoice":True,"fragments":{"SetContactData":"New GEN AI Voice-vxGWeESu6F"},"overrideLanguageAttribute":True},"New GEN AI Voice-vxGWeESu6F":{"position":{"x":157.6,"y":9.6},"isFriendlyName":True,"dynamicParams":[]},"Turn on All Features":{"position":{"x":-96,"y":19.2},"isFriendlyName":True},"e7fdf26a-16f9-4ba3-b09f-6d53929455aa":{"position":{"x":-348,"y":22.4}},"MOTD Module":{"position":{"x":1239.2,"y":14.4},"isFriendlyName":True,"parameters":{"FlowModuleId":{"displayName":"Message of the Day Module"}},"contactFlowModuleName":"Message of the Day Module"},"Menu Selection Invalid":{"position":{"x":2138.4,"y":759.2},"isFriendlyName":True,"dynamicParams":[]},"Menu Selection English":{"position":{"x":2368.8,"y":242.4},"isFriendlyName":True,"dynamicParams":[]},"Transfer to Ultimate Regular hours":{"position":{"x":3157.6,"y":807.2},"isFriendlyName":True,"parameters":{"QueueId":{"displayName":"Ultimate English"}},"queue":{"text":"Ultimate English"}},"Menu Selection Timeout":{"position":{"x":2195.2,"y":508.8},"isFriendlyName":True,"dynamicParams":[]},"Menu Selection Spanish":{"position":{"x":2172,"y":-64.8},"isFriendlyName":True,"dynamicParams":[]},"Press 1 for english":{"position":{"x":1901.6,"y":49.6},"isFriendlyName":True,"parameters":{"PromptId":{"displayName":"Ultimate Language Selection"}},"promptName":"Ultimate Language Selection","conditionMetadata":[{"id":"368a28de-fe44-401d-b1d6-b84b360976ea","value":"1"},{"id":"ca5f1a4b-7ec7-40b3-8441-0b005cd6a9e9","value":"2"}]},"a26ae266-a056-4e48-9b41-9a0de0c81c3f":{"position":{"x":1590.4,"y":85.6}},"Blocked Caller Module":{"position":{"x":916.8,"y":15.2},"isFriendlyName":True,"parameters":{"FlowModuleId":{"displayName":"Blocked Phone Number"}},"contactFlowModuleName":"Blocked Phone Number"},"Return from Module Error":{"position":{"x":1221.6,"y":292},"isFriendlyName":True,"dynamicParams":[]}},"Annotations":[]},"Actions":[{"Parameters":{"TextToSpeechVoice":"Pedro","TextToSpeechEngine":"Generative","TextToSpeechStyle":"None"},"Identifier":"73f9abfa-8a06-4562-8370-caf67c51e858","Type":"UpdateContactTextToSpeechVoice","Transitions":{"NextAction":"d4a37e38-83b6-45cd-afe9-eab643541c56","Errors":[{"NextAction":"Spanish Prompts","ErrorType":"NoMatchingError"}]}},{"Parameters":{"LanguageCode":"es-US"},"Identifier":"d4a37e38-83b6-45cd-afe9-eab643541c56","Type":"UpdateContactData","Transitions":{"NextAction":"Spanish Prompts","Errors":[{"NextAction":"Spanish Prompts","ErrorType":"NoMatchingError"}]}},{"Parameters":{"Attributes":{"CustomerJourney":"$.Attributes.CustomerJourney - Outside Business Hours"},"TargetContact":"Current"},"Identifier":"Reporting Attriubtes 2","Type":"UpdateContactAttributes","Transitions":{"NextAction":"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7","Errors":[{"NextAction":"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7","ErrorType":"NoMatchingError"}]}},{"Parameters":{"QueueId":"arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/43df19c1-ee7f-43de-906e-408152e8ad5f"},"Identifier":"Set Spanish After Hours","Type":"UpdateContactTargetQueue","Transitions":{"NextAction":"3bf2d950-b306-4b2a-9aeb-bde32f0497b5","Errors":[{"NextAction":"3bf2d950-b306-4b2a-9aeb-bde32f0497b5","ErrorType":"NoMatchingError"}]}},{"Parameters":{"Text":"$.Attributes.Closed"},"Identifier":"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7","Type":"MessageParticipant","Transitions":{"NextAction":"Check Language","Errors":[{"NextAction":"Check Language","ErrorType":"NoMatchingError"}]}},{"Parameters":{"ComparisonValue":"$.Attributes.LanguageCode"},"Identifier":"Check Language","Type":"Compare","Transitions":{"NextAction":"Set English After Hours","Conditions":[{"NextAction":"Set Spanish After Hours","Condition":{"Operator":"Equals","Operands":["es-US"]}}],"Errors":[{"NextAction":"Set English After Hours","ErrorType":"NoMatchingCondition"}]}},{"Parameters":{"Attributes":{"Error":"CheckHours"},"TargetContact":"Current"},"Identifier":"Error","Type":"UpdateContactAttributes","Transitions":{"NextAction":"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7","Errors":[{"NextAction":"ab5f9af7-ac44-4059-a2b3-2cd60e48cbe7","ErrorType":"NoMatchingError"}]}},{"Parameters":{},"Identifier":"3bf2d950-b306-4b2a-9aeb-bde32f0497b5","Type":"TransferContactToQueue","Transitions":{"NextAction":"88f8185b-648c-48a5-9283-d2c0908a7da2","Errors":[{"NextAction":"88f8185b-648c-48a5-9283-d2c0908a7da2","ErrorType":"QueueAtCapacity"},{"NextAction":"88f8185b-648c-48a5-9283-d2c0908a7da2","ErrorType":"NoMatchingError"}]}},{"Parameters":{},"Identifier":"88f8185b-648c-48a5-9283-d2c0908a7da2","Type":"DisconnectParticipant","Transitions":{}},{"Parameters":{"QueueId":"arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/7ce5bf5e-63ac-41b4-8b30-76bd985019d0"},"Identifier":"Set English After Hours","Type":"UpdateContactTargetQueue","Transitions":{"NextAction":"3bf2d950-b306-4b2a-9aeb-bde32f0497b5","Errors":[{"NextAction":"3bf2d950-b306-4b2a-9aeb-bde32f0497b5","ErrorType":"NoMatchingError"}]}},{"Parameters":{"Attributes":{"LexPrompt":"Con gusto lo conecto con un agente. Para ayudarme a dirigirlo a la persona correcta, \u00bfpodr\u00eda decirme brevemente con qu\u00e9 necesita ayuda? Por ejemplo, \u00bfest\u00e1 tratando de reservar un viaje, verificar el estado de un viaje, u otra cosa"},"TargetContact":"Current"},"Identifier":"Agent Retry Prompt Spanish","Type":"UpdateContactAttributes","Transitions":{"NextAction":"1 retry","Errors":[{"NextAction":"1 retry","ErrorType":"NoMatchingError"}]}},{"Parameters":{"Attributes":{"LexPrompt":"I\'d be happy to connect you with an agent. To help me route you to the right person, could you briefly tell me what you need help with? For example, are you trying to book a ride, check a ride status, or something else"},"TargetContact":"Current"},"Identifier":"Agent Retry Prompt English","Type":"UpdateContactAttributes","Transitions":{"NextAction":"1 retry","Errors":[{"NextAction":"1 retry","ErrorType":"NoMatchingError"}]}},{"Parameters":{"Attributes":{"LexPrompt":"I\'m sorry, I didn\'t quite catch that. Could you try saying it differently? For example, you can say \'book a ride,\' \'check my ride status,\' or \'talk to an agent"},"TargetContact":"Current"},"Identifier":"No Match Retry English","Type":"UpdateContactAttributes","Transitions":{"NextAction":"1 retry","Errors":[{"NextAction":"1 retry","ErrorType":"NoMatchingError"}]}},{"Parameters":{"Attributes":{"LexPrompt":"Lo siento, no entend\u00ed bien. \u00bfPodr\u00eda intentar decirlo de otra manera? Por ejemplo, puede decir \'reservar un viaje,\' \'verificar el estado de mi viaje,\' o \'hablar con un agente"},"TargetContact":"Current"},"Identifier":"No Match Retry Spanish","Type":"UpdateContactAttributes","Transitions":{"NextAction":"1 retry","Errors":[{"NextAction":"1 retry","ErrorType":"NoMatchingError"}]}},{"Parameters":{"ComparisonValue":"$.Attributes.estimatedWaitTimeMinutes"},"Identifier":"estimatedWaitTimeMinutes","Type":"Compare","Transitions":{"NextAction":"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964","Conditions":[{"NextAction":"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964","Condition":{"Operator":"NumberGreaterOrEqualTo","Operands":["5"]}}],"Errors":[{"NextAction":"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964","ErrorType":"NoMatchingCondition"}]}},{"Parameters":{"FlowModuleId":"7d4a6c73-1d6f-4ed3-b55e-8dadfcc200b6"},"Identifier":"a4a72b72-fcc5-48ad-8402-f116ea144447","Type":"InvokeFlowModule","Transitions":{"NextAction":"estimatedWaitTimeMinutes","Errors":[{"NextAction":"estimatedWaitTimeMinutes","ErrorType":"NoMatchingError"}]}},{"Parameters":{"Attributes":{"Error":"Transfer To Queue "},"TargetContact":"Current"},"Identifier":"Error Transfer to Queue","Type":"UpdateContactAttributes","Transitions":{"NextAction":"f38f4510-0a6e-4491-b4b0-67daf98e2753","Errors":[{"NextAction":"f38f4510-0a6e-4491-b4b0-67daf98e2753","ErrorType":"NoMatchingError"}]}},{"Parameters":{"ComparisonValue":"$.Attributes.LanguageCode"},"Identifier":"Check Language-copy-1","Type":"Compare","Transitions":{"NextAction":"Agent Retry Prompt English","Conditions":[{"NextAction":"Agent Retry Prompt Spanish","Condition":{"Operator":"Equals","Operands":["es-US"]}}],"Errors":[{"NextAction":"Agent Retry Prompt English","ErrorType":"NoMatchingCondition"}]}},{"Parameters":{"ComparisonValue":"$.Attributes.LanguageCode"},"Identifier":"Check Language-copy-1-copy-1","Type":"Compare","Transitions":{"NextAction":"No Match Retry English","Conditions":[{"NextAction":"No Match Retry Spanish","Condition":{"Operator":"Equals","Operands":["es-US"]}}],"Errors":[{"NextAction":"No Match Retry English","ErrorType":"NoMatchingCondition"}]}},{"Parameters":{"LoopCount":"1"},"Identifier":"1 retry","Type":"Loop","Transitions":{"NextAction":"a4a72b72-fcc5-48ad-8402-f116ea144447","Conditions":[{"NextAction":"How Can I help Bot","Condition":{"Operator":"Equals","Operands":["ContinueLooping"]}},{"NextAction":"a4a72b72-fcc5-48ad-8402-f116ea144447","Condition":{"Operator":"Equals","Operands":["DoneLooping"]}}]}},{"Parameters":{"Attributes":{"CustomerJourney":"$.Attributes.CustomerJourney - Inside Business Hours"},"TargetContact":"Current"},"Identifier":"Reporting Attributes","Type":"UpdateContactAttributes","Transitions":{"NextAction":"How Can I help Bot","Errors":[{"NextAction":"How Can I help Bot","ErrorType":"NoMatchingError"}]}},{"Parameters":{"Attributes":{"LexIntent":"$.Lex.IntentName"},"TargetContact":"Current"},"Identifier":"Intent Captured Attribute","Type":"UpdateContactAttributes","Transitions":{"NextAction":"a4a72b72-fcc5-48ad-8402-f116ea144447","Errors":[{"NextAction":"a4a72b72-fcc5-48ad-8402-f116ea144447","ErrorType":"NoMatchingError"}]}},{"Parameters":{"Text":"$.Attributes.LexPrompt","LexV2Bot":{"AliasArn":"arn:aws:lex:us-west-2:523773103726:bot-alias/JH5QVDICLV/HWFCIMRDSP"}},"Identifier":"How Can I help Bot","Type":"ConnectParticipantWithLexBot","Transitions":{"NextAction":"Check Language-copy-1-copy-1","Conditions":[{"NextAction":"Intent Captured Attribute","Condition":{"Operator":"Equals","Operands":["FlexRideActivation"]}},{"NextAction":"Intent Captured Attribute","Condition":{"Operator":"Equals","Operands":["RescueRide"]}},{"NextAction":"Intent Captured Attribute","Condition":{"Operator":"Equals","Operands":["CancelRide"]}},{"NextAction":"Intent Captured Attribute","Condition":{"Operator":"Equals","Operands":["ModifyRide"]}},{"NextAction":"Intent Captured Attribute","Condition":{"Operator":"Equals","Operands":["DriverStatus"]}},{"NextAction":"Intent Captured Attribute","Condition":{"Operator":"Equals","Operands":["RideStatus"]}},{"NextAction":"Intent Captured Attribute","Condition":{"Operator":"Equals","Operands":["Reservation"]}},{"NextAction":"Check Language-copy-1","Condition":{"Operator":"Equals","Operands":["Agent"]}}],"Errors":[{"NextAction":"Check Language-copy-1-copy-1","ErrorType":"NoMatchingCondition"},{"NextAction":"Check Language-copy-1-copy-1","ErrorType":"NoMatchingError"}]}},{"Parameters":{},"Identifier":"f38f4510-0a6e-4491-b4b0-67daf98e2753","Type":"DisconnectParticipant","Transitions":{}},{"Parameters":{"Attributes":{"Error":"Return from VM Module Error"},"TargetContact":"Current"},"Identifier":"Return from VM Error","Type":"UpdateContactAttributes","Transitions":{"NextAction":"f38f4510-0a6e-4491-b4b0-67daf98e2753","Errors":[{"NextAction":"f38f4510-0a6e-4491-b4b0-67daf98e2753","ErrorType":"NoMatchingError"}]}},{"Parameters":{"Attributes":{"CustomerJourney":"$.Attributes.CustomerJourney - Customer Selected VoiceMail"},"TargetContact":"Current"},"Identifier":"cdc7f0b2-580f-4b54-bf85-e05fbc9d8964","Type":"UpdateContactAttributes","Transitions":{"NextAction":"Press 1 for VM","Errors":[{"NextAction":"Press 1 for VM","ErrorType":"NoMatchingError"}]}},{"Parameters":{},"Identifier":"99af5eb3-6bc6-4b5a-b07f-a3a630785727","Type":"TransferContactToQueue","Transitions":{"NextAction":"Error Transfer to Queue","Errors":[{"NextAction":"Error Transfer to Queue","ErrorType":"QueueAtCapacity"},{"NextAction":"Error Transfer to Queue","ErrorType":"NoMatchingError"}]}},{"Parameters":{"FlowModuleId":"3546180a-6408-4578-8ddf-64fdad5b58b8"},"Identifier":"Transfer to VM","Type":"InvokeFlowModule","Transitions":{"NextAction":"f38f4510-0a6e-4491-b4b0-67daf98e2753","Errors":[{"NextAction":"Return from VM Error","ErrorType":"NoMatchingError"}]}},{"Parameters":{"StoreInput":"False","InputTimeLimitSeconds":"5","Text":"$.Attributes.EWTPrompt"},"Identifier":"Press 1 for VM","Type":"GetParticipantInput","Transitions":{"NextAction":"99af5eb3-6bc6-4b5a-b07f-a3a630785727","Conditions":[{"NextAction":"Transfer to VM","Condition":{"Operator":"Equals","Operands":["1"]}}],"Errors":[{"NextAction":"99af5eb3-6bc6-4b5a-b07f-a3a630785727","ErrorType":"InputTimeLimitExceeded"},{"NextAction":"99af5eb3-6bc6-4b5a-b07f-a3a630785727","ErrorType":"NoMatchingCondition"},{"NextAction":"99af5eb3-6bc6-4b5a-b07f-a3a630785727","ErrorType":"NoMatchingError"}]}},{"Parameters":{"Attributes":{"Closed":"Esta contactando a nuestra linea fuera de horario regular. Por Favor espere al siguiente representante para que le pueda asistir ","CustomerJourney":"$.Attributes.CustomerJourney - Spanish","LanguageCode":"es-US","LexPrompt":"C\u00f3mo puedo ayudarte","EWTPrompt":"En este momento estamos ayudando a otros clientes, pero no queremos perderte. Presiona 1 para dejarnos un mensaje r\u00e1pido, y te llamaremos dentro de un d\u00eda h\u00e1bil. Si no, qu\u00e9date en la l\u00ednea y alguien te atender\u00e1 en breve.\\n"},"TargetContact":"Current"},"Identifier":"Spanish Prompts","Type":"UpdateContactAttributes","Transitions":{"NextAction":"Turn to Spanish","Errors":[{"NextAction":"Turn to Spanish","ErrorType":"NoMatchingError"}]}},{"Parameters":{},"Identifier":"461a49e4-1f40-42c9-a012-94b897f9d75c","Type":"CheckHoursOfOperation","Transitions":{"NextAction":"Error","Conditions":[{"NextAction":"Reporting Attributes","Condition":{"Operator":"Equals","Operands":["True"]}},{"NextAction":"Reporting Attriubtes 2","Condition":{"Operator":"Equals","Operands":["False"]}}],"Errors":[{"NextAction":"Error","ErrorType":"NoMatchingError"}]}},{"Parameters":{"RecordingBehavior":{"RecordedParticipants":["Agent","Customer"],"ScreenRecordedParticipants":["Agent"],"IVRRecordingBehavior":"Enabled"},"AnalyticsBehavior":{"Enabled":"True","AnalyticsLanguage":"es-US","AnalyticsRedactionBehavior":"Disabled","AnalyticsRedactionResults":"RedactedAndOriginal","ChannelConfiguration":{"Chat":{"AnalyticsModes":["ContactLens"]},"Voice":{"AnalyticsModes":["RealTime"]}},"SentimentConfiguration":{"Enabled":"True"}}},"Identifier":"Turn to Spanish","Type":"UpdateContactRecordingBehavior","Transitions":{"NextAction":"Transfer to Ultimate Spanish"}},{"Parameters":{"QueueId":"arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/f6aeda4b-9341-41fd-a874-45dff680a74c"},"Identifier":"Transfer to Ultimate Spanish","Type":"UpdateContactTargetQueue","Transitions":{"NextAction":"461a49e4-1f40-42c9-a012-94b897f9d75c","Errors":[{"NextAction":"461a49e4-1f40-42c9-a012-94b897f9d75c","ErrorType":"NoMatchingError"}]}},{"Parameters":{"Attributes":{"Closed":"You have reached the afterhours line. Please hold for the next representative to assist you.","Campaign":"Ultimate","LexPrompt":"How can I help you","EWTPrompt":"We\u2019re helping other customers right now, but we don\u2019t want to miss you. Press 1 to Leave us a quick message, and we\u2019ll call you back within one business day\\nOtherwise, Stay on the line and someone will be with you shortly. "},"TargetContact":"Current"},"Identifier":"English Dynamic Prompt","Type":"UpdateContactAttributes","Transitions":{"NextAction":"Reproting Attributes","Errors":[{"NextAction":"Reproting Attributes","ErrorType":"NoMatchingError"}]}},{"Parameters":{"Attributes":{"CustomerJourney":"Returned Outbound Call - Main Entry"},"TargetContact":"Current"},"Identifier":"Reproting Attributes","Type":"UpdateContactAttributes","Transitions":{"NextAction":"Blocked Caller Module","Errors":[{"NextAction":"Blocked Caller Module","ErrorType":"NoMatchingError"}]}},{"Parameters":{"TextToSpeechVoice":"Stephen","TextToSpeechEngine":"Generative","TextToSpeechStyle":"None"},"Identifier":"New GEN AI Voice","Type":"UpdateContactTextToSpeechVoice","Transitions":{"NextAction":"New GEN AI Voice-vxGWeESu6F","Errors":[{"NextAction":"English Dynamic Prompt","ErrorType":"NoMatchingError"}]}},{"Parameters":{"LanguageCode":"en-US"},"Identifier":"New GEN AI Voice-vxGWeESu6F","Type":"UpdateContactData","Transitions":{"NextAction":"English Dynamic Prompt","Errors":[{"NextAction":"English Dynamic Prompt","ErrorType":"NoMatchingError"}]}},{"Parameters":{"RecordingBehavior":{"RecordedParticipants":["Agent","Customer"],"ScreenRecordedParticipants":["Agent"],"IVRRecordingBehavior":"Enabled"},"AnalyticsBehavior":{"Enabled":"True","AnalyticsLanguage":"en-US","AnalyticsRedactionBehavior":"Disabled","AnalyticsRedactionResults":"RedactedAndOriginal","ChannelConfiguration":{"Chat":{"AnalyticsModes":["ContactLens"]},"Voice":{"AnalyticsModes":["RealTime"]}},"SummaryConfiguration":{"SummaryModes":["PostContact"]},"SentimentConfiguration":{"Enabled":"True"}}},"Identifier":"Turn on All Features","Type":"UpdateContactRecordingBehavior","Transitions":{"NextAction":"New GEN AI Voice"}},{"Parameters":{"FlowLoggingBehavior":"Enabled"},"Identifier":"e7fdf26a-16f9-4ba3-b09f-6d53929455aa","Type":"UpdateFlowLoggingBehavior","Transitions":{"NextAction":"Turn on All Features"}},{"Parameters":{"FlowModuleId":"f5420782-47e6-4fcc-aa96-c9b74e8328d3"},"Identifier":"MOTD Module","Type":"InvokeFlowModule","Transitions":{"NextAction":"a26ae266-a056-4e48-9b41-9a0de0c81c3f","Errors":[{"NextAction":"a26ae266-a056-4e48-9b41-9a0de0c81c3f","ErrorType":"NoMatchingError"}]}},{"Parameters":{"Attributes":{"MenuSelection":"Invalid DTMF Input"},"TargetContact":"Current"},"Identifier":"Menu Selection Invalid","Type":"UpdateContactAttributes","Transitions":{"NextAction":"Transfer to Ultimate Regular hours","Errors":[{"NextAction":"Transfer to Ultimate Regular hours","ErrorType":"NoMatchingError"}]}},{"Parameters":{"Attributes":{"MenuSelection":"Ultimate English"},"TargetContact":"Current"},"Identifier":"Menu Selection English","Type":"UpdateContactAttributes","Transitions":{"NextAction":"Transfer to Ultimate Regular hours","Errors":[{"NextAction":"Transfer to Ultimate Regular hours","ErrorType":"NoMatchingError"}]}},{"Parameters":{"QueueId":"arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/04f60a61-9301-4742-ba1a-7239edde3f62"},"Identifier":"Transfer to Ultimate Regular hours","Type":"UpdateContactTargetQueue","Transitions":{"NextAction":"461a49e4-1f40-42c9-a012-94b897f9d75c","Errors":[{"NextAction":"461a49e4-1f40-42c9-a012-94b897f9d75c","ErrorType":"NoMatchingError"}]}},{"Parameters":{"Attributes":{"MenuSelection":"Timeout - No Input"},"TargetContact":"Current"},"Identifier":"Menu Selection Timeout","Type":"UpdateContactAttributes","Transitions":{"NextAction":"Transfer to Ultimate Regular hours","Errors":[{"NextAction":"Transfer to Ultimate Regular hours","ErrorType":"NoMatchingError"}]}},{"Parameters":{"Attributes":{"MenuSelection":"Ultimate Spanish"},"TargetContact":"Current"},"Identifier":"Menu Selection Spanish","Type":"UpdateContactAttributes","Transitions":{"NextAction":"73f9abfa-8a06-4562-8370-caf67c51e858","Errors":[{"NextAction":"73f9abfa-8a06-4562-8370-caf67c51e858","ErrorType":"NoMatchingError"}]}},{"Parameters":{"StoreInput":"False","InputTimeLimitSeconds":"8","PromptId":"arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/prompt/471c666f-d77f-49c6-b69a-1d32ef78f9cf"},"Identifier":"Press 1 for english","Type":"GetParticipantInput","Transitions":{"NextAction":"Menu Selection Invalid","Conditions":[{"NextAction":"Menu Selection English","Condition":{"Operator":"Equals","Operands":["1"]}},{"NextAction":"Menu Selection Spanish","Condition":{"Operator":"Equals","Operands":["2"]}}],"Errors":[{"NextAction":"Menu Selection Timeout","ErrorType":"InputTimeLimitExceeded"},{"NextAction":"Menu Selection Invalid","ErrorType":"NoMatchingCondition"},{"NextAction":"Transfer to Ultimate Regular hours","ErrorType":"NoMatchingError"}]}},{"Parameters":{"Text":"This call is being recorded for quality assurance and training purposes and by continuing, you consent to this recording."},"Identifier":"a26ae266-a056-4e48-9b41-9a0de0c81c3f","Type":"MessageParticipant","Transitions":{"NextAction":"Press 1 for english"}},{"Parameters":{"FlowModuleId":"2e906bdf-a23f-47e3-a0de-8d89dae86333"},"Identifier":"Blocked Caller Module","Type":"InvokeFlowModule","Transitions":{"NextAction":"MOTD Module","Errors":[{"NextAction":"Return from Module Error","ErrorType":"NoMatchingError"}]}},{"Parameters":{"Attributes":{"Error":"Return from Module Error"},"TargetContact":"Current"},"Identifier":"Return from Module Error","Type":"UpdateContactAttributes","Transitions":{"NextAction":"a26ae266-a056-4e48-9b41-9a0de0c81c3f","Errors":[{"NextAction":"a26ae266-a056-4e48-9b41-9a0de0c81c3f","ErrorType":"NoMatchingError"}]}}]}',
             state="ACTIVE",
-            instance_arn=f"arn:aws:connect:{region}:{account_id}:instance/{connect_instance_id}",
+            instance_arn=connect_instance_arn,
             tags=[],
         )
 
@@ -126,7 +215,7 @@ class GraphStack(Stack):
             "UltimateEnglish",
             name="Ultimate English",
             description="Ultimate English",
-            instance_arn=f"arn:aws:connect:{region}:{account_id}:instance/{connect_instance_id}",
+            instance_arn=connect_instance_arn,
             outbound_caller_config={
                 "OutboundCallerIdName": "SafeRide",
                 "OutboundCallerIdNumberId": "199ae2b1-84d0-4620-9ea3-4e18797d1f45",
@@ -142,7 +231,7 @@ class GraphStack(Stack):
             name="Ultimate Language Selection",
             description="Ultimate Language Selection",
             s3_uri=None,
-            instance_arn=f"arn:aws:connect:{region}:{account_id}:instance/{connect_instance_id}",
+            instance_arn=connect_instance_arn,
             tags=[],
         )
 
@@ -151,7 +240,7 @@ class GraphStack(Stack):
             "UltimateAfterHoursEnglish",
             name="Ultimate After Hours English",
             description="Ultimate After Hours English",
-            instance_arn=f"arn:aws:connect:{region}:{account_id}:instance/{connect_instance_id}",
+            instance_arn=connect_instance_arn,
             outbound_caller_config={
                 "OutboundCallerIdName": "SafeRide",
                 "OutboundCallerIdNumberId": "199ae2b1-84d0-4620-9ea3-4e18797d1f45",
@@ -166,7 +255,7 @@ class GraphStack(Stack):
             "UltimateSpanish",
             name="Ultimate Spanish",
             description="Ultimate Spanish",
-            instance_arn=f"arn:aws:connect:{region}:{account_id}:instance/{connect_instance_id}",
+            instance_arn=connect_instance_arn,
             outbound_caller_config={
                 "OutboundCallerIdName": "SafeRide",
                 "OutboundCallerIdNumberId": "199ae2b1-84d0-4620-9ea3-4e18797d1f45",
@@ -181,7 +270,7 @@ class GraphStack(Stack):
             "UltimateAfterHoursSpanish",
             name="Ultimate After Hours Spanish",
             description="Ultimate After Hours Spanish",
-            instance_arn=f"arn:aws:connect:{region}:{account_id}:instance/{connect_instance_id}",
+            instance_arn=connect_instance_arn,
             outbound_caller_config={
                 "OutboundCallerIdName": "SafeRide",
                 "OutboundCallerIdNumberId": "199ae2b1-84d0-4620-9ea3-4e18797d1f45",
@@ -221,7 +310,7 @@ class GraphStack(Stack):
                         enabled=True,
                         destination=aws_lex.CfnBotAlias.AudioLogDestinationProperty(
                             s3_bucket=aws_lex.CfnBotAlias.S3BucketLogDestinationProperty(
-                                s3_bucket_arn=f"arn:aws:s3:::{connect_bucket_name}",
+                                s3_bucket_arn=connect_bucket_arn,
                                 log_prefix="aws/lex/JH5QVDICLV/HWFCIMRDSP/3/",
                             )
                         ),
@@ -256,8 +345,8 @@ class GraphStack(Stack):
             iam.PolicyStatement(
                 actions=["s3:PutObject", "s3:GetObject", "s3:ListBucket"],
                 resources=[
-                    f"arn:aws:s3:::{connect_bucket_name}",
-                    f"arn:aws:s3:::{connect_bucket_name}/*",  # objects
+                    connect_bucket_arn,
+                    connect_bucket_objects_arn,  # objects
                 ],
             )
         )
