@@ -28,4 +28,10 @@ def serialize_graph(graph) -> Dict[str, Any]:
     except Exception:
         pass
 
-    return {"nodes": nodes, "edges": edges}
+    metadata = {}
+    try:
+        metadata = dict(getattr(graph, "metadata", {}) or {})
+    except Exception:
+        metadata = {}
+
+    return {"nodes": nodes, "edges": edges, "metadata": metadata}

@@ -66,6 +66,21 @@ class DependencyGraph:
                 self.add_edge(src, target_id)
         self._pending_links.clear()
 
+    def find_by_property(
+        self,
+        service: str | None = None,
+        property_name: str = "",
+        value: Any = None,
+    ) -> Optional[ResourceNode]:
+        """Return the first node matching a given service/property/value trio."""
+
+        for node in self._nodes.values():
+            if service and node.service != service:
+                continue
+            if node.properties.get(property_name) == value:
+                return node
+        return None
+
     def summary(self) -> str:
         return f"Graph: {len(self._nodes)} nodes, {self._g.number_of_edges()} edges"
 
