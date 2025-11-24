@@ -3,7 +3,7 @@ import re
 import fnmatch
 from dataclasses import dataclass
 from functools import lru_cache, cached_property
-from typing import Dict, Optional, Tuple, Iterable
+from typing import Dict, Optional, Tuple
 from collections.abc import Mapping, Iterable
 
 _arn_regex = re.compile(
@@ -30,6 +30,7 @@ class ARN:
         if not isinstance(value, str):
             raise TypeError("ARN must be constructed from a string")
 
+        # Normalize trailing decoration to make equality stable
         value = value.rstrip(":/")
         m = _arn_regex.match(value)
         if not m:
@@ -200,22 +201,19 @@ class ARN:
             other = ARN.parse(other)
         return (self.service, self.resource) == (other.service, other.resource)
 
+    @property
+    def is_wildcard_pattern(self) -> bool:
+        """
+        True if the resource portion contains a wildcard.
+
+        NOTE: For graph purposes we *usually* drop these, except for the S3
+        bucket-normalization behavior implemented in canonical_for_graph().
+        """
+        return "*" in self.resource
+
     # ------------------------------------------------------------------
     # Hierarchy helpers
     # ------------------------------------------------------------------
-    def parent(self) -> Optional[ARN]:
-        for sep in (":", "/"):
-            if sep in self.resource:
-                parent_resource = self.resource.rsplit(sep, 1)[0]
-                return ARN.from_parts(
-                    self.service,
-                    parent_resource,
-                    self.region,
-                    self.account_id,
-                    self.partition,
-                )
-        return None
-
     @cached_property
     def resource_parts(self) -> list[str]:
         return [p for p in re.split(r"[:/]", self.resource) if p]
@@ -229,7 +227,7 @@ class ARN:
         #
         if self.service == "connect":
             if len(parts) == 2 and parts[0] == "instance":
-                return "instance"            
+                return "instance"
             if len(parts) >= 3 and parts[0] == "instance":
                 return parts[2]  # ALWAYS correct primary type
             return "unknown"
@@ -238,11 +236,21 @@ class ARN:
         # LAMBDA — functions vs layers vs layer-versions
         #
         if self.service == "lambda":
-            if len(parts) >= 1:
-                if parts[0] == "function":
-                    return "function"
-                if parts[0] == "layer":
-                    return "layer"
+            if not parts:
+                return "unknown"
+
+            first = parts[0]
+            if first == "function":
+                return "function"
+            if first == "layer":
+                # Layer ARNs typically include a version suffix; treat them as layerversion
+                return "layerversion" if len(parts) >= 3 else "layer"
+            if first == "event-source-mapping":
+                return "eventsourcemapping"
+            if first == "code-signing-config":
+                return "codesigningconfig"
+            if first == "runtime":
+                return "runtime"
             return "unknown"
 
         #
@@ -269,10 +277,6 @@ class ARN:
         # IAM — roles, policies, instance-profiles, users, groups
         #
         if self.service == "iam":
-            # iam:role/<name>
-            # iam:user/<name>
-            # iam:policy/<name>
-            # iam:instance-profile/<name>
             if len(parts) >= 1:
                 return parts[0]
             return "unknown"
@@ -289,8 +293,6 @@ class ARN:
         # LEX V2 — handle bots, locales, intents, slots, slot-types, aliases
         #
         if self.service == "lex":
-            # Lex has complex multi-layer structure.
-            # We always examine even-numbered hierarchy pairs.
             if "bot-alias" in parts:
                 return "bot-alias"
             if "bot-locale" in parts:
@@ -340,7 +342,7 @@ class ARN:
                 return parts[i + 1]
         return None
 
-    def resource_path(self, sep="/") -> str:
+    def resource_path(self, sep: str = "/") -> str:
         return sep.join(self.resource_parts)
 
     def resource_name(self) -> str:
@@ -362,6 +364,51 @@ class ARN:
         return ARN.from_parts(
             self.service, self.resource, region, self.account_id, self.partition
         )
+
+    def canonical_for_graph(self) -> Optional["ARN"]:
+        """
+        Return a canonical ARN suitable for use as a *graph node*.
+
+        Rules:
+          - Pure wildcard patterns are dropped for most services:
+              arn:aws:lambda:...:function:*          → None
+              arn:aws:execute-api:...:api-id/*/*/*   → None
+          - S3 policy-style patterns are collapsed to the bucket:
+              arn:aws:s3:::bucket/*                  → arn:aws:s3:::bucket
+              arn:aws:s3:::bucket/path/*             → arn:aws:s3:::bucket
+          - S3 object-style ARNs are also collapsed to the bucket:
+              arn:aws:s3:::bucket/path               → arn:aws:s3:::bucket
+          - All other ARNs are returned as-is.
+        """
+        # Wildcards: special-case S3, drop others
+        if "*" in self.resource:
+            if self.service == "s3":
+                bucket = self.resource.split("/", 1)[0]
+                if not bucket or "*" in bucket:
+                    return None
+                return ARN.from_parts(
+                    self.service,
+                    bucket,
+                    self.region,
+                    self.account_id,
+                    self.partition,
+                )
+            # Non-S3 wildcard => graph should not try to resolve
+            return None
+
+        # S3 object/path → canonical bucket
+        if self.service == "s3" and "/" in self.resource:
+            bucket = self.resource.split("/", 1)[0]
+            return ARN.from_parts(
+                self.service,
+                bucket,
+                self.region,
+                self.account_id,
+                self.partition,
+            )
+
+        # Default: no normalization
+        return self
 
     # ------------------------------------------------------------------
     # CloudFormation / boto helpers
@@ -409,34 +456,69 @@ class ARN:
             self.raw,
         )
 
+
 def extract_dependencies(
     obj: object,
     *,
-    allow_partial: bool = False,
+    allow_partial: bool = False,  # kept for backwards compatibility; currently unused
     service_filter: tuple[str, ...] | None = None,
+    known_buckets: set[str] | None = None,
 ) -> set[ARN]:
+    r"""
+    Recursively extract *canonical* ARN references from arbitrary Python objects.
+
+    Behavior:
+      - Uses ARN.canonical_for_graph() to normalize resources.
+      - Wildcard/policy-style ARNs that don't map to a concrete resource
+        are dropped (e.g. lambda:*, execute-api:*/\*/\*).
+      - S3 patterns like arn:aws:s3:::bucket/* are canonicalized to
+        arn:aws:s3:::bucket.
+      - S3 object ARNs are also canonicalized to the bucket.
+      - CloudFormation stack ARNs are skipped entirely.
+      - Plain strings are only converted to S3 bucket ARNs when
+        `known_buckets` is provided and contains the name, or when the
+        string appears under a bucket-ish key (e.g., Environment.VOICEMAIL_BUCKET).
+      - Filtering by service happens *after* canonicalization.
     """
-    Recursively extract valid, *resolvable* ARN references from arbitrary
-    Python objects.
 
-    FIXED BEHAVIOR:
-      - Wildcard ARNs (those containing '*') are excluded.
-      - IAM/Cross-service policy patterns like arn:aws:s3:::bucket/* are excluded.
-      - CFN stack ARNs are excluded unless explicitly seeded.
-      - Keeps same high-performance design as original version.
-    """
+    found_arns: set[ARN] = set()
 
-    found_arns: set[str] = set()
+    def is_probable_bucket_name(s: str) -> bool:
+        """
+        Conservative heuristic to avoid turning generic strings into buckets.
 
-    def is_wildcard_arn(s: str) -> bool:
-        # Any '*' inside the resource component makes it unresolvable.
-        # Matches IAM policy patterns: arn:aws:s3:::bucket/*, lambda:* etc.
-        if "*" not in s:
+        Requirements:
+          - 3–63 chars, lowercase letters/digits/hyphens only
+          - Must contain a hyphen or a digit (filters common nouns like 'recordings')
+          - Not an ARN, UUID, region code, or API version string
+        """
+        if not isinstance(s, str):
             return False
-        # Never treat wildcard ARNs as resolvable graph dependencies
+        if s.startswith("arn:"):
+            return False
+        if not (3 <= len(s) <= 63):
+            return False
+        if "." in s:
+            return False
+        if not re.fullmatch(r"[a-z0-9-]+", s):
+            return False
+        if "-" not in s and not any(ch.isdigit() for ch in s):
+            return False
+        if re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", s):
+            return False
+        if s in ("us-east-1", "us-west-2", "eu-west-1"):
+            return False
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", s):
+            return False
         return True
 
-    def _walk(value: object):
+
+    def _in_bucket_context(path: tuple[str, ...]) -> bool:
+        """True when any key in the traversal path mentions 'bucket'."""
+        return any("bucket" in str(p).lower() for p in path)
+
+
+    def _walk(value: object, path: tuple[str, ...] = ()) -> None:
         if value is None:
             return
 
@@ -444,63 +526,69 @@ def extract_dependencies(
         # String fast-path
         # ---------------------------------------------------------------
         if isinstance(value, str):
+            # S3 bucket-name → bucket ARN (only if previously discovered)
+            if (
+                is_probable_bucket_name(value)
+                and (
+                    (known_buckets and value in known_buckets)
+                    or _in_bucket_context(path)
+                )
+            ):
+                if not service_filter or "s3" in service_filter:
+                    bucket_arn = ARN.from_parts("s3", value)
+                    canonical = bucket_arn.canonical_for_graph()
+                    if canonical is not None:
+                        found_arns.add(canonical)
+                # Even if we treat it as a bucket, do not try to parse it as ARN.
+                return
+
             if not value.startswith("arn:"):
                 return
             if len(value) > 512 or " " in value:
                 return
 
-            # Quick wildcard check BEFORE regex parsing
-            if is_wildcard_arn(value):
+            # Parse + canonicalize
+            arn = ARN.try_parse(value.rstrip(":/"))
+            if arn is None:
                 return
 
-            # Regex parse (fast path)
-            m = _arn_regex.match(value)
-            if not m:
-                if not allow_partial:
-                    return
-                # fallback partial parsing
-                if not value.startswith("arn:"):
-                    return
-
-            # Filter by service
-            service = (
-                m.group("service")
-                if m
-                else value.split(":")[2]
-                if ":" in value
-                else ""
-            )
-            if service_filter and service not in service_filter:
+            canonical = arn.canonical_for_graph()
+            if canonical is None:
+                # Pattern-only ARN; not a concrete graph dependency
                 return
 
-            # Additional suppression of known non-resolvable patterns:
-            # CloudFormation stacks often appear in IAM policies
-            if service == "cloudformation":
+            # Suppress Lambda runtime catalog ARNs to avoid graph clutter
+            if canonical.service == "lambda" and canonical.resource_type == "runtime":
                 return
 
-            found_arns.add(value.rstrip(":/"))
+            # Service filter (after canonicalization, in case service ever changes)
+            if service_filter and canonical.service not in service_filter:
+                return
+
+            # Suppress CloudFormation stacks (often appear in IAM policies)
+            if canonical.service == "cloudformation":
+                return
+
+            found_arns.add(canonical)
             return
 
         # ---------------------------------------------------------------
         # Dict-like
         # ---------------------------------------------------------------
         if isinstance(value, Mapping):
-            for v in value.values():
-                _walk(v)
+            for k, v in value.items():
+                _walk(v, path + (str(k),))
             return
 
         # ---------------------------------------------------------------
         # Iterable (list, tuple, set)
         # ---------------------------------------------------------------
         if isinstance(value, (list, tuple, set, frozenset)):
-            for v in value:
-                _walk(v)
+            for idx, v in enumerate(value):
+                _walk(v, path + (str(idx),))
             return
 
         # Scalars ignored
 
-    # Begin walk
     _walk(obj)
-
-    # Convert to ARN objects using cached parser
-    return {ARN.parse_cached(v) for v in found_arns}
+    return found_arns

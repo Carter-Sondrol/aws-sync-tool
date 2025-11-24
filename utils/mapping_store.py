@@ -55,6 +55,12 @@ class MappingStore:
     
     def logical_id_for_arn(self, arn: ARN) -> str | None:
         return self._arn_to_logical.get(arn)
+
+    def get_hint_for_arn(self, arn: ARN) -> str | None:
+        """
+        Provide a stable logical ID hint for a given ARN if one is known.
+        """
+        return self.logical_id_for_arn(arn)
     
     def iter_all(self):
         for lid, per_acct in self._by_logical.items():

@@ -1,0 +1,205 @@
+{
+  "resources": {
+    "Schedule": {
+      "arn_field": "Arn",
+      "cfn_class": "CfnSchedule",
+      "cfn_module": "aws_cdk.aws_scheduler",
+      "cfn_type": "AWS::Scheduler::Schedule",
+      "deployable_via_cfn": true,
+      "deployable_via_l2": true,
+      "id_params": [
+        "Name",
+        "GroupName"
+      ],
+      "l2_class": "Schedule",
+      "l2_module": "aws_cdk.aws_scheduler",
+      "list_result_path": "Schedules",
+      "notes": [],
+      "operations": {
+        "create": "create_schedule",
+        "delete": "delete_schedule",
+        "describe": "get_schedule",
+        "list": [
+          "list_schedules"
+        ],
+        "update": "update_schedule"
+      },
+      "properties": {
+        "ActionAfterCompletion": {
+          "item_shape": null,
+          "name": "ActionAfterCompletion",
+          "required": false,
+          "shape": "GetScheduleOutput",
+          "type": "string"
+        },
+        "Arn": {
+          "item_shape": null,
+          "name": "Arn",
+          "required": false,
+          "shape": "GetScheduleOutput",
+          "type": "string"
+        },
+        "CreationDate": {
+          "item_shape": null,
+          "name": "CreationDate",
+          "required": false,
+          "shape": "GetScheduleOutput",
+          "type": "timestamp"
+        },
+        "Description": {
+          "item_shape": null,
+          "name": "Description",
+          "required": false,
+          "shape": "GetScheduleOutput",
+          "type": "string"
+        },
+        "EndDate": {
+          "item_shape": null,
+          "name": "EndDate",
+          "required": false,
+          "shape": "GetScheduleOutput",
+          "type": "timestamp"
+        },
+        "FlexibleTimeWindow": {
+          "item_shape": null,
+          "name": "FlexibleTimeWindow",
+          "required": false,
+          "shape": "GetScheduleOutput",
+          "type": "structure"
+        },
+        "GroupName": {
+          "item_shape": null,
+          "name": "GroupName",
+          "required": false,
+          "shape": "GetScheduleOutput",
+          "type": "string"
+        },
+        "KmsKeyArn": {
+          "item_shape": null,
+          "name": "KmsKeyArn",
+          "required": false,
+          "shape": "GetScheduleOutput",
+          "type": "string"
+        },
+        "LastModificationDate": {
+          "item_shape": null,
+          "name": "LastModificationDate",
+          "required": false,
+          "shape": "GetScheduleOutput",
+          "type": "timestamp"
+        },
+        "Name": {
+          "item_shape": null,
+          "name": "Name",
+          "required": false,
+          "shape": "GetScheduleOutput",
+          "type": "string"
+        },
+        "ScheduleExpression": {
+          "item_shape": null,
+          "name": "ScheduleExpression",
+          "required": false,
+          "shape": "GetScheduleOutput",
+          "type": "string"
+        },
+        "ScheduleExpressionTimezone": {
+          "item_shape": null,
+          "name": "ScheduleExpressionTimezone",
+          "required": false,
+          "shape": "GetScheduleOutput",
+          "type": "string"
+        },
+        "StartDate": {
+          "item_shape": null,
+          "name": "StartDate",
+          "required": false,
+          "shape": "GetScheduleOutput",
+          "type": "timestamp"
+        },
+        "State": {
+          "item_shape": null,
+          "name": "State",
+          "required": false,
+          "shape": "GetScheduleOutput",
+          "type": "string"
+        },
+        "Target": {
+          "item_shape": null,
+          "name": "Target",
+          "required": false,
+          "shape": "GetScheduleOutput",
+          "type": "structure"
+        }
+      },
+      "resource_name": "Schedule",
+      "service": "scheduler",
+      "summary_item_shape": "ScheduleSummary",
+      "synthetic": false
+    },
+    "ScheduleGroup": {
+      "arn_field": "Arn",
+      "cfn_class": "CfnScheduleGroup",
+      "cfn_module": "aws_cdk.aws_scheduler",
+      "cfn_type": "AWS::Scheduler::ScheduleGroup",
+      "deployable_via_cfn": true,
+      "deployable_via_l2": true,
+      "id_params": [
+        "Name"
+      ],
+      "l2_class": "ScheduleGroup",
+      "l2_module": "aws_cdk.aws_scheduler",
+      "list_result_path": "ScheduleGroups",
+      "notes": [],
+      "operations": {
+        "create": "create_schedule_group",
+        "delete": "delete_schedule_group",
+        "describe": "get_schedule_group",
+        "list": [
+          "list_schedule_groups"
+        ]
+      },
+      "properties": {
+        "Arn": {
+          "item_shape": null,
+          "name": "Arn",
+          "required": false,
+          "shape": "GetScheduleGroupOutput",
+          "type": "string"
+        },
+        "CreationDate": {
+          "item_shape": null,
+          "name": "CreationDate",
+          "required": false,
+          "shape": "GetScheduleGroupOutput",
+          "type": "timestamp"
+        },
+        "LastModificationDate": {
+          "item_shape": null,
+          "name": "LastModificationDate",
+          "required": false,
+          "shape": "GetScheduleGroupOutput",
+          "type": "timestamp"
+        },
+        "Name": {
+          "item_shape": null,
+          "name": "Name",
+          "required": false,
+          "shape": "GetScheduleGroupOutput",
+          "type": "string"
+        },
+        "State": {
+          "item_shape": null,
+          "name": "State",
+          "required": false,
+          "shape": "GetScheduleGroupOutput",
+          "type": "string"
+        }
+      },
+      "resource_name": "ScheduleGroup",
+      "service": "scheduler",
+      "summary_item_shape": "ScheduleGroupSummary",
+      "synthetic": false
+    }
+  },
+  "service": "scheduler"
+}

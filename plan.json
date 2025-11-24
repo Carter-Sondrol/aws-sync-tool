@@ -1,0 +1,48 @@
+{
+  "stacks": [
+    {
+      "name": "GraphStack",
+      "logical_ids": [
+        "Connect Instance",
+        "Unresolved_dev-srh-vm-transcribe-recordings",
+        "Unresolved_dev-srh-vm-presigner",
+        "Unresolved_dev-srh-vm-dump-to-s3",
+        "Unresolved_dev-srh-vm-Packager",
+        "Unresolved_dev-srh-estimated-wait-time"
+      ]
+    }
+  ],
+  "parameters": {
+    "Connect Instance": {
+      "description": "connect reference",
+      "default": null
+    },
+    "Unresolved_dev-srh-vm-transcribe-recordings": {
+      "description": "lambda reference",
+      "default": null
+    },
+    "Unresolved_dev-srh-vm-presigner": {
+      "description": "lambda reference",
+      "default": null
+    },
+    "Unresolved_dev-srh-vm-dump-to-s3": {
+      "description": "lambda reference",
+      "default": null
+    },
+    "Unresolved_dev-srh-vm-Packager": {
+      "description": "lambda reference",
+      "default": null
+    },
+    "Unresolved_dev-srh-estimated-wait-time": {
+      "description": "lambda reference",
+      "default": null
+    }
+  },
+  "imperative_ops": [],
+  "logical_id_remap": {},
+  "metadata": {
+    "source_env": "source",
+    "target_env": "target",
+    "target_account": null
+  }
+}

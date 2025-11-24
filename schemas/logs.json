@@ -1,0 +1,295 @@
+{
+  "resources": {
+    "LogAnomalyDetector": {
+      "arn_field": "anomalyDetectorArn",
+      "cfn_class": "CfnLogAnomalyDetector",
+      "cfn_module": "aws_cdk.aws_logs",
+      "cfn_type": "AWS::Logs::LogAnomalyDetector",
+      "deployable_via_cfn": true,
+      "deployable_via_l2": false,
+      "id_params": [
+        "anomalyDetectorArn"
+      ],
+      "l2_class": null,
+      "l2_module": null,
+      "list_result_path": "anomalyDetectors",
+      "notes": [],
+      "operations": {
+        "create": "create_log_anomaly_detector",
+        "delete": "delete_log_anomaly_detector",
+        "describe": "get_log_anomaly_detector",
+        "list": [
+          "list_log_anomaly_detectors"
+        ],
+        "update": "update_log_anomaly_detector"
+      },
+      "properties": {
+        "anomalyDetectorStatus": {
+          "item_shape": null,
+          "name": "anomalyDetectorStatus",
+          "required": false,
+          "shape": "GetLogAnomalyDetectorResponse",
+          "type": "string"
+        },
+        "anomalyVisibilityTime": {
+          "item_shape": null,
+          "name": "anomalyVisibilityTime",
+          "required": false,
+          "shape": "GetLogAnomalyDetectorResponse",
+          "type": "long"
+        },
+        "creationTimeStamp": {
+          "item_shape": null,
+          "name": "creationTimeStamp",
+          "required": false,
+          "shape": "GetLogAnomalyDetectorResponse",
+          "type": "long"
+        },
+        "detectorName": {
+          "item_shape": null,
+          "name": "detectorName",
+          "required": false,
+          "shape": "GetLogAnomalyDetectorResponse",
+          "type": "string"
+        },
+        "evaluationFrequency": {
+          "item_shape": null,
+          "name": "evaluationFrequency",
+          "required": false,
+          "shape": "GetLogAnomalyDetectorResponse",
+          "type": "string"
+        },
+        "filterPattern": {
+          "item_shape": null,
+          "name": "filterPattern",
+          "required": false,
+          "shape": "GetLogAnomalyDetectorResponse",
+          "type": "string"
+        },
+        "kmsKeyId": {
+          "item_shape": null,
+          "name": "kmsKeyId",
+          "required": false,
+          "shape": "GetLogAnomalyDetectorResponse",
+          "type": "string"
+        },
+        "lastModifiedTimeStamp": {
+          "item_shape": null,
+          "name": "lastModifiedTimeStamp",
+          "required": false,
+          "shape": "GetLogAnomalyDetectorResponse",
+          "type": "long"
+        },
+        "logGroupArnList": {
+          "item_shape": "LogGroupArn",
+          "name": "logGroupArnList",
+          "required": false,
+          "shape": "GetLogAnomalyDetectorResponse",
+          "type": "list"
+        }
+      },
+      "resource_name": "LogAnomalyDetector",
+      "service": "logs",
+      "summary_item_shape": "AnomalyDetector",
+      "synthetic": false
+    },
+    "LogGroup": {
+      "arn_field": "logGroupArn",
+      "cfn_class": "CfnLogGroup",
+      "cfn_module": "aws_cdk.aws_logs",
+      "cfn_type": "AWS::Logs::LogGroup",
+      "deployable_via_cfn": true,
+      "deployable_via_l2": true,
+      "id_params": [],
+      "l2_class": "LogGroup",
+      "l2_module": "aws_cdk.aws_logs",
+      "list_result_path": "logGroups",
+      "notes": [],
+      "operations": {
+        "create": "create_log_group",
+        "delete": "delete_log_group",
+        "describe": "describe_log_groups",
+        "list": [
+          "list_log_groups"
+        ]
+      },
+      "properties": {
+        "logGroups": {
+          "item_shape": "LogGroup",
+          "name": "logGroups",
+          "required": false,
+          "shape": "DescribeLogGroupsResponse",
+          "type": "list"
+        },
+        "nextToken": {
+          "item_shape": null,
+          "name": "nextToken",
+          "required": false,
+          "shape": "DescribeLogGroupsResponse",
+          "type": "string"
+        }
+      },
+      "resource_name": "LogGroup",
+      "service": "logs",
+      "summary_item_shape": "LogGroupSummary",
+      "synthetic": false
+    },
+    "ScheduledQuery": {
+      "arn_field": "scheduledQueryArn",
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
+      "id_params": [
+        "identifier"
+      ],
+      "l2_class": null,
+      "l2_module": null,
+      "list_result_path": "scheduledQueries",
+      "notes": [],
+      "operations": {
+        "create": "create_scheduled_query",
+        "delete": "delete_scheduled_query",
+        "describe": "get_scheduled_query",
+        "list": [
+          "list_scheduled_queries"
+        ],
+        "update": "update_scheduled_query"
+      },
+      "properties": {
+        "creationTime": {
+          "item_shape": null,
+          "name": "creationTime",
+          "required": false,
+          "shape": "GetScheduledQueryResponse",
+          "type": "long"
+        },
+        "description": {
+          "item_shape": null,
+          "name": "description",
+          "required": false,
+          "shape": "GetScheduledQueryResponse",
+          "type": "string"
+        },
+        "destinationConfiguration": {
+          "item_shape": null,
+          "name": "destinationConfiguration",
+          "required": false,
+          "shape": "GetScheduledQueryResponse",
+          "type": "structure"
+        },
+        "executionRoleArn": {
+          "item_shape": null,
+          "name": "executionRoleArn",
+          "required": false,
+          "shape": "GetScheduledQueryResponse",
+          "type": "string"
+        },
+        "lastExecutionStatus": {
+          "item_shape": null,
+          "name": "lastExecutionStatus",
+          "required": false,
+          "shape": "GetScheduledQueryResponse",
+          "type": "string"
+        },
+        "lastTriggeredTime": {
+          "item_shape": null,
+          "name": "lastTriggeredTime",
+          "required": false,
+          "shape": "GetScheduledQueryResponse",
+          "type": "long"
+        },
+        "lastUpdatedTime": {
+          "item_shape": null,
+          "name": "lastUpdatedTime",
+          "required": false,
+          "shape": "GetScheduledQueryResponse",
+          "type": "long"
+        },
+        "logGroupIdentifiers": {
+          "item_shape": "LogGroupIdentifier",
+          "name": "logGroupIdentifiers",
+          "required": false,
+          "shape": "GetScheduledQueryResponse",
+          "type": "list"
+        },
+        "name": {
+          "item_shape": null,
+          "name": "name",
+          "required": false,
+          "shape": "GetScheduledQueryResponse",
+          "type": "string"
+        },
+        "queryLanguage": {
+          "item_shape": null,
+          "name": "queryLanguage",
+          "required": false,
+          "shape": "GetScheduledQueryResponse",
+          "type": "string"
+        },
+        "queryString": {
+          "item_shape": null,
+          "name": "queryString",
+          "required": false,
+          "shape": "GetScheduledQueryResponse",
+          "type": "string"
+        },
+        "scheduleEndTime": {
+          "item_shape": null,
+          "name": "scheduleEndTime",
+          "required": false,
+          "shape": "GetScheduledQueryResponse",
+          "type": "long"
+        },
+        "scheduleExpression": {
+          "item_shape": null,
+          "name": "scheduleExpression",
+          "required": false,
+          "shape": "GetScheduledQueryResponse",
+          "type": "string"
+        },
+        "scheduleStartTime": {
+          "item_shape": null,
+          "name": "scheduleStartTime",
+          "required": false,
+          "shape": "GetScheduledQueryResponse",
+          "type": "long"
+        },
+        "scheduledQueryArn": {
+          "item_shape": null,
+          "name": "scheduledQueryArn",
+          "required": false,
+          "shape": "GetScheduledQueryResponse",
+          "type": "string"
+        },
+        "startTimeOffset": {
+          "item_shape": null,
+          "name": "startTimeOffset",
+          "required": false,
+          "shape": "GetScheduledQueryResponse",
+          "type": "long"
+        },
+        "state": {
+          "item_shape": null,
+          "name": "state",
+          "required": false,
+          "shape": "GetScheduledQueryResponse",
+          "type": "string"
+        },
+        "timezone": {
+          "item_shape": null,
+          "name": "timezone",
+          "required": false,
+          "shape": "GetScheduledQueryResponse",
+          "type": "string"
+        }
+      },
+      "resource_name": "ScheduledQuery",
+      "service": "logs",
+      "summary_item_shape": "ScheduledQuerySummary",
+      "synthetic": false
+    }
+  },
+  "service": "logs"
+}

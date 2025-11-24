@@ -1,8 +1,11 @@
 # resolvers/registry.py
 
 from __future__ import annotations
-from typing import Type, Dict, TypeVar, Generic
+
+from typing import Dict, Type, TypeVar
+
 from botocore.client import BaseClient
+
 from .base_resolver import BaseResolver
 
 C = TypeVar("C", bound=BaseClient)

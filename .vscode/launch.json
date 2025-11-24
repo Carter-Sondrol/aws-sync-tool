@@ -11,14 +11,36 @@
             "module": "cli.cli",
             "args": [
                 "--profile",
-                "SafeRideAdmin",
+                "SafeRideHealth",
                 "--region", 
                 "us-west-2",
                 "build",
-                "--arn-file",
-                "./seeds.txt",
+                "--seed-csv",
+                "./seeds.csv",
+                "--seed-env",
+                "dev",
                 "--output",
                 "./graph.json"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Visualize Graph",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "cli.cli",
+            "args": [
+                "--profile",
+                "SafeRideHealth",
+                "--region",
+                "us-west-2",
+                "display",
+                "--file",
+                "./graph.json",
+                "--visual",
+                "--out",
+                "./graph.html"
             ],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}"

@@ -3,23 +3,22 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Generic,
     Iterable,
-    List,
     Mapping,
     Optional,
     TypeVar,
-    TYPE_CHECKING,
     cast,
 )
 
 from boto3 import Session
 from botocore.exceptions import ClientError
 
+from graph.resource_node import ResourceNode
 from utils.arn import ARN, extract_dependencies
-from graph.dependency_graph import ResourceNode, DependencyGraph
 
 # ---------------------------------------------------------------------------
 # Type parameters (runtime-loose, IDE-strong)
@@ -51,6 +50,8 @@ class BaseResolver(ABC, Generic[C, R]):
         client: Optional[C] = None,
     ) -> None:
         self.session = session
+        # cache the session's region (CLI --region lands here)
+        self.session_region: Optional[str] = session.region_name
 
         # Do NOT create a single static client.
         # Instead maintain a region-aware client cache.
@@ -65,23 +66,14 @@ class BaseResolver(ABC, Generic[C, R]):
     # ---------------------------------------------------------------
     # Region-aware client acquisition
     # ---------------------------------------------------------------
-    def client_for(self, arn: ARN, service_override: Optional[str] = None) -> C:
-        """
-        Return a boto3 client for the appropriate AWS region and service.
-        Uses caching to avoid recreating clients repeatedly.
-        """
-        service = service_override or self.service
-        region = arn.region or ""
+    def client_for(self, arn: ARN):
+        svc = arn.service
 
-        key = (service, region)
-        if key not in self._clients:
-            # Make Pylance happy by casting service to Any
-            svc = cast(Any, service)
-            client: BaseClient = self.session.client(svc, region_name=region)
-            self._clients[key] = cast(C, client)
+        # S3 has no region in ARN → fallback to session region or CLI region
+        region = arn.region or self.session_region or self.session.region_name or "us-east-1"
+        return self.session.client(svc, region_name=region)
 
-        return self._clients[key]
-
+    
 
     # ---------------------------------------------------------------
     # If a resolver truly must use a region-agnostic client
@@ -153,7 +145,6 @@ class BaseResolver(ABC, Generic[C, R]):
             )
         return None
 
-
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
@@ -202,3 +193,38 @@ class BaseResolver(ABC, Generic[C, R]):
         except ClientError as e:
             self.log.warning("[%s] client error: %s", self.service, e)
             return default
+
+    # ------------------------------------------------------------------
+    # extract_references
+    # ------------------------------------------------------------------
+    def extract_references(
+        self,
+        arn: ARN,
+        raw: Mapping[str, Any],
+        *,
+        known_buckets: set[str] | None = None,
+    ) -> set[ARN]:
+        """
+        Universal dependency extractor for all resolvers.
+        Applies recursive ARN harvesting to the raw AWS response.
+
+        This is used by ResourceGraphBuilder to find downstream
+        dependencies and expand the graph.
+        """
+        try:
+            refs = extract_dependencies(
+                raw,
+                allow_partial=False,
+                service_filter=None,
+                known_buckets=known_buckets,
+            )
+        except Exception as e:
+            self.log.warning(
+                "[%s] extract_references failed for %s: %s",
+                self.service,
+                arn,
+                e,
+            )
+            return set()
+
+        return refs

@@ -1,0 +1,7 @@
+logical_id, arn_dev, arn_staging, is_ref
+Connect Instance, arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34, arn:aws:connect:us-west-2:523773103726:instance/1ff53674-dc5a-4104-bbe5-9b07b6487bf2, false
+Estimated Wait Time, arn:aws:lambda:us-west-2:523773103726:function:dev-srh-estimated-wait-time
+VM Packager, arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-Packager
+VM Dump to S3, arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-dump-to-s3
+VM Presigner, arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-presigner
+VM Transcribe Recording, arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-transcribe-recordings

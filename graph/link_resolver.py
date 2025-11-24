@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Optional
+from pathlib import Path
+import re
+from typing import Any, Iterable, Optional
 
+from graph.dependency_graph import DependencyGraph
 from utils.arn import ARN
 
 logger = logging.getLogger(__name__)
@@ -35,7 +38,7 @@ class UniversalLinkResolver(LinkResolver):
           * A JSON blob → parse, walk, and dump back to string.
           * An ARN string → if target node exists, replace with __REF_<LogicalId>__.
       - Add edges (node.logical_id → target.logical_id) for any resolved links.
-      - Run optional service-specific hooks (e.g., Lambda env name-based links).
+      - Optionally track unresolved "parameter" strings for later mapping.
 
     This operates purely on the graph; NO AWS calls. It strictly respects
     seed-based discovery: only links to resources already present in the graph.
@@ -55,19 +58,6 @@ class UniversalLinkResolver(LinkResolver):
                     "[UniversalLinkResolver] Failed while processing node %s",
                     node.logical_id,
                 )
-
-        # Pass 2: service-specific hooks
-        for node in list(graph):
-            try:
-                if node.service == "lambda":
-                    self._resolve_lambda_env(graph, node)
-            except Exception:
-                logger.exception(
-                    "[UniversalLinkResolver] Service hook failed for node %s",
-                    node.logical_id,
-                )
-
-        logger.info("[UniversalLinkResolver] Link resolution complete")
 
     # ------------------------------------------------------------------
     # Core recursive walker
@@ -100,157 +90,185 @@ class UniversalLinkResolver(LinkResolver):
                     # Always store back as JSON string (important for Connect Content)
                     try:
                         return json.dumps(updated, separators=(",", ":"))
-                    except TypeError:
-                        # Fallback: default json.dumps
-                        return json.dumps(updated)
+                    except Exception:
+                        # Last resort: keep original string
+                        return value
 
-            # Pure ARN string?
-            if stripped.startswith("arn:") and ARN.is_valid(stripped):
+            # ARN-like? try to resolve
+            if value.startswith("arn:") and ARN.is_valid(value):
                 try:
-                    arn = ARN.parse_cached(stripped)
+                    arn = ARN.parse(value)
                 except Exception:
                     return value
 
                 target = graph.get_node_by_arn(arn)
-                if not target:
-                    # Unknown target: respect seed-based rules, keep literal ARN.
-                    return value
-
-                # Parent depends on child (current node → target)
-                graph.add_edge(parent_node.logical_id, target.logical_id)
-                logger.debug(
-                    "[UniversalLinkResolver] %s.%s → %s (ARN linked)",
-                    parent_node.logical_id,
-                    "<string>",
-                    target.logical_id,
-                )
-                return f"__REF_{target.logical_id}__"
+                if target:
+                    marker = f"__REF_{target.logical_id}__"
+                    graph.add_edge(
+                        parent_node.logical_id,
+                        target.logical_id,
+                        label="property",
+                    )
+                    return marker
+                elif parent_node:
+                    graph.defer_link(parent_node.logical_id, arn, label="property")
 
             return value
 
-        # Lists: recurse element-wise
-        if isinstance(value, list):
+        # Dicts: walk values
+        if isinstance(value, dict):
+            return {k: self._walk_value(graph, v, parent_node) for k, v in value.items()}
+
+        # Lists/tuples: walk each element
+        if isinstance(value, (list, tuple)):
             return [self._walk_value(graph, v, parent_node) for v in value]
 
-        # Dicts: recurse value-wise
-        if isinstance(value, dict):
-            out: dict[str, Any] = {}
-            for k, v in value.items():
-                out[k] = self._walk_value(graph, v, parent_node)
-            return out
-
-        # Other scalars: pass through unchanged
+        # Everything else: leave unchanged
         return value
 
-    # ------------------------------------------------------------------
-    # Lambda-specific env var hook (name-based linking + parameters)
-    # ------------------------------------------------------------------
-    def _resolve_lambda_env(self, graph, node) -> None:
-        """
-        Preserve Lambda-specific behavior:
+class EnvironmentLinkResolver(LinkResolver):
+    service = "lambda-env"
 
-          - If env value is a non-ARN string, try to match:
-              * S3 BucketName
-              * DynamoDB TableName
-              * SNS TopicName
-          - On match: replace with __REF_<LogicalId>__ and add an edge.
-          - On no match: convert to a parameter marker and record it in graph.metadata.
-
-        NOTE:
-          - Seed-based guarantee is preserved: all matches use existing graph nodes.
-          - ARN env values are already handled by _walk_value.
-        """
-        env_root = node.properties.get("Environment")
-        if not isinstance(env_root, dict):
-            return
-
-        variables = env_root.get("Variables")
-        if not isinstance(variables, dict):
-            return
-
-        pending_params = graph.metadata.setdefault("PendingParams", {})
-
-        for key, val in list(variables.items()):
-            if not isinstance(val, str):
+    def resolve(self, graph: DependencyGraph) -> None:
+        for node in list(graph):
+            if node.service != "lambda":
                 continue
 
-            # Already processed by the generic walker or explicitly parameterized
-            if val.startswith("__REF_") or val.startswith("__PARAM_"):
-                continue
-
-            # ARN strings are handled generically; we only care about name-like values here
-            if val.startswith("arn:"):
-                continue
-
-            # Try S3 bucket by name
-            target = graph.find_by_property("s3", "BucketName", val)
-            if target:
-                variables[key] = f"__REF_{target.logical_id}__"
-                graph.add_edge(node.logical_id, target.logical_id)
-                logger.debug(
-                    "[UniversalLinkResolver:LambdaEnv] %s.%s → %s (S3 bucket by name)",
-                    node.logical_id,
-                    key,
-                    target.logical_id,
-                )
-                continue
-
-            # Try DynamoDB table by TableName
-            target = graph.find_by_property("dynamodb", "TableName", val)
-            if target:
-                variables[key] = f"__REF_{target.logical_id}__"
-                graph.add_edge(node.logical_id, target.logical_id)
-                logger.debug(
-                    "[UniversalLinkResolver:LambdaEnv] %s.%s → %s (DynamoDB table by name)",
-                    node.logical_id,
-                    key,
-                    target.logical_id,
-                )
-                continue
-
-            # Try SNS topic by TopicName
-            target = graph.find_by_property("sns", "TopicName", val)
-            if target:
-                variables[key] = f"__REF_{target.logical_id}__"
-                graph.add_edge(node.logical_id, target.logical_id)
-                logger.debug(
-                    "[UniversalLinkResolver:LambdaEnv] %s.%s → %s (SNS topic by name)",
-                    node.logical_id,
-                    key,
-                    target.logical_id,
-                )
-                continue
-
-            # Otherwise: treat as a parameter (do NOT invent resources)
-            param_name = f"{key}Param"
-            variables[key] = f"__PARAM_{param_name}__"
-            pending_params[param_name] = val
-            logger.debug(
-                "[UniversalLinkResolver:LambdaEnv] %s.%s → parameter (%s)",
-                node.logical_id,
-                key,
-                val,
+            env = (
+                node.properties.get("Configuration", {})
+                    .get("Environment", {})
+                    .get("Variables", {})
             )
 
+            if not isinstance(env, dict):
+                continue
 
-# ---------------------------------------------------------------------------
-# Dispatcher
-# ---------------------------------------------------------------------------
-DEFAULT_LINK_RESOLVERS = [
-    UniversalLinkResolver(),
-]
+            connect_nodes: set[str] = set()
+            bucket_targets: set[str] = set()
+
+            for key, value in env.items():
+                original_value = value
+                if not isinstance(value, str):
+                    continue
+
+                # ARN strings are authoritative
+                if ARN.is_valid(value):
+                    try:
+                        arn = ARN.parse(value)
+                    except Exception:
+                        arn = None
+                    if arn:
+                        target = graph.get_node_by_arn(arn)
+                        if target:
+                            graph.add_edge(
+                                node.logical_id,
+                                target.logical_id,
+                                label=f"env:{key}",
+                            )
+                            env[key] = f"__REF_{target.logical_id}__"
+                            if target.service == "s3":
+                                bucket_targets.add(target.logical_id)
+                            if target.service == "connect" and target.logical_id.startswith(
+                                "Instance_"
+                            ):
+                                connect_nodes.add(target.logical_id)
+                        else:
+                            graph.defer_link(node.logical_id, arn, label=f"env:{key}")
+                    continue
+
+                # Respect explicit __REF_* markers
+                ref_lid = _extract_ref_lid(value)
+                if ref_lid:
+                    target = graph.get_node(ref_lid)
+                    if target:
+                        graph.add_edge(
+                            node.logical_id,
+                            target.logical_id,
+                            label=f"env:{key}",
+                        )
+                        env[key] = f"__REF_{target.logical_id}__"
+                        if target.service == "s3":
+                            bucket_targets.add(target.logical_id)
+                        if target.service == "connect" and target.logical_id.startswith(
+                            "Instance_"
+                        ):
+                            connect_nodes.add(target.logical_id)
+                    continue
+
+                # Direct logical-id match (explicit presence in graph)
+                direct_target = graph.get_node(value)
+                if direct_target:
+                    graph.add_edge(
+                        node.logical_id,
+                        direct_target.logical_id,
+                        label=f"env:{key}",
+                    )
+                    env[key] = f"__REF_{direct_target.logical_id}__"
+                    if direct_target.service == "s3":
+                        bucket_targets.add(direct_target.logical_id)
+                    if direct_target.service == "connect" and direct_target.logical_id.startswith(
+                        "Instance_"
+                    ):
+                        connect_nodes.add(direct_target.logical_id)
+                    continue
+
+                # Best-effort: map to existing bucket/connect nodes only if present
+                if looks_like_bucket_name(value):
+                    bucket_arn = ARN.from_parts("s3", value, region="", account_id="")
+                    target = graph.get_node_by_arn(bucket_arn)
+                    if target:
+                        graph.add_edge(
+                            node.logical_id,
+                            target.logical_id,
+                            label=f"env:{key}",
+                        )
+                        env[key] = f"__REF_{target.logical_id}__"
+                        bucket_targets.add(target.logical_id)
+                    continue
+
+                if _looks_like_connect_instance_id(value):
+                    primary = node.get_primary_arn()
+                    carn = ARN.from_parts(
+                        "connect",
+                        f"instance/{value.strip()}",
+                        region=primary.region if primary else "",
+                        account_id=primary.account_id if primary else "",
+                    )
+                    target = graph.get_node_by_arn(carn)
+                    if target:
+                        graph.add_edge(
+                            node.logical_id,
+                            target.logical_id,
+                            label=f"env:{key}",
+                        )
+                        env[key] = f"__REF_{target.logical_id}__"
+                        connect_nodes.add(target.logical_id)
+
+            if connect_nodes and bucket_targets:
+                for connect_lid in connect_nodes:
+                    connect_node = graph.get_node(connect_lid)
+                    if not connect_node:
+                        continue
+                    for lid in bucket_targets:
+                        target = graph.get_node(lid)
+                        if target:
+                            graph.add_edge(
+                                connect_node.logical_id,
+                                target.logical_id,
+                                label="env:connect-bucket",
+                            )
 
 
-def resolve_graph_links(
-    graph,
-    extra_resolvers: Optional[list[LinkResolver]] = None,
-) -> None:
+DEFAULT_LINK_RESOLVERS: tuple[LinkResolver, ...] = (UniversalLinkResolver(),EnvironmentLinkResolver(),)
+
+def resolve_graph_links(graph, extra_resolvers: Optional[Iterable[LinkResolver]] = None) -> None:
     """
-    Run link resolution on the provided dependency graph.
+    Run link resolution passes over the graph.
 
-    - Always runs the UniversalLinkResolver.
-    - Optional extra_resolvers can layer on hyper-specific behaviors if needed,
-      but they should generally be avoided in favor of the unified pass.
+    This is intentionally side-effect limited:
+      - No AWS calls
+      - No new nodes created
+      - Only edges + property rewrites
     """
     all_resolvers: list[LinkResolver] = list(DEFAULT_LINK_RESOLVERS)
     if extra_resolvers:
@@ -261,4 +279,115 @@ def resolve_graph_links(
         try:
             r.resolve(graph)
         except Exception as e:
-            logger.exception("Resolver %s failed: %s", r.service, e)
+            logger.exception("Resolver %s failed: %s", getattr(r, "service", "unknown"), e)
+
+SCHEMA_DIR = Path("./schemas")
+
+def try_introspect(value: str):
+    """
+    Attempt to match an arbitrary string to a known AWS resource
+    using the outputs of tools.service_introspector.
+
+    Returns:
+        ARN or None
+    """
+
+    if not value or not isinstance(value, str):
+        return None
+
+    # Fast path: if the env var already looks like an ARN, just return it
+    if value.startswith("arn:"):
+        try:
+            return ARN.parse(value)
+        except Exception:
+            pass  # fall through to other matches
+
+    # Walk all introspector schemas
+    if not SCHEMA_DIR.exists():
+        return None
+
+    for schema_file in SCHEMA_DIR.glob("*.json"):
+        try:
+            data = json.loads(schema_file.read_text())
+        except Exception:
+            continue
+
+        # Introspector schema shape:
+        # {
+        #   "Resources": {
+        #       "<name>": {
+        #           "Arn": "...",
+        #           "Id": "...",
+        #           "Name": "...",
+        #           ...
+        #       }
+        #   }
+        # }
+        resources = data.get("Resources") or {}
+        for res_name, res_info in resources.items():
+            arn = res_info.get("Arn")
+            name = res_info.get("Name")
+            rid  = res_info.get("Id")
+
+            # Match against:
+            #   - resource name ("dev-srh-vm-presigner")
+            #   - logical introspector key ("PresignerLambda")
+            #   - resource ID ("voicemailbucket6df79c0c-awvs...")
+            #   - bucket names, function names, etc.
+            if value == name or value == res_name or value == rid:
+                if arn:
+                    try:
+                        return ARN.parse(arn)
+                    except Exception:
+                        continue
+    return None
+_BUCKET_RE = re.compile(r"^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$")
+def looks_like_bucket_name(value: str) -> bool:
+    """
+    Heuristic to detect if a string is a valid S3 bucket name.
+    Based on AWS bucket naming rules:
+      - 3 to 63 chars
+      - lowercase a-z, 0-9, dots, hyphens
+      - no uppercase, no underscores
+      - cannot start or end with dot or hyphen
+    """
+
+    if not isinstance(value, str):
+        return False
+
+    # Length check
+    if len(value) < 3 or len(value) > 63:
+        return False
+
+    # No uppercase or underscores
+    if any(c.isupper() for c in value) or "_" in value:
+        return False
+
+    # No ARN-like structure
+    if value.startswith("arn:"):
+        return False
+
+    # Must match basic S3 naming rules
+    if not _BUCKET_RE.match(value):
+        return False
+
+    # Must not resemble an AWS Lambda function name
+    # (optional but helps avoid false positives)
+    if value.startswith("dev-") or value.startswith("prod-"):
+        # Function names often start with env prefix + service
+        # Bucket names rarely use this exact pattern
+        # Adjust as needed
+        return False
+
+    return True
+
+def _extract_ref_lid(value: Any) -> Optional[str]:
+    if not isinstance(value, str):
+        return None
+    if value.startswith("__REF_") and value.endswith("__"):
+        return value.removeprefix("__REF_").removesuffix("__")
+    return None
+
+_CONNECT_ID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+def _looks_like_connect_instance_id(value: Any) -> bool:
+    return isinstance(value, str) and _CONNECT_ID_RE.match(value.strip()) is not None

@@ -1,0 +1,130 @@
+{
+  "resources": {
+    "OpsMetadata": {
+      "arn_field": "OpsMetadataArn",
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
+      "id_params": [
+        "OpsMetadataArn"
+      ],
+      "l2_class": null,
+      "l2_module": null,
+      "list_result_path": "OpsMetadataList",
+      "notes": [],
+      "operations": {
+        "create": "create_ops_metadata",
+        "delete": "delete_ops_metadata",
+        "describe": "get_ops_metadata",
+        "list": [
+          "list_ops_metadata"
+        ],
+        "update": "update_ops_metadata"
+      },
+      "properties": {
+        "Metadata": {
+          "item_shape": "MetadataValue",
+          "name": "Metadata",
+          "required": false,
+          "shape": "GetOpsMetadataResult",
+          "type": "map"
+        },
+        "NextToken": {
+          "item_shape": null,
+          "name": "NextToken",
+          "required": false,
+          "shape": "GetOpsMetadataResult",
+          "type": "string"
+        },
+        "ResourceId": {
+          "item_shape": null,
+          "name": "ResourceId",
+          "required": false,
+          "shape": "GetOpsMetadataResult",
+          "type": "string"
+        }
+      },
+      "resource_name": "OpsMetadata",
+      "service": "ssm",
+      "summary_item_shape": "OpsMetadata",
+      "synthetic": false
+    },
+    "Parameter": {
+      "arn_field": "ARN",
+      "cfn_class": "CfnParameter",
+      "cfn_module": "aws_cdk.aws_ssm",
+      "cfn_type": "AWS::SSM::Parameter",
+      "deployable_via_cfn": true,
+      "deployable_via_l2": false,
+      "id_params": [
+        "Name"
+      ],
+      "l2_class": null,
+      "l2_module": null,
+      "list_result_path": "Parameters",
+      "notes": [],
+      "operations": {
+        "delete": "delete_parameter",
+        "describe": "get_parameter",
+        "list": [
+          "get_parameters"
+        ]
+      },
+      "properties": {
+        "Parameter": {
+          "item_shape": null,
+          "name": "Parameter",
+          "required": false,
+          "shape": "GetParameterResult",
+          "type": "structure"
+        }
+      },
+      "resource_name": "Parameter",
+      "service": "ssm",
+      "summary_item_shape": "Parameter",
+      "synthetic": false
+    },
+    "ParametersByPath": {
+      "arn_field": "ARN",
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
+      "id_params": [],
+      "l2_class": null,
+      "l2_module": null,
+      "list_result_path": "Parameters",
+      "notes": [],
+      "operations": {
+        "describe": "get_parameters_by_path",
+        "list": [
+          "get_parameters_by_path"
+        ]
+      },
+      "properties": {
+        "NextToken": {
+          "item_shape": null,
+          "name": "NextToken",
+          "required": false,
+          "shape": "GetParametersByPathResult",
+          "type": "string"
+        },
+        "Parameters": {
+          "item_shape": "Parameter",
+          "name": "Parameters",
+          "required": false,
+          "shape": "GetParametersByPathResult",
+          "type": "list"
+        }
+      },
+      "resource_name": "ParametersByPath",
+      "service": "ssm",
+      "summary_item_shape": "Parameter",
+      "synthetic": false
+    }
+  },
+  "service": "ssm"
+}

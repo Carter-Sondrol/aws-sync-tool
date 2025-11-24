@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Iterable, Optional, Set
+from typing import Dict, Iterable, Optional, Set
 
 from botocore.exceptions import ClientError
 from boto3.session import Session
@@ -9,8 +9,10 @@ from boto3.session import Session
 from graph.dependency_graph import DependencyGraph
 from graph.registry import ResolverRegistry
 from graph.link_resolver import resolve_graph_links
-from graph.resource_node import ResourceNode
+from graph.graph_utils import render_interactive_graph
+from graph.resource_node import ResourceNode, NodeClassification
 from utils.arn import ARN
+from utils.seed_loader import SeedRecord  # your existing type
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +22,10 @@ MAX_NODES = 500
 class ResourceGraphBuilder:
     """
     Builds a full DependencyGraph for a given set of ARN roots.
+
     Performs:
-      - Recursive discovery via registered resolvers
-      - ARN and name-based link resolution
+      - Recursive discovery via registered resolvers (seed-based only)
+      - ARN and property-based link resolution
       - Orphan placeholder generation
       - Graph freezing for portable logical-ID references
     """
@@ -34,8 +37,9 @@ class ResourceGraphBuilder:
         session: Optional[Session] = None,
     ) -> None:
         self.registry = registry
-        self.session = session or registry._session
+        self.session = session or registry.session
         self.seed_set: Set[ARN] = set()
+        self._seed_overrides: Dict[ARN, SeedRecord] = {}
 
     # ------------------------------------------------------------------
     # Main build flow
@@ -48,6 +52,8 @@ class ResourceGraphBuilder:
         freeze: bool = True,
         infer_orphans: bool = True,
         visualize: bool = False,
+        seed_metadata: Optional[Dict[ARN, SeedRecord]] = None,
+        reference_seeds: Optional[Iterable[SeedRecord]] = None,
     ) -> DependencyGraph:
         """
         Construct a dependency graph starting from a set of ARNs.
@@ -58,16 +64,25 @@ class ResourceGraphBuilder:
           - No account-wide list/scan calls are allowed here.
         """
         graph = DependencyGraph()
-        pending: list[ARN] = list(arns)
-        self.seed_set = set(arns)
+        self._seed_overrides = seed_metadata or {}
+        pending: list[ARN] = [ARN.parse(a) for a in arns]
+        self.seed_set = set(pending)
         seen: set[ARN] = set()
 
-        logger.info(
-            "[GraphBuilder] Starting graph build with %d seed ARNs", len(pending)
-        )
+        # Optional: add reference-only seeds as PARAMETER nodes up front
+        if reference_seeds:
+            for seed in reference_seeds:
+                try:
+                    node = self._make_reference_node(seed)
+                except Exception as e:
+                    logger.warning("Failed to materialize reference seed %s: %s", seed, e)
+                else:
+                    graph.add_node(node)
 
         while pending:
-            arn = pending.pop()
+            arn = pending.pop(0)
+            arn = ARN.parse(arn)
+
             if arn in seen:
                 continue
             seen.add(arn)
@@ -96,56 +111,53 @@ class ResourceGraphBuilder:
                         "SourceARN": arn.raw,
                         "Seed": arn in self.seed_set,
                     },
+                    classification=NodeClassification.EXTERNAL,
                 )
                 graph.add_node(node)
-                graph.metadata.setdefault("UnresolvedNodes", []).append(str(arn))
                 continue
 
-            # Schedule referenced ARNs for resolution; graph handles the edges.
+            # Queue up newly discovered ARNs
             for ref in node.referenced_arns:
-                if ref not in seen and not graph.get_node_by_arn(ref):
+                ref = ARN.parse(ref)
+                if ref not in seen and ref not in pending:
                     pending.append(ref)
 
-        # ------------------------------------------------------------------
-        # Link and orphan resolution
-        # ------------------------------------------------------------------
-        # Resolve any deferred ARN-based links first
-        graph.resolve_links()
-
-        # Optionally synthesize orphans for unresolved references
-        if infer_orphans:
-            graph.resolve_orphans()
-
-        # ------------------------------------------------------------------
-        # Cross-service link inference (Lambda env, Connect JSON, etc.)
-        # ------------------------------------------------------------------
+        # Post-processing stages
         if resolve_links:
-            try:
-                resolve_graph_links(graph)
-            except Exception as e:
-                logger.exception("[GraphBuilder] Link resolver phase failed: %s", e)
+            resolve_graph_links(graph)
+            graph.resolve_deferred_links()
+        else:
+            graph.resolve_deferred_links()
 
-        # ------------------------------------------------------------------
-        # Freeze graph for portability
-        # ------------------------------------------------------------------
+        if infer_orphans:
+            graph.capture_wildcard_references()
+            resolver_keys = self.registry.services()
+
+            def _resolvable(arn: ARN) -> bool:
+                full_key = f"{arn.service}:{arn.resource_type}"
+                return full_key in resolver_keys or arn.service in resolver_keys
+
+            graph.generate_orphans(resolvable=_resolvable)
+
         if freeze:
-            try:
-                graph.freeze_to_portable()
-            except Exception as e:
-                logger.exception("[GraphBuilder] Graph freeze failed: %s", e)
+            graph.freeze_to_portable()
+        else:
+            graph.finalize()
 
-        # ------------------------------------------------------------------
-        # Visualization (optional)
-        # ------------------------------------------------------------------
+        try:
+            graph.topological_sort()
+        except Exception as e:
+            logger.error("[GraphBuilder] Cycle detected in graph: %s", e)
+            raise
+
         if visualize:
             try:
-                from graph.visualizer import render_interactive_graph
-
                 render_interactive_graph(graph)
             except Exception as e:
                 logger.exception("[GraphBuilder] Visualization failed: %s", e)
 
         logger.info(graph.summary())
+        self._seed_overrides = {}
         return graph
 
     # ------------------------------------------------------------------
@@ -168,40 +180,93 @@ class ResourceGraphBuilder:
                 reference_only=True,
                 arns={"Primary": arn},
                 metadata={"Wildcard": True, "Seed": arn in self.seed_set},
+                classification=NodeClassification.ARTIFACT,
             )
             graph.add_node(node)
             return node
 
         # ============================================================
-        # 2. Resolve using resource-specific resolver
+        # 2. Find resolver
         # ============================================================
         full_key = f"{arn.service}:{arn.resource_type}"
-        logger.info("[GraphBuilder] Resolver: %s", full_key)
+        resolver = (
+            self.registry.get(full_key)
+            or self.registry.get(arn.service)  # service-level fallback
+        )
 
-        resolver = self.registry.get(full_key) or self.registry.get(arn.service)
         if not resolver:
-            raise ValueError(
-                f"No resolver registered for service '{arn.service}' "
-                f"resource '{arn.resource_type}'"
-            )
+            raise RuntimeError(f"No resolver registered for {full_key}")
+
+        # attach session/region if needed
+        if getattr(resolver, "session", None) is None:
+            resolver.session = self.session  # type: ignore[attr-defined]
+        if getattr(resolver, "session_region", None) is None:
+            resolver.session_region = getattr(self.session, "region_name", None)  # type: ignore[attr-defined]
 
         # ============================================================
-        # 3. Fetch raw resource + convert to node
+        # 3. Fetch + build node
         # ============================================================
         try:
-            raw = resolver.fetch_resource(arn)
-            node = resolver.to_node(arn, raw)
+            raw = resolver.fetch_resource(arn)  # type: ignore[arg-type]
+        except ClientError:
+            logger.exception("[GraphBuilder] AWS ClientError resolving %s", arn)
+            raise
+        except Exception:
+            logger.exception("[GraphBuilder] Unknown error resolving %s", arn)
+            raise
 
-        except ClientError as e:
-            raise RuntimeError(f"AWS API error for {arn}: {e}") from e
-        except Exception as e:
-            raise RuntimeError(f"Parse failure for {arn}: {e}") from e
+        node = resolver.to_node(arn, raw)  # type: ignore[arg-type]
+        known_buckets = getattr(graph, "known_bucket_names", lambda: set())()
+        node.referenced_arns = resolver.extract_references(arn, raw, known_buckets=known_buckets)  # type: ignore[attr-defined]
 
-        # ============================================================
-        # 4. Mark seed node
-        # ============================================================
-        if arn in self.seed_set:
-            node.metadata["Seed"] = True
+        # Seed overrides
+        seed_meta = self._seed_overrides.get(arn)
+        if seed_meta:
+            self._apply_seed_override(node, seed_meta)
+
+        # Basic classification tweaks
+        if node.reference_only and node.classification == NodeClassification.RESOURCE:
+            node.classification = NodeClassification.EXTERNAL
+
+        # AWS-managed detection: simple heuristic
+        if node.classification == NodeClassification.RESOURCE:
+            primary = node.get_primary_arn()
+            if primary and ":aws/" in primary.raw:
+                node.classification = NodeClassification.AWS_MANAGED
 
         graph.add_node(node)
         return node
+
+    def _apply_seed_override(self, node: ResourceNode, seed: SeedRecord) -> None:
+        node.logical_id = seed.logical_id
+        node.metadata["SeedARNs"] = seed.arn_metadata()
+        node.metadata["SeedReference"] = seed.reference_only
+        if seed.reference_only:
+            node.reference_only = True
+            if node.classification == NodeClassification.RESOURCE:
+                node.classification = NodeClassification.PARAMETER
+
+        for label, seed_arn in seed.arn_map.items():
+            if seed_arn not in node.arns.values():
+                node.arns[label] = seed_arn
+
+    def _make_reference_node(self, seed: SeedRecord) -> ResourceNode:
+        primary = seed.preferred_arn()
+        if not primary:
+            raise ValueError("Seed has no ARNs defined")
+
+        metadata = {
+            "SeedReference": True,
+            "SeedARNs": seed.arn_metadata(),
+        }
+        return ResourceNode(
+            logical_id=seed.logical_id,
+            service=primary.service,
+            cfn_type=f"AWS::{primary.service.title()}::Reference",
+            properties={"ReferenceARN": str(primary)},
+            reference_only=True,
+            metadata=metadata,
+            arns=dict(seed.arn_map),
+            referenced_arns=set(),
+            classification=NodeClassification.PARAMETER,
+        )

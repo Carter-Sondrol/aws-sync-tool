@@ -2,7 +2,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import pkgutil
-
+import logging
 
 def load_commands(subparsers):
     import cli.commands as commands_pkg
@@ -12,33 +12,19 @@ def load_commands(subparsers):
         if hasattr(module, "register"):
             module.register(subparsers)
 
-
 def main():
     parser = argparse.ArgumentParser(
         prog="aws-graph",
         description="AWS Seed-Based Dependency Graph Tool",
     )
 
+    parser.add_argument("--profile", help="AWS profile override")
+    parser.add_argument("--region", help="AWS region override")
+    parser.add_argument("--account", help="Target AWS account override")
     parser.add_argument(
-        "--profile",
-        help="AWS profile to use (overrides default)",
-    )
-
-    parser.add_argument(
-        "--region",
-        help="AWS region override for session (resolvers still use ARN.region when appropriate)",
-    )
-
-    parser.add_argument(
-        "--account",
-        help="AWS account override (useful for graph remapping / cross-account sync)",
-    )
-
-    parser.add_argument(
-        "--verbose",
-        "-v",
+        "--verbose", "-v",
         action="store_true",
-        help="Enable verbose/debug output",
+        help="Enable verbose/debug output"
     )
 
     subparsers = parser.add_subparsers(
@@ -50,25 +36,19 @@ def main():
     load_commands(subparsers)
     args = parser.parse_args()
 
-    if args.verbose:
-        import logging
+    logging.basicConfig(
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format="%(levelname)s %(name)s: %(message)s" if args.verbose else "%(message)s",
+    )
 
-        logging.basicConfig(
-            level=logging.DEBUG,
-            format="%(levelname)s %(name)s: %(message)s",
-        )
-    else:
-        import logging
-
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(message)s",
-        )
+    # Make overrides globally accessible
+    args._global_profile = args.profile
+    args._global_region = args.region
+    args._global_account = args.account
 
     if hasattr(args, "handler"):
         return args.handler(args)
     parser.print_help()
-
 
 if __name__ == "__main__":
     main()

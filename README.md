@@ -172,7 +172,9 @@ aws-tool diff old.json new.json
 ### **Convert to CDK**
 
 ```
-aws-tool convert --format cdk --out cdk-output/
+aws-graph generate --graph graph.json --output cdk-out --stack-name GraphStack
+# then:
+# cd cdk-out && pip install -r requirements.txt && cdk synth && cdk deploy
 ```
 
 ### **Sync resources**

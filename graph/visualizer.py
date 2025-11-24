@@ -74,12 +74,14 @@ def normalize_subtype(service: str, cfn_type: str | None) -> str:
 # ---------------------------------------------------------------------
 def render_interactive_graph(
     graph: DependencyGraph,
-    out_path: Path | None = None,
+    out_path: Path | str | None = None,
     open_browser: bool = True,
 ) -> Path:
     """Render interactive ForceGraph visualization with awareness of frozen/portable mode."""
     if out_path is None:
         out_path = Path("output/graph.html")
+    elif isinstance(out_path, str):
+        out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     color_keys: list[str] = []
@@ -135,14 +137,25 @@ def render_interactive_graph(
     graph_data = {
         "nodes": nodes_json,
         "links": [
-            {"source": s, "target": t, "inferred": False} for s, t in graph._g.edges()
+            {
+                "source": s,
+                "target": t,
+                "inferred": d.get("inferred", False),
+                "label": d.get("label"),
+            }
+            for s, t, d in graph._g.edges(data=True)
         ],
         "metadata": graph.metadata,
     }
 
     for e in graph.metadata.get("InferredEdges", []):
         graph_data["links"].append(
-            {"source": e["from"], "target": e["to"], "inferred": True}
+            {
+                "source": e["from"],
+                "target": e["to"],
+                "inferred": True,
+                "label": e.get("label"),
+            }
         )
 
     html = (

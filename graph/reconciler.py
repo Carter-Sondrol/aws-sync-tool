@@ -1,4 +1,3 @@
-# graph/reconciler.py
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -6,10 +5,44 @@ from enum import Enum, auto
 from typing import Dict, List, Optional
 
 from graph.dependency_graph import DependencyGraph
-from graph.registry import ResolverRegistry
 from graph.resource_node import ResourceNode
+from graph.registry import ResolverRegistry
 from utils.mapping_store import MappingStore
-from utils.types import JSON
+from utils.types import JSON  # whatever your JSON alias is
+
+
+NOISY_KEYS = {
+    "LastModified",
+    "LastModifiedTime",
+    "LastUpdated",
+    "LastUpdatedTime",
+    "ResponseMetadata",
+    "CreatedTime",
+    "CreationTime",
+    "Revision",
+    "Version",
+    "RequestId",
+    "RequestID",
+}
+
+
+def canonicalize_props(props: JSON) -> JSON:
+    """
+    Strip noisy or non-deterministic fields from property blobs so comparisons
+    are based on stable configuration, not timestamps or AWS metadata.
+    """
+    def _walk(value: JSON) -> JSON:
+        if isinstance(value, dict):
+            return {
+                k: _walk(v)
+                for k, v in value.items()
+                if k not in NOISY_KEYS
+            }
+        if isinstance(value, list):
+            return [_walk(v) for v in value]
+        return value
+
+    return _walk(props)
 
 
 class Action(Enum):
@@ -17,7 +50,6 @@ class Action(Enum):
     UPDATE = auto()
     DELETE = auto()
     NOOP = auto()
-    SKIP = auto()  # aws-managed, unresolved, or intentionally unmanaged
 
 
 @dataclass
@@ -25,7 +57,7 @@ class Change:
     action: Action
     logical_id: str
     service: str
-    cfn_type: str
+    cfn_type: str | None
     desired: Optional[JSON]
     live: Optional[JSON]
     reason: str = ""
@@ -36,174 +68,105 @@ class Plan:
     changes: List[Change]
 
     def summary(self) -> Dict[str, int]:
-        from collections import Counter
-
-        return dict(Counter(c.action.name for c in self.changes))
+        counts: Dict[str, int] = {}
+        for c in self.changes:
+            key = c.action.name
+            counts[key] = counts.get(key, 0) + 1
+        return counts
 
 
 class Reconciler:
     """
-    Computes drift and produces a plan; applies it using service-specific updaters.
+    Naive desired-vs-live reconciler.
+
+    For now we do:
+      - logical_id in desired only  -> CREATE
+      - logical_id in live only     -> DELETE
+      - logical_id in both:
+          if properties differ      -> UPDATE
+          else                      -> NOOP
     """
 
-    def __init__(self, registry: ResolverRegistry, mapping: MappingStore) -> None:
-        self._registry = registry
-        self._mapping = mapping
-
-    def plan(
+    def __init__(
         self,
-        desired: DependencyGraph,
-        target_account: str,
-        *,
-        allow_delete: bool = False,
-    ) -> Plan:
+        mapping_store: MappingStore,
+        registry: ResolverRegistry,
+    ) -> None:
+        self.mapping_store = mapping_store
+        self.registry = registry
+
+    def plan(self, desired: DependencyGraph, live: DependencyGraph) -> Plan:
         changes: List[Change] = []
 
-        # Reverse index: logical_id -> live record (if any) for target account
-        live_map = {
-            lid: self._mapping.get(lid, target_account)
-            for lid in self._mapping._by_logical
+        desired_nodes: Dict[str, ResourceNode] = {
+            lid: node for lid, node in desired._nodes.items()
         }
-        live_map = {k: v for k, v in live_map.items() if v is not None}
+        live_nodes: Dict[str, ResourceNode] = {
+            lid: node for lid, node in live._nodes.items()
+        }
 
-        # 1) For each desired node, find live equivalent in target account
-        for node in desired:
-            if node.reference_only or node.metadata.get("aws_managed"):
+        all_ids = set(desired_nodes) | set(live_nodes)
+
+        for lid in sorted(all_ids):
+            d = desired_nodes.get(lid)
+            l = live_nodes.get(lid)
+
+            if d and not l:
                 changes.append(
                     Change(
-                        Action.SKIP,
-                        node.logical_id,
-                        node.service,
-                        node.cfn_type,
-                        None,
-                        None,
-                        "reference-only/aws-managed",
+                        action=Action.CREATE,
+                        logical_id=lid,
+                        service=d.service,
+                        cfn_type=d.cfn_type,
+                        desired=d.properties,
+                        live=None,
+                        reason="Absent from live graph",
                     )
                 )
                 continue
 
-            live_rec = live_map.get(node.logical_id)
-            if not live_rec:
+            if l and not d:
                 changes.append(
                     Change(
-                        Action.CREATE,
-                        node.logical_id,
-                        node.service,
-                        node.cfn_type,
-                        node.properties,
-                        None,
-                        "not present in target",
+                        action=Action.DELETE,
+                        logical_id=lid,
+                        service=l.service,
+                        cfn_type=l.cfn_type,
+                        desired=None,
+                        live=l.properties,
+                        reason="Absent from desired graph",
                     )
                 )
                 continue
 
-            # Compare desired vs live (portable spec)
-            desired_spec = self._portable_spec(node)
-            live_spec = self._portable_spec(live_rec)
-            if self._is_equal(desired_spec, live_spec):
+            # both exist
+            assert d and l
+            d_clean = canonicalize_props(d.properties)
+            l_clean = canonicalize_props(l.properties)
+
+            if d_clean != l_clean:
                 changes.append(
                     Change(
-                        Action.NOOP,
-                        node.logical_id,
-                        node.service,
-                        node.cfn_type,
-                        None,
-                        None,
-                        "in sync",
+                        action=Action.UPDATE,
+                        logical_id=lid,
+                        service=d.service,
+                        cfn_type=d.cfn_type,
+                        desired=d_clean,
+                        live=l_clean,
+                        reason="Properties differ",
                     )
                 )
             else:
                 changes.append(
                     Change(
-                        Action.UPDATE,
-                        node.logical_id,
-                        node.service,
-                        node.cfn_type,
-                        desired_spec,
-                        live_spec,
-                        "drift detected",
+                        action=Action.NOOP,
+                        logical_id=lid,
+                        service=d.service,
+                        cfn_type=d.cfn_type,
+                        desired=d.properties,
+                        live=l.properties,
+                        reason="No change",
                     )
                 )
 
-        # 2) Deletions (live but not desired)
-        if allow_delete:
-            desired_ids = {n.logical_id for n in desired}
-            for lid, rec in live_map.items():
-                if (
-                    lid not in desired_ids
-                    and not rec.reference_only
-                    and not rec.metadata.get("aws_managed")
-                ):
-                    changes.append(
-                        Change(
-                            Action.DELETE,
-                            lid,
-                            rec.service,
-                            rec.cfn_type,
-                            None,
-                            rec.properties,
-                            "not in desired",
-                        )
-                    )
-
-        return Plan(changes)
-
-    def apply(self, plan: Plan, *, dry_run: bool = True) -> None:
-        for ch in plan.changes:
-            if ch.action in (Action.NOOP, Action.SKIP):
-                continue
-            if dry_run:
-                continue
-
-            updater = self._get_updater(ch.service)
-            if ch.action == Action.CREATE:
-                updater.create(ch)
-            elif ch.action == Action.UPDATE:
-                updater.update(ch)
-            elif ch.action == Action.DELETE:
-                updater.delete(ch)
-
-    # --- helpers ---
-    def _get_updater(self, service: str):
-        raise NotImplementedError(f"No updater for {service}")
-
-    def _portable_spec(self, node_or_rec: ResourceNode) -> JSON:
-        """
-        Convert node properties into a portable spec:
-        - Replace embedded ARNs with logical IDs via MappingStore, when possible.
-        - Normalize/ignore volatile fields (timestamps, ETags, versions).
-        """
-        from copy import deepcopy
-        from utils.arn import ARN as ARNType
-        from utils.types import JSON
-
-        spec = deepcopy(node_or_rec.properties)
-
-        def map_arnish(v):
-            if isinstance(v, ARNType):
-                lid = self._mapping.logical_id_for_arn(v)
-                return {"$ref": lid} if lid else str(v)
-            if isinstance(v, str) and v.startswith("arn:"):
-                a = ARNType.try_parse(v)
-                if not a:
-                    return v
-                lid = self._mapping.logical_id_for_arn(a)
-                return {"$ref": lid} if lid else v
-            return v
-
-        def walk(o):
-            if isinstance(o, dict):
-                return {
-                    k: walk(map_arnish(v))
-                    for k, v in o.items()
-                    if k not in {"LastModified", "RevisionId", "ETag"}
-                }
-            if isinstance(o, list):
-                return [walk(map_arnish(i)) for i in o]
-            return map_arnish(o)
-
-        return walk(spec)
-
-    def _is_equal(self, a: JSON, b: JSON) -> bool:
-        # Shallow canonicalization for now; can plug in deep schema-aware comparator later
-        return a == b
+        return Plan(changes=changes)

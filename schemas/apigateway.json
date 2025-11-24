@@ -1,0 +1,238 @@
+{
+  "resources": {
+    "DomainName": {
+      "arn_field": "domainNameArn",
+      "cfn_class": "CfnDomainName",
+      "cfn_module": "aws_cdk.aws_apigateway",
+      "cfn_type": "AWS::ApiGateway::DomainName",
+      "deployable_via_cfn": true,
+      "deployable_via_l2": true,
+      "id_params": [
+        "domainName",
+        "domainNameId"
+      ],
+      "l2_class": "DomainName",
+      "l2_module": "aws_cdk.aws_apigateway",
+      "list_result_path": "items",
+      "notes": [],
+      "operations": {
+        "create": "create_domain_name",
+        "delete": "delete_domain_name",
+        "describe": "get_domain_name",
+        "list": [
+          "get_domain_names"
+        ],
+        "update": "update_domain_name"
+      },
+      "properties": {
+        "certificateArn": {
+          "item_shape": null,
+          "name": "certificateArn",
+          "required": false,
+          "shape": "DomainName",
+          "type": "string"
+        },
+        "certificateName": {
+          "item_shape": null,
+          "name": "certificateName",
+          "required": false,
+          "shape": "DomainName",
+          "type": "string"
+        },
+        "certificateUploadDate": {
+          "item_shape": null,
+          "name": "certificateUploadDate",
+          "required": false,
+          "shape": "DomainName",
+          "type": "timestamp"
+        },
+        "distributionDomainName": {
+          "item_shape": null,
+          "name": "distributionDomainName",
+          "required": false,
+          "shape": "DomainName",
+          "type": "string"
+        },
+        "distributionHostedZoneId": {
+          "item_shape": null,
+          "name": "distributionHostedZoneId",
+          "required": false,
+          "shape": "DomainName",
+          "type": "string"
+        },
+        "domainName": {
+          "item_shape": null,
+          "name": "domainName",
+          "required": false,
+          "shape": "DomainName",
+          "type": "string"
+        },
+        "domainNameArn": {
+          "item_shape": null,
+          "name": "domainNameArn",
+          "required": false,
+          "shape": "DomainName",
+          "type": "string"
+        },
+        "domainNameId": {
+          "item_shape": null,
+          "name": "domainNameId",
+          "required": false,
+          "shape": "DomainName",
+          "type": "string"
+        },
+        "domainNameStatus": {
+          "item_shape": null,
+          "name": "domainNameStatus",
+          "required": false,
+          "shape": "DomainName",
+          "type": "string"
+        },
+        "domainNameStatusMessage": {
+          "item_shape": null,
+          "name": "domainNameStatusMessage",
+          "required": false,
+          "shape": "DomainName",
+          "type": "string"
+        },
+        "endpointAccessMode": {
+          "item_shape": null,
+          "name": "endpointAccessMode",
+          "required": false,
+          "shape": "DomainName",
+          "type": "string"
+        },
+        "endpointConfiguration": {
+          "item_shape": null,
+          "name": "endpointConfiguration",
+          "required": false,
+          "shape": "DomainName",
+          "type": "structure"
+        },
+        "managementPolicy": {
+          "item_shape": null,
+          "name": "managementPolicy",
+          "required": false,
+          "shape": "DomainName",
+          "type": "string"
+        },
+        "mutualTlsAuthentication": {
+          "item_shape": null,
+          "name": "mutualTlsAuthentication",
+          "required": false,
+          "shape": "DomainName",
+          "type": "structure"
+        },
+        "ownershipVerificationCertificateArn": {
+          "item_shape": null,
+          "name": "ownershipVerificationCertificateArn",
+          "required": false,
+          "shape": "DomainName",
+          "type": "string"
+        },
+        "policy": {
+          "item_shape": null,
+          "name": "policy",
+          "required": false,
+          "shape": "DomainName",
+          "type": "string"
+        },
+        "regionalCertificateArn": {
+          "item_shape": null,
+          "name": "regionalCertificateArn",
+          "required": false,
+          "shape": "DomainName",
+          "type": "string"
+        },
+        "regionalCertificateName": {
+          "item_shape": null,
+          "name": "regionalCertificateName",
+          "required": false,
+          "shape": "DomainName",
+          "type": "string"
+        },
+        "regionalDomainName": {
+          "item_shape": null,
+          "name": "regionalDomainName",
+          "required": false,
+          "shape": "DomainName",
+          "type": "string"
+        },
+        "regionalHostedZoneId": {
+          "item_shape": null,
+          "name": "regionalHostedZoneId",
+          "required": false,
+          "shape": "DomainName",
+          "type": "string"
+        },
+        "routingMode": {
+          "item_shape": null,
+          "name": "routingMode",
+          "required": false,
+          "shape": "DomainName",
+          "type": "string"
+        },
+        "securityPolicy": {
+          "item_shape": null,
+          "name": "securityPolicy",
+          "required": false,
+          "shape": "DomainName",
+          "type": "string"
+        },
+        "tags": {
+          "item_shape": "String",
+          "name": "tags",
+          "required": false,
+          "shape": "DomainName",
+          "type": "map"
+        }
+      },
+      "resource_name": "DomainName",
+      "service": "apigateway",
+      "summary_item_shape": "DomainName",
+      "synthetic": false
+    },
+    "DomainNameAccessAssociation": {
+      "arn_field": "domainNameAccessAssociationArn",
+      "cfn_class": "CfnDomainNameAccessAssociation",
+      "cfn_module": "aws_cdk.aws_apigateway",
+      "cfn_type": "AWS::ApiGateway::DomainNameAccessAssociation",
+      "deployable_via_cfn": true,
+      "deployable_via_l2": false,
+      "id_params": [],
+      "l2_class": null,
+      "l2_module": null,
+      "list_result_path": "items",
+      "notes": [],
+      "operations": {
+        "create": "create_domain_name_access_association",
+        "delete": "delete_domain_name_access_association",
+        "describe": "get_domain_name_access_associations",
+        "list": [
+          "get_domain_name_access_associations"
+        ]
+      },
+      "properties": {
+        "items": {
+          "item_shape": "DomainNameAccessAssociation",
+          "name": "items",
+          "required": false,
+          "shape": "DomainNameAccessAssociations",
+          "type": "list"
+        },
+        "position": {
+          "item_shape": null,
+          "name": "position",
+          "required": false,
+          "shape": "DomainNameAccessAssociations",
+          "type": "string"
+        }
+      },
+      "resource_name": "DomainNameAccessAssociation",
+      "service": "apigateway",
+      "summary_item_shape": "DomainNameAccessAssociation",
+      "synthetic": false
+    }
+  },
+  "service": "apigateway"
+}

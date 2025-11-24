@@ -176,6 +176,7 @@ const Graph = ForceGraph()(fg)
   .linkWidth(link => (link.inferred ? 1.5 : 2.0))
   .linkDirectionalParticles(link => (link.inferred ? 0 : 2))
   .linkCurvature(link => (link.inferred ? 0.2 : 0))
+  .linkLabel(link => (link.label ? `${link.label}` : undefined))
   .backgroundColor("#0e1117")
   .onNodeClick(n => {
     if (editMode) showEditPanel(n);

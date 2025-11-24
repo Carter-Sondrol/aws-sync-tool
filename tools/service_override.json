@@ -1,0 +1,63 @@
+{
+  "connect": {
+    "synthetic_resources": [
+      {
+        "resource_name": "InstanceStorageConfig",
+        "synthetic": true,
+        "operations": {
+          "describe": "describe_instance_storage_config"
+        },
+        "id_params": ["InstanceId", "AssociationId", "ResourceType"],
+        "arn_field": null,
+        "list_result_path": null,
+        "notes": [
+          "Synthetic Connect config surface: instance storage (CTR, recordings, media, scheduled reports, etc.)"
+        ]
+      },
+      {
+        "resource_name": "ContactLensConfiguration",
+        "synthetic": true,
+        "operations": {
+          "describe": "describe_contact_lens_configuration"
+        },
+        "id_params": ["InstanceId"],
+        "arn_field": null,
+        "list_result_path": null,
+        "notes": [
+          "Synthetic Connect config surface: Contact Lens configuration"
+        ]
+      },
+      {
+        "resource_name": "VoiceIdConfiguration",
+        "synthetic": true,
+        "operations": {
+          "describe": "describe_voice_id_configuration"
+        },
+        "id_params": ["InstanceId"],
+        "arn_field": null,
+        "list_result_path": null,
+        "notes": [
+          "Synthetic Connect config surface: Voice ID configuration"
+        ]
+      }
+    ]
+  },
+  "s3": {
+    "synthetic_resources": [
+      {
+        "resource_name": "Bucket",
+        "synthetic": true,
+        "operations": {
+          "describe": "get_bucket_location"
+        },
+        "id_params": ["Bucket"],
+        "arn_field": null,
+        "list_result_path": null,
+        "notes": [
+          "Synthetic S3 Bucket resource discovered from bucket names in environment variables, Connect configs, and policies.",
+          "Uses get_bucket_location(Bucket=...) as a lightweight describe operation."
+        ]
+      }
+    ]
+  }
+}

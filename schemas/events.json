@@ -1,0 +1,606 @@
+{
+  "resources": {
+    "ApiDestination": {
+      "arn_field": "ApiDestinationArn",
+      "cfn_class": "CfnApiDestination",
+      "cfn_module": "aws_cdk.aws_events",
+      "cfn_type": "AWS::Events::ApiDestination",
+      "deployable_via_cfn": true,
+      "deployable_via_l2": true,
+      "id_params": [
+        "Name"
+      ],
+      "l2_class": "ApiDestination",
+      "l2_module": "aws_cdk.aws_events",
+      "list_result_path": "ApiDestinations",
+      "notes": [],
+      "operations": {
+        "create": "create_api_destination",
+        "delete": "delete_api_destination",
+        "describe": "describe_api_destination",
+        "list": [
+          "list_api_destinations"
+        ],
+        "update": "update_api_destination"
+      },
+      "properties": {
+        "ApiDestinationArn": {
+          "item_shape": null,
+          "name": "ApiDestinationArn",
+          "required": false,
+          "shape": "DescribeApiDestinationResponse",
+          "type": "string"
+        },
+        "ApiDestinationState": {
+          "item_shape": null,
+          "name": "ApiDestinationState",
+          "required": false,
+          "shape": "DescribeApiDestinationResponse",
+          "type": "string"
+        },
+        "ConnectionArn": {
+          "item_shape": null,
+          "name": "ConnectionArn",
+          "required": false,
+          "shape": "DescribeApiDestinationResponse",
+          "type": "string"
+        },
+        "CreationTime": {
+          "item_shape": null,
+          "name": "CreationTime",
+          "required": false,
+          "shape": "DescribeApiDestinationResponse",
+          "type": "timestamp"
+        },
+        "Description": {
+          "item_shape": null,
+          "name": "Description",
+          "required": false,
+          "shape": "DescribeApiDestinationResponse",
+          "type": "string"
+        },
+        "HttpMethod": {
+          "item_shape": null,
+          "name": "HttpMethod",
+          "required": false,
+          "shape": "DescribeApiDestinationResponse",
+          "type": "string"
+        },
+        "InvocationEndpoint": {
+          "item_shape": null,
+          "name": "InvocationEndpoint",
+          "required": false,
+          "shape": "DescribeApiDestinationResponse",
+          "type": "string"
+        },
+        "InvocationRateLimitPerSecond": {
+          "item_shape": null,
+          "name": "InvocationRateLimitPerSecond",
+          "required": false,
+          "shape": "DescribeApiDestinationResponse",
+          "type": "integer"
+        },
+        "LastModifiedTime": {
+          "item_shape": null,
+          "name": "LastModifiedTime",
+          "required": false,
+          "shape": "DescribeApiDestinationResponse",
+          "type": "timestamp"
+        },
+        "Name": {
+          "item_shape": null,
+          "name": "Name",
+          "required": false,
+          "shape": "DescribeApiDestinationResponse",
+          "type": "string"
+        }
+      },
+      "resource_name": "ApiDestination",
+      "service": "events",
+      "summary_item_shape": "ApiDestination",
+      "synthetic": false
+    },
+    "Connection": {
+      "arn_field": "ConnectionArn",
+      "cfn_class": "CfnConnection",
+      "cfn_module": "aws_cdk.aws_events",
+      "cfn_type": "AWS::Events::Connection",
+      "deployable_via_cfn": true,
+      "deployable_via_l2": true,
+      "id_params": [
+        "Name"
+      ],
+      "l2_class": "Connection",
+      "l2_module": "aws_cdk.aws_events",
+      "list_result_path": "Connections",
+      "notes": [],
+      "operations": {
+        "create": "create_connection",
+        "delete": "delete_connection",
+        "describe": "describe_connection",
+        "list": [
+          "list_connections"
+        ],
+        "update": "update_connection"
+      },
+      "properties": {
+        "AuthParameters": {
+          "item_shape": null,
+          "name": "AuthParameters",
+          "required": false,
+          "shape": "DescribeConnectionResponse",
+          "type": "structure"
+        },
+        "AuthorizationType": {
+          "item_shape": null,
+          "name": "AuthorizationType",
+          "required": false,
+          "shape": "DescribeConnectionResponse",
+          "type": "string"
+        },
+        "ConnectionArn": {
+          "item_shape": null,
+          "name": "ConnectionArn",
+          "required": false,
+          "shape": "DescribeConnectionResponse",
+          "type": "string"
+        },
+        "ConnectionState": {
+          "item_shape": null,
+          "name": "ConnectionState",
+          "required": false,
+          "shape": "DescribeConnectionResponse",
+          "type": "string"
+        },
+        "CreationTime": {
+          "item_shape": null,
+          "name": "CreationTime",
+          "required": false,
+          "shape": "DescribeConnectionResponse",
+          "type": "timestamp"
+        },
+        "Description": {
+          "item_shape": null,
+          "name": "Description",
+          "required": false,
+          "shape": "DescribeConnectionResponse",
+          "type": "string"
+        },
+        "InvocationConnectivityParameters": {
+          "item_shape": null,
+          "name": "InvocationConnectivityParameters",
+          "required": false,
+          "shape": "DescribeConnectionResponse",
+          "type": "structure"
+        },
+        "KmsKeyIdentifier": {
+          "item_shape": null,
+          "name": "KmsKeyIdentifier",
+          "required": false,
+          "shape": "DescribeConnectionResponse",
+          "type": "string"
+        },
+        "LastAuthorizedTime": {
+          "item_shape": null,
+          "name": "LastAuthorizedTime",
+          "required": false,
+          "shape": "DescribeConnectionResponse",
+          "type": "timestamp"
+        },
+        "LastModifiedTime": {
+          "item_shape": null,
+          "name": "LastModifiedTime",
+          "required": false,
+          "shape": "DescribeConnectionResponse",
+          "type": "timestamp"
+        },
+        "Name": {
+          "item_shape": null,
+          "name": "Name",
+          "required": false,
+          "shape": "DescribeConnectionResponse",
+          "type": "string"
+        },
+        "SecretArn": {
+          "item_shape": null,
+          "name": "SecretArn",
+          "required": false,
+          "shape": "DescribeConnectionResponse",
+          "type": "string"
+        },
+        "StateReason": {
+          "item_shape": null,
+          "name": "StateReason",
+          "required": false,
+          "shape": "DescribeConnectionResponse",
+          "type": "string"
+        }
+      },
+      "resource_name": "Connection",
+      "service": "events",
+      "summary_item_shape": "Connection",
+      "synthetic": false
+    },
+    "Endpoint": {
+      "arn_field": "Arn",
+      "cfn_class": "CfnEndpoint",
+      "cfn_module": "aws_cdk.aws_events",
+      "cfn_type": "AWS::Events::Endpoint",
+      "deployable_via_cfn": true,
+      "deployable_via_l2": false,
+      "id_params": [
+        "Name"
+      ],
+      "l2_class": null,
+      "l2_module": null,
+      "list_result_path": "Endpoints",
+      "notes": [],
+      "operations": {
+        "create": "create_endpoint",
+        "delete": "delete_endpoint",
+        "describe": "describe_endpoint",
+        "list": [
+          "list_endpoints"
+        ],
+        "update": "update_endpoint"
+      },
+      "properties": {
+        "Arn": {
+          "item_shape": null,
+          "name": "Arn",
+          "required": false,
+          "shape": "DescribeEndpointResponse",
+          "type": "string"
+        },
+        "CreationTime": {
+          "item_shape": null,
+          "name": "CreationTime",
+          "required": false,
+          "shape": "DescribeEndpointResponse",
+          "type": "timestamp"
+        },
+        "Description": {
+          "item_shape": null,
+          "name": "Description",
+          "required": false,
+          "shape": "DescribeEndpointResponse",
+          "type": "string"
+        },
+        "EndpointId": {
+          "item_shape": null,
+          "name": "EndpointId",
+          "required": false,
+          "shape": "DescribeEndpointResponse",
+          "type": "string"
+        },
+        "EndpointUrl": {
+          "item_shape": null,
+          "name": "EndpointUrl",
+          "required": false,
+          "shape": "DescribeEndpointResponse",
+          "type": "string"
+        },
+        "EventBuses": {
+          "item_shape": "EndpointEventBus",
+          "name": "EventBuses",
+          "required": false,
+          "shape": "DescribeEndpointResponse",
+          "type": "list"
+        },
+        "LastModifiedTime": {
+          "item_shape": null,
+          "name": "LastModifiedTime",
+          "required": false,
+          "shape": "DescribeEndpointResponse",
+          "type": "timestamp"
+        },
+        "Name": {
+          "item_shape": null,
+          "name": "Name",
+          "required": false,
+          "shape": "DescribeEndpointResponse",
+          "type": "string"
+        },
+        "ReplicationConfig": {
+          "item_shape": null,
+          "name": "ReplicationConfig",
+          "required": false,
+          "shape": "DescribeEndpointResponse",
+          "type": "structure"
+        },
+        "RoleArn": {
+          "item_shape": null,
+          "name": "RoleArn",
+          "required": false,
+          "shape": "DescribeEndpointResponse",
+          "type": "string"
+        },
+        "RoutingConfig": {
+          "item_shape": null,
+          "name": "RoutingConfig",
+          "required": false,
+          "shape": "DescribeEndpointResponse",
+          "type": "structure"
+        },
+        "State": {
+          "item_shape": null,
+          "name": "State",
+          "required": false,
+          "shape": "DescribeEndpointResponse",
+          "type": "string"
+        },
+        "StateReason": {
+          "item_shape": null,
+          "name": "StateReason",
+          "required": false,
+          "shape": "DescribeEndpointResponse",
+          "type": "string"
+        }
+      },
+      "resource_name": "Endpoint",
+      "service": "events",
+      "summary_item_shape": "Endpoint",
+      "synthetic": false
+    },
+    "EventBuse": {
+      "arn_field": "Arn",
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
+      "id_params": [],
+      "l2_class": null,
+      "l2_module": null,
+      "list_result_path": "EventBuses",
+      "notes": [],
+      "operations": {
+        "list": [
+          "list_event_buses"
+        ]
+      },
+      "properties": {},
+      "resource_name": "EventBuse",
+      "service": "events",
+      "summary_item_shape": "EventBus",
+      "synthetic": false
+    },
+    "EventSource": {
+      "arn_field": "Arn",
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
+      "id_params": [
+        "Name"
+      ],
+      "l2_class": null,
+      "l2_module": null,
+      "list_result_path": "EventSources",
+      "notes": [],
+      "operations": {
+        "create": "create_partner_event_source",
+        "delete": "delete_partner_event_source",
+        "describe": "describe_event_source",
+        "list": [
+          "list_event_sources"
+        ]
+      },
+      "properties": {
+        "Arn": {
+          "item_shape": null,
+          "name": "Arn",
+          "required": false,
+          "shape": "DescribeEventSourceResponse",
+          "type": "string"
+        },
+        "CreatedBy": {
+          "item_shape": null,
+          "name": "CreatedBy",
+          "required": false,
+          "shape": "DescribeEventSourceResponse",
+          "type": "string"
+        },
+        "CreationTime": {
+          "item_shape": null,
+          "name": "CreationTime",
+          "required": false,
+          "shape": "DescribeEventSourceResponse",
+          "type": "timestamp"
+        },
+        "ExpirationTime": {
+          "item_shape": null,
+          "name": "ExpirationTime",
+          "required": false,
+          "shape": "DescribeEventSourceResponse",
+          "type": "timestamp"
+        },
+        "Name": {
+          "item_shape": null,
+          "name": "Name",
+          "required": false,
+          "shape": "DescribeEventSourceResponse",
+          "type": "string"
+        },
+        "State": {
+          "item_shape": null,
+          "name": "State",
+          "required": false,
+          "shape": "DescribeEventSourceResponse",
+          "type": "string"
+        }
+      },
+      "resource_name": "EventSource",
+      "service": "events",
+      "summary_item_shape": "EventSource",
+      "synthetic": false
+    },
+    "PartnerEventSource": {
+      "arn_field": "Arn",
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
+      "id_params": [
+        "Name"
+      ],
+      "l2_class": null,
+      "l2_module": null,
+      "list_result_path": "PartnerEventSources",
+      "notes": [],
+      "operations": {
+        "create": "create_partner_event_source",
+        "delete": "delete_partner_event_source",
+        "describe": "describe_partner_event_source",
+        "list": [
+          "list_partner_event_sources"
+        ]
+      },
+      "properties": {
+        "Arn": {
+          "item_shape": null,
+          "name": "Arn",
+          "required": false,
+          "shape": "DescribePartnerEventSourceResponse",
+          "type": "string"
+        },
+        "Name": {
+          "item_shape": null,
+          "name": "Name",
+          "required": false,
+          "shape": "DescribePartnerEventSourceResponse",
+          "type": "string"
+        }
+      },
+      "resource_name": "PartnerEventSource",
+      "service": "events",
+      "summary_item_shape": "PartnerEventSource",
+      "synthetic": false
+    },
+    "Rule": {
+      "arn_field": "Arn",
+      "cfn_class": "CfnRule",
+      "cfn_module": "aws_cdk.aws_events",
+      "cfn_type": "AWS::Events::Rule",
+      "deployable_via_cfn": true,
+      "deployable_via_l2": true,
+      "id_params": [
+        "Name",
+        "EventBusName"
+      ],
+      "l2_class": "Rule",
+      "l2_module": "aws_cdk.aws_events",
+      "list_result_path": "Rules",
+      "notes": [],
+      "operations": {
+        "delete": "delete_rule",
+        "describe": "describe_rule",
+        "list": [
+          "list_rules"
+        ]
+      },
+      "properties": {
+        "Arn": {
+          "item_shape": null,
+          "name": "Arn",
+          "required": false,
+          "shape": "DescribeRuleResponse",
+          "type": "string"
+        },
+        "CreatedBy": {
+          "item_shape": null,
+          "name": "CreatedBy",
+          "required": false,
+          "shape": "DescribeRuleResponse",
+          "type": "string"
+        },
+        "Description": {
+          "item_shape": null,
+          "name": "Description",
+          "required": false,
+          "shape": "DescribeRuleResponse",
+          "type": "string"
+        },
+        "EventBusName": {
+          "item_shape": null,
+          "name": "EventBusName",
+          "required": false,
+          "shape": "DescribeRuleResponse",
+          "type": "string"
+        },
+        "EventPattern": {
+          "item_shape": null,
+          "name": "EventPattern",
+          "required": false,
+          "shape": "DescribeRuleResponse",
+          "type": "string"
+        },
+        "ManagedBy": {
+          "item_shape": null,
+          "name": "ManagedBy",
+          "required": false,
+          "shape": "DescribeRuleResponse",
+          "type": "string"
+        },
+        "Name": {
+          "item_shape": null,
+          "name": "Name",
+          "required": false,
+          "shape": "DescribeRuleResponse",
+          "type": "string"
+        },
+        "RoleArn": {
+          "item_shape": null,
+          "name": "RoleArn",
+          "required": false,
+          "shape": "DescribeRuleResponse",
+          "type": "string"
+        },
+        "ScheduleExpression": {
+          "item_shape": null,
+          "name": "ScheduleExpression",
+          "required": false,
+          "shape": "DescribeRuleResponse",
+          "type": "string"
+        },
+        "State": {
+          "item_shape": null,
+          "name": "State",
+          "required": false,
+          "shape": "DescribeRuleResponse",
+          "type": "string"
+        }
+      },
+      "resource_name": "Rule",
+      "service": "events",
+      "summary_item_shape": "Rule",
+      "synthetic": false
+    },
+    "TargetsByRule": {
+      "arn_field": "Arn",
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
+      "id_params": [],
+      "l2_class": null,
+      "l2_module": null,
+      "list_result_path": "Targets",
+      "notes": [],
+      "operations": {
+        "list": [
+          "list_targets_by_rule"
+        ]
+      },
+      "properties": {},
+      "resource_name": "TargetsByRule",
+      "service": "events",
+      "summary_item_shape": "Target",
+      "synthetic": false
+    }
+  },
+  "service": "events"
+}

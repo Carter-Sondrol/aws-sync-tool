@@ -2,9 +2,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from builder.cdk.export_cdk import export_cdk
 from graph.dependency_graph import DependencyGraph
-from graph.resource_node import ResourceNode
-from builder.cdk.cdk_builder import generate_cdk_code
 
 
 def register(subparsers):
@@ -32,6 +31,10 @@ def register(subparsers):
         default="GraphStack",
         help="Name to use for the generated CDK Stack class",
     )
+    parser.add_argument(
+        "--plan",
+        help="Deployment plan JSON (limits CDK generation to CFN-eligible resources)",
+    )
 
     parser.set_defaults(handler=handler)
 
@@ -48,48 +51,19 @@ def handler(args):
     # ------------------------------------------------------------
     with open(graph_path) as f:
         data = json.load(f)
+    
+    graph = DependencyGraph.from_dict(data)
+    plan = None
+    if args.plan:
+        with open(args.plan) as pf:
+            from planner.deployment_plan import DeploymentPlan
 
-    graph = _rebuild_graph(data)
+            plan = DeploymentPlan.from_dict(json.load(pf))
 
     # ------------------------------------------------------------
-    # Run CDK generator
+    # Run CDK generator (L2 when possible)
     # ------------------------------------------------------------
-    cdk_source = generate_cdk_code(graph, args.stack_name)
-
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    # Write stack file
-    (out_dir / "stack.py").write_text(cdk_source)
-
-    # Write App entrypoint
-    (out_dir / "app.py").write_text(
-        f"""\
-#!/usr/bin/env python3
-import aws_cdk as cdk
-from stack import {args.stack_name}
-
-app = cdk.App()
-{args.stack_name}(app, "{args.stack_name}")
-app.synth()
-"""
-    )
-
-    # CDK config
-    (out_dir / "cdk.json").write_text(
-        json.dumps(
-            {
-                "app": "python3 app.py",
-                "requireApproval": "never",
-                "versionReporting": False,
-            },
-            indent=2,
-        )
-    )
-
-    # Minimal CDK requirements
-    (out_dir / "requirements.txt").write_text(
-        "aws-cdk-lib\nconstructs>=10.0.0\n"
-    )
+    export_cdk(graph, output_dir=str(out_dir), stack_name=args.stack_name, plan=plan)
 
     print(f"[OK] CDK app generated → {out_dir.resolve()}")
     print("Next steps:")
@@ -100,29 +74,9 @@ app.synth()
 
 
 # ------------------------------------------------------------
-# Graph reconstruction (same style as display.py)
+# Graph reconstruction (raw or portable)
 # ------------------------------------------------------------
 def _rebuild_graph(data) -> DependencyGraph:
-    g = DependencyGraph()
-
-    # Recreate nodes
-    for lid, entry in data["nodes"].items():
-        node = ResourceNode(
-            logical_id=lid,
-            service=entry["service"],
-            cfn_type=entry.get("cfn_type", ""),
-            properties=entry.get("properties", {}),
-            reference_only=entry.get("reference_only", False),
-            metadata=entry.get("metadata", {}),
-            arns={},  # not stored in portable graphs
-        )
-        g.add_node(node)
-
-    # Recreate edges
-    for e in data.get("edges", []):
-        g.add_edge(e["from"], e["to"])
-
-    # Carry over metadata (important: PendingParams)
-    g.metadata = data.get("metadata", {})
-
-    return g
+    if "nodes" not in data:
+        raise RuntimeError("Invalid graph: missing 'nodes' section")
+    return DependencyGraph.from_dict(data)

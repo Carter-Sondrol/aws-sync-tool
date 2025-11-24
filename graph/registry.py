@@ -11,42 +11,59 @@ ResolverInput = Union[BaseResolver, ResolverFactory]
 
 
 class ResolverRegistry:
-    """Lazy resolver registry that instantiates resolvers on demand."""
+    """
+    Lazy resolver registry that instantiates resolvers on demand.
 
-    def __init__(
-        self,
-        session: Session,
-        *,
-        resolvers: Optional[Dict[str, BaseResolver]] = None,
-        factories: Optional[Dict[str, ResolverFactory]] = None,
-    ) -> None:
-        self._session = session
-        self._instances: Dict[str, BaseResolver] = (
-            resolvers.copy() if resolvers else {}
-        )
-        self._factories: Dict[str, ResolverFactory] = (
-            factories.copy() if factories else {}
-        )
+    Keys are typically:
+      - "connect:queue"
+      - "connect:instance"
+      - "lambda:function"
+      - "dynamodb:table"
+      - or plain "connect" (service-wide fallback)
+    """
 
-    def register(self, service: str, resolver_or_factory: ResolverInput) -> None:
-        if callable(resolver_or_factory):
-            self._factories[service] = resolver_or_factory
-            self._instances.pop(service, None)
+    def __init__(self, session: Optional[Session] = None) -> None:
+        self._session = session or Session()
+        self._factories: Dict[str, ResolverFactory] = {}
+        self._instances: Dict[str, BaseResolver] = {}
+
+    # ------------------------------------------------------------------
+    # Registration API
+    # ------------------------------------------------------------------
+    def register(self, key: str, resolver: ResolverInput) -> None:
+        """
+        Register a resolver under a key.
+
+        resolver may be:
+          - an already-instantiated BaseResolver
+          - a factory(Session) -> BaseResolver
+        """
+        if isinstance(resolver, BaseResolver):
+            self._instances[key] = resolver
         else:
-            self._instances[service] = resolver_or_factory
-            self._factories.pop(service, None)
+            self._factories[key] = resolver
 
-    def get(self, service: str) -> Optional[BaseResolver]:
-        if service in self._instances:
-            return self._instances[service]
+    # ------------------------------------------------------------------
+    # Lookup API
+    # ------------------------------------------------------------------
+    def get(self, key: str) -> Optional[BaseResolver]:
+        """
+        Get or lazily create a resolver for the key.
+        """
+        if key in self._instances:
+            return self._instances[key]
 
-        factory = self._factories.get(service)
+        factory = self._factories.get(key)
         if not factory:
             return None
 
         resolver = factory(self._session)
-        self._instances[service] = resolver
+        self._instances[key] = resolver
         return resolver
 
     def services(self) -> Set[str]:
         return set(self._instances).union(self._factories)
+
+    @property
+    def session(self) -> Session:
+        return self._session
