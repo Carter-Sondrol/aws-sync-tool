@@ -1,7 +1,13 @@
 logical_id, arn_dev, arn_staging, is_ref
-Connect Instance, arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34, arn:aws:connect:us-west-2:523773103726:instance/1ff53674-dc5a-4104-bbe5-9b07b6487bf2, false
+Connect Instance, arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34, arn:aws:connect:us-west-2:523773103726:instance/1ff53674-dc5a-4104-bbe5-9b07b6487bf2, true
 Estimated Wait Time, arn:aws:lambda:us-west-2:523773103726:function:dev-srh-estimated-wait-time
 VM Packager, arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-Packager
 VM Dump to S3, arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-dump-to-s3
 VM Presigner, arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-presigner
 VM Transcribe Recording, arn:aws:lambda:us-west-2:523773103726:function:dev-srh-vm-transcribe-recordings
+Complaint Entry, arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/contact-flow/61f71032-389a-45a5-aab9-df50a7da51e1
+Fraud Waste and Abuse Entry, arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/contact-flow/142ee939-711d-49e9-b566-13e140204a13
+Inital Outbound Call, arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/contact-flow/75b8e03f-f5c4-47d7-bb54-89fc84e66ffa
+Ultimate Entry, arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/contact-flow/31d89347-aab3-4704-af89-2c591b7ca888
+Callback English, arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/ada2941d-4761-455e-8747-b60c94de0395
+Callback Spanish, arn:aws:connect:us-west-2:523773103726:instance/17d7794d-9d83-46fd-a6dc-07c38873db34/queue/1e90f8ca-6a85-4072-8590-7af6c18d71fc

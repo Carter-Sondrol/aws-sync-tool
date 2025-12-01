@@ -2,6 +2,11 @@ import logging
 
 
 def register_all(registry):
+    """
+    Register all resolvers generated under the resolvers package.
+    Mirrors the behavior of resolvers.register_all but scoped to this
+    experimental set of metadata-driven resolvers.
+    """
     import importlib
     import inspect
     import pkgutil
@@ -9,7 +14,7 @@ def register_all(registry):
     import resolvers as root_pkg
     from resolvers.base_resolver import BaseResolver
 
-    for _, module_name, _ in pkgutil.walk_packages(
+    for _, module_name, _ in pkgutil.iter_modules(
         root_pkg.__path__, prefix="resolvers."
     ):
         module = importlib.import_module(module_name)
@@ -24,12 +29,9 @@ def register_all(registry):
             if not service:
                 continue
 
-            # Every AWS resource resolver MUST declare `resource_type`
-            # We skip classes without one — avoids accidental fallback resolvers.
             if not rtype:
                 logging.debug(f"[Registry] Skipping resolver {obj.__name__}: no resource_type")
                 continue
 
             key = f"{service}:{rtype}"
             registry.register(key, obj)
-

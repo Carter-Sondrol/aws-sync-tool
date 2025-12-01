@@ -26,6 +26,8 @@ def main():
         action="store_true",
         help="Enable verbose/debug output"
     )
+    # Hidden arg used by VS Code debug launcher; accepted to avoid argparse errors
+    parser.add_argument("--launcher-json", help=argparse.SUPPRESS)
 
     subparsers = parser.add_subparsers(
         title="commands",

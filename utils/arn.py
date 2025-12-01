@@ -308,6 +308,17 @@ class ARN:
             return "unknown"
 
         #
+        # CLOUDFORMATION — normalize stacks + related resources
+        #
+        if self.service == "cloudformation":
+            if not parts:
+                return "unknown"
+            first = parts[0].lower()
+            if first in ("stack", "stackset", "changeset"):
+                return first
+            return first
+
+        #
         # DEFAULT fallback
         #
         if len(parts) >= 2:
@@ -324,6 +335,11 @@ class ARN:
         - lex:bot/BOT/bot-alias/Alias → Alias
         - s3:::bucket/key → key
         """
+        if self.service == "cloudformation" and self.resource_parts:
+            first = self.resource_parts[0].lower()
+            if first in ("stack", "stackset", "changeset") and len(self.resource_parts) >= 2:
+                return self.resource_parts[1]
+
         return self.resource_parts[-1] if self.resource_parts else self.resource
 
     def resource_hierarchy(self) -> list[tuple[str, str]]:
@@ -474,7 +490,8 @@ def extract_dependencies(
       - S3 patterns like arn:aws:s3:::bucket/* are canonicalized to
         arn:aws:s3:::bucket.
       - S3 object ARNs are also canonicalized to the bucket.
-      - CloudFormation stack ARNs are skipped entirely.
+      - CloudFormation stack ARNs are retained (other CloudFormation ARNs
+        remain suppressed to avoid noise).
       - Plain strings are only converted to S3 bucket ARNs when
         `known_buckets` is provided and contains the name, or when the
         string appears under a bucket-ish key (e.g., Environment.VOICEMAIL_BUCKET).
@@ -565,8 +582,12 @@ def extract_dependencies(
             if service_filter and canonical.service not in service_filter:
                 return
 
-            # Suppress CloudFormation stacks (often appear in IAM policies)
-            if canonical.service == "cloudformation":
+            # Suppress non-stack CloudFormation references (they often appear in policies)
+            if canonical.service == "cloudformation" and canonical.resource_type not in {
+                "stack",
+                "stackset",
+                "changeset",
+            }:
                 return
 
             found_arns.add(canonical)

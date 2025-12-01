@@ -1,245 +1,142 @@
-# **AWS Dependency Graph Tool**
+# AWS Dependency Graph & Sync Tool
 
-A seed-based AWS resource discovery and synchronization tool that builds a **portable dependency graph** of only the resources you explicitly care about.
-It does **not** scan or replicate entire accounts. Instead, it follows real, referenced dependencies to give you an accurate, minimal graph suitable for cross-account deployment, comparison, and conversion.
-
----
-
-## **⭐ Overview**
-
-This tool helps you:
-
-* Start from one or more **seed ARNs**
-* Recursively follow only the **actual dependencies** those resources reference
-  (e.g., Lambda → S3, Connect Flow → Lex Bot, Lex Bot → Lambda Alias, etc.)
-* Build a **canonical dependency graph** of precisely the involved resources
-* Serialize/deserialize that graph for portability
-* Compare graphs across time, regions, or accounts
-* Convert the graph into **CDK**, **CloudFormation**, or custom output
-* Optionally **sync** the graph back into AWS using CFN/CDK or direct API calls
-* Visualize, inspect, and edit the graph
-
-The goal is to manage **logical units of infrastructure**, not entire AWS accounts.
+Seed-based AWS discovery that builds a **portable dependency graph** and turns it into deployable CloudFormation/CDK plus imperative updates for non-CFN resources. The tool follows only the ARNs you provide and the ARNs those resources reference—no account-wide scans.
 
 ---
 
-## **🔍 What This Tool Is (and Isn’t)**
+## What You Get
 
-### **It *is***:
+- Seed-driven discovery (`--arn`, CSV, or DynamoDB) that walks real dependencies
+- A normalized `DependencyGraph` of `ResourceNode` objects with edges + metadata
+- Portable graph JSON (`freeze`) that strips region/account and can be re-linked
+- Visualization (`display --visual`) with an interactive force graph
+- Deployment planning that splits CFN-deployable vs imperative operations
+- CDK generation from a graph (honors an optional plan) ready for `cdk deploy`
 
-* A **selective**, dependency-driven resource mapper
-* A way to represent AWS resources as a **clean, portable graph**
-* A foundation for cross-account deploy/sync automation
-* A consistent pipeline between discovery → modeling → codegen → deployment
-
-### **It is *not***:
-
-* An AWS account crawler
-* A compliance or inventory scanner
-* A “copy my entire environment” tool
-* A replacement for IaC (it complements CDK/CFN; doesn’t replace them)
-
-This is intentionally narrow so the architecture stays stable and predictable.
+The goal: manage **logical bundles of infrastructure** that can be moved between accounts/regions without crawling everything.
 
 ---
 
-## **📐 Architecture**
+## Quickstart
 
-The system is structured around four core components:
-
+1) Install (Python 3.10+):
 ```
- Seeds (ARNs)
-     ↓
- GraphBuilder  →  calls →  Resolvers (one per AWS service)
-     ↓                           ↓
- DependencyGraph     ←     ResourceNode models
-     ↓
- Operations: save/load, diff, convert, sync, visualize
+pip install -r requirements.txt
 ```
 
-### **1. Resolvers**
-
-Service-specific modules that:
-
-* Accept an ARN
-* Fetch and normalize the resource
-* Extract dependency ARNs
-
-**They do not** mutate the graph or hold state.
-
-### **2. GraphBuilder**
-
-Owns graph construction:
-
-* Traversal
-* Node creation
-* Handling deferred or missing links
-* Ensuring uniqueness
-
-It is the orchestrator for the discovery pass.
-
-### **3. DependencyGraph**
-
-A thin but strict storage + semantics layer:
-
-* Stores all `ResourceNode` objects
-* Manages edges
-* Maintains metadata
-* Handles freeze/serialize/load
-
-No AWS calls happen here.
-
-### **4. CLI**
-
-A thin control layer that dispatches user intentions:
-
-* `discover`
-* `save` / `load`
-* `compare`
-* `convert`
-* `sync`
-* `visualize`
-
-It does no business logic.
-
----
-
-## **🧱 Design Principles**
-
-These invariants should always hold:
-
-1. **Seed-driven discovery only** — no full-account scans.
-2. **Graph is the single source of truth** after discovery.
-3. **Logical identity first** (portable), **physical identity second** (metadata).
-4. **Resolvers produce normalized nodes only.**
-5. **GraphBuilder owns all linking and insertion.**
-6. **No component directly manipulates the underlying graph except GraphBuilder.**
-7. **Conversion (CDK/CFN) is a projection of the same graph.**
-8. **The graph must remain usable without AWS access or context.**
-
-These principles ensure the architecture doesn’t drift into “account copier” territory.
-
----
-
-## **🚀 Features (Current and Planned)**
-
-### **Current**
-
-* Seed-based AWS discovery
-* Portable graph representation
-* Graph serialization/deserialization (`freeze`)
-* Diffing (graph vs graph)
-* Extensible resolver architecture
-
-### **Planned / In-progress**
-
-* CDK/CloudFormation generation
-* Sync engine:
-
-  * CloudFormation/CDK deploy
-  * Direct AWS API deployments (Connect flows, Lex bots, etc.)
-* Graph editor / visualizer (TUI or web)
-* Export adapters (Graphviz, Mermaid)
-
----
-
-## **🛠 Example Usage**
-
-### **Discover from a single seed ARN**
-
+2) Build a graph from seeds:
 ```
-aws-tool discover arn:aws:lambda:us-west-2:123:function:MyFn
+aws-graph build \
+  --arn arn:aws:lambda:us-west-2:123:function:MyFn \
+  --output graph.json
+```
+Seeds can also come from `--arn-file`, `--seed-csv`, or a DynamoDB seed table.
+
+3) Inspect or visualize:
+```
+aws-graph display --file graph.json --tree
+aws-graph display --file graph.json --visual --out graph.html
 ```
 
-### **Discover from multiple seeds**
-
+4) Create a deploy plan:
 ```
-aws-tool discover --seed-file seeds.json
-```
-
-### **Save graph**
-
-```
-aws-tool save --out graph.json
+aws-graph plan --graph graph.json --output plan.json --target-account 999999999999
 ```
 
-### **Load and compare graphs**
-
+5) Generate CDK (CFN-eligible resources) and deploy:
 ```
-aws-tool diff old.json new.json
-```
-
-### **Convert to CDK**
-
-```
-aws-graph generate --graph graph.json --output cdk-out --stack-name GraphStack
-# then:
-# cd cdk-out && pip install -r requirements.txt && cdk synth && cdk deploy
+aws-graph generate --graph graph.json --plan plan.json --output cdk-out --stack-name GraphStack
+cd cdk-out && pip install -r requirements.txt && cdk synth && cdk deploy
 ```
 
-### **Sync resources**
-
+6) Apply imperative (boto3) updates for non-CFN resources (e.g., Connect, Lex authoring):
 ```
-aws-tool sync graph.json --target-account prod
+aws-graph apply-imperative --graph graph.json --plan plan.json --dry-run
 ```
 
 ---
 
-## **🧩 Extending the Tool**
+## CLI Commands (thin wrappers)
 
-To add support for a new AWS service:
+- `build`: Discover from seeds, traverse resolvers, produce raw or frozen graph JSON. Supports deep discovery (`--deep`) for services that can enumerate children (e.g., Connect).
+- `display`: Print nodes, a dependency tree, or render HTML visualization.
+- `plan`: Split a portable graph into CloudFormation stacks, parameters (for reference-only/external nodes), and imperative operations.
+- `generate`: Turn a graph into a Python CDK app (includes a custom resource handler for bespoke updates). Honors a plan to skip non-CFN resources.
+- `apply-imperative`: Execute or dry-run imperative updates for plan entries that cannot be represented in CFN (Connect contact flows, Lex authoring stubs, etc.).
 
-1. Create a resolver
-2. Provide:
-
-   * Resource fetch logic
-   * Dependency extraction logic
-   * ResourceNode normalization
-3. Register the resolver
-
-No other component needs to be changed.
+Global flags: `--profile`, `--region`, `--account`, `-v/--verbose`.
 
 ---
 
-## **📦 Repository Structure (Suggested)**
+## How Discovery Works
 
-```
-/cli
-    commands/
-/graph
-    dependency_graph.py
-    resource_node.py
-    builder.py
-/resolvers
-    lambda_resolver.py
-    lex_resolver.py
-    connect_resolver.py
-    ...
-/convert
-    cdk_exporter.py
-    cfn_exporter.py
-/sync
-    sync_engine.py
-/tests
-README.md
-```
+- **Resolvers** (under `resolvers/` for the metadata-driven set) fetch and normalize a single ARN, returning a `ResourceNode` plus the ARNs it references.
+- **BaseResolver** handles the common boilerplate (ID resolution, describe call, reference extraction). Per-service classes supply metadata (`service`, `resource_type`, `describe_operation`, `id_fields`, etc.).
+- Seeds can be **reference-only**; these become `PARAMETER` nodes that inform planning.
+- The **ResourceGraphBuilder**:
+  - walks seeds breadth-first;
+  - handles wildcard/pattern ARNs;
+  - defers edges until targets appear, then resolves orphans using normalized ARN matching;
+  - optionally infers orphans for resolvable services and captures wildcard references;
+  - freezes to portable form (logical IDs stable across accounts) and records metadata.
 
 ---
 
-## **🤝 Contributing**
+## Graph Model
 
-Contributions are welcome, with these guidelines:
-
-* Respect the architectural invariants
-* Avoid introducing AWS-account-specific assumptions
-* Keep resolver logic stateless
-* Keep CLI logic thin
-* Write tests for each resolver and graph behavior
-
-Open issues or PRs anytime.
+- `ResourceNode`: logical_id, service, `cfn_type`, properties, arns, `referenced_arns`, classification (`RESOURCE`, `PARAMETER`, `EXTERNAL`, `AWS_MANAGED`, `ARTIFACT`), metadata.
+- `DependencyGraph`: directed edges mean **parent depends on child**. Tracks ARN→logical ID mapping, normalized cross-account lookups, deferred edges, inferred edges, and metadata such as `CloudFormationStacks` and `InferredEdges`.
+- Freeze modes:
+  - **portable** (default): removes account/region specificity and keeps logical IDs consistent for diff/regen.
+  - **finalized**: keeps ARNs untouched (useful for debugging).
+- Visualization: `graph/visualizer.py` produces `graph.html` with service-aware coloring and seed/error markers.
 
 ---
 
-## **📄 License**
+## Planning & Deployment
 
-MIT, Apache 2.0, or your preferred license.
+- Planner groups CFN-deployable logical IDs into stacks using `CloudFormationStacks` metadata when present, otherwise a single `GraphStack`.
+- Non-CFN or authoring-only types (e.g., Lex BotLocale, Connect flows) become `imperative_ops` entries with reasons.
+- Reference-only/external/AWS-managed nodes become `parameters` with descriptions and defaults pulled from metadata or ARNs.
+- The generated plan JSON feeds both CDK generation (to skip non-CFN nodes) and the imperative applier.
+- Imperative applier currently supports Connect contact flow content updates and stubs for Lex authoring; extend `deploy/imperative_apply.py` for more services.
+
+---
+
+## Resolver Tooling
+
+- `tools/service_introspector.py`: offline botocore introspection that produces per-service schema JSON (operations, shapes, ARN fields).
+- `tools/generate_resolvers.py`: turns those schemas into `resolvers/*_resolvers.py` using the metadata-driven `BaseResolver`. Supports directory input to bulk-generate.
+- Manual/handwritten resolvers can still live under `resolvers/` and be registered alongside generated ones.
+
+---
+
+## Repository Map (actual)
+
+- `cli/`: `aws-graph` entrypoint and commands (`build`, `display`, `plan`, `generate`, `apply-imperative`).
+- `graph/`: core data structures (`DependencyGraph`, `ResourceNode`), link resolution, visualizer, registry.
+- `resolvers/`: metadata-driven resolvers produced by introspection/generation tools.
+- `resolvers/`: base + generic resolver helpers and legacy/custom resolvers.
+- `builder/cdk/`: CDK code generator and custom resource handler scaffolding.
+- `planner/`: deployment plan splitter.
+- `deploy/`: imperative applier for non-CFN resources.
+- `utils/`: ARN parsing, environment context, seed loading, JSON encoding, mapping store.
+- `tools/`: resolver introspector/generator and overrides.
+
+---
+
+## Development Notes
+
+- Python 3.10+, dependencies in `requirements.txt`; optional dev tools in `requirements-dev.txt`.
+- Resolvers should stay **stateless** and only return normalized nodes plus references—no graph mutations.
+- The builder is seed-only by design; avoid list/scan calls that enumerate entire accounts.
+- When adding a new service:
+  1. Run the introspector to generate a schema.
+  2. Generate resolvers with `tools/generate_resolvers.py --schema <schema.json> --out resolvers`.
+  3. Add any deep-discovery or special-case logic as overrides.
+
+---
+
+## License
+
+MIT (see `pyproject.toml` metadata for package info).

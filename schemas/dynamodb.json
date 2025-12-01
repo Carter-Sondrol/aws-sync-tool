@@ -70,16 +70,16 @@
     },
     "Table": {
       "arn_field": "TableArn",
-      "cfn_class": "CfnTable",
-      "cfn_module": "aws_cdk.aws_dynamodb",
-      "cfn_type": "AWS::DynamoDB::Table",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [
         "TableName"
       ],
-      "l2_class": "Table",
-      "l2_module": "aws_cdk.aws_dynamodb",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": null,
       "notes": [
         "Special-cased DynamoDB Table resolver"

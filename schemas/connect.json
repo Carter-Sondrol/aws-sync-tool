@@ -168,10 +168,10 @@
     },
     "ContactFlow": {
       "arn_field": "Arn",
-      "cfn_class": "CfnContactFlow",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::ContactFlow",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "ContactFlowId",
@@ -207,10 +207,10 @@
     },
     "ContactFlowModule": {
       "arn_field": "Arn",
-      "cfn_class": "CfnContactFlowModule",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::ContactFlowModule",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "ContactFlowModuleId",
@@ -228,7 +228,7 @@
           "list_contact_flow_modules",
           "search_contact_flow_modules"
         ],
-        "update": "update_contact_flow_module_content"
+        "update": "update_contact_flow_module_alias"
       },
       "properties": {
         "ContactFlowModule": {
@@ -244,12 +244,60 @@
       "summary_item_shape": "ContactFlowModuleSummary",
       "synthetic": false
     },
+    "ContactFlowModuleAliase": {
+      "arn_field": "Arn",
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
+      "id_params": [],
+      "l2_class": null,
+      "l2_module": null,
+      "list_result_path": "ContactFlowModuleAliasSummaryList",
+      "notes": [],
+      "operations": {
+        "list": [
+          "list_contact_flow_module_aliases"
+        ]
+      },
+      "properties": {},
+      "resource_name": "ContactFlowModuleAliase",
+      "service": "connect",
+      "summary_item_shape": "ContactFlowModuleAliasSummary",
+      "synthetic": false
+    },
+    "ContactFlowModuleVersion": {
+      "arn_field": "Arn",
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
+      "id_params": [],
+      "l2_class": null,
+      "l2_module": null,
+      "list_result_path": "ContactFlowModuleVersionSummaryList",
+      "notes": [],
+      "operations": {
+        "create": "create_contact_flow_module_version",
+        "delete": "delete_contact_flow_module_version",
+        "list": [
+          "list_contact_flow_module_versions"
+        ]
+      },
+      "properties": {},
+      "resource_name": "ContactFlowModuleVersion",
+      "service": "connect",
+      "summary_item_shape": "ContactFlowModuleVersionSummary",
+      "synthetic": false
+    },
     "ContactFlowVersion": {
       "arn_field": "Arn",
-      "cfn_class": "CfnContactFlowVersion",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::ContactFlowVersion",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [],
       "l2_class": null,
@@ -294,10 +342,10 @@
     },
     "EvaluationForm": {
       "arn_field": "EvaluationFormArn",
-      "cfn_class": "CfnEvaluationForm",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::EvaluationForm",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "EvaluationFormId",
@@ -356,10 +404,10 @@
     },
     "HoursOfOperation": {
       "arn_field": "Arn",
-      "cfn_class": "CfnHoursOfOperation",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::HoursOfOperation",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "HoursOfOperationId",
@@ -435,10 +483,10 @@
     },
     "Instance": {
       "arn_field": "Arn",
-      "cfn_class": "CfnInstance",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::Instance",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "InstanceId"
@@ -479,10 +527,10 @@
     },
     "IntegrationAssociation": {
       "arn_field": "IntegrationAssociationArn",
-      "cfn_class": "CfnIntegrationAssociation",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::IntegrationAssociation",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [],
       "l2_class": null,
@@ -504,10 +552,10 @@
     },
     "PhoneNumber": {
       "arn_field": "Arn",
-      "cfn_class": "CfnPhoneNumber",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::PhoneNumber",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "PhoneNumberId"
@@ -562,10 +610,10 @@
     },
     "Prompt": {
       "arn_field": "Arn",
-      "cfn_class": "CfnPrompt",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::Prompt",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "InstanceId",
@@ -601,10 +649,10 @@
     },
     "Queue": {
       "arn_field": "Arn",
-      "cfn_class": "CfnQueue",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::Queue",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "InstanceId",
@@ -663,10 +711,10 @@
     },
     "QuickConnect": {
       "arn_field": "Arn",
-      "cfn_class": "CfnQuickConnect",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::QuickConnect",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "InstanceId",
@@ -702,10 +750,10 @@
     },
     "RoutingProfile": {
       "arn_field": "Arn",
-      "cfn_class": "CfnRoutingProfile",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::RoutingProfile",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "InstanceId",
@@ -788,10 +836,10 @@
     },
     "Rule": {
       "arn_field": "RuleArn",
-      "cfn_class": "CfnRule",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::Rule",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "InstanceId",
@@ -826,10 +874,10 @@
     },
     "SecurityProfile": {
       "arn_field": "Arn",
-      "cfn_class": "CfnSecurityProfile",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::SecurityProfile",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "InstanceId",
@@ -865,10 +913,10 @@
     },
     "TaskTemplate": {
       "arn_field": "Arn",
-      "cfn_class": "CfnTaskTemplate",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::TaskTemplate",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "InstanceId",
@@ -994,10 +1042,10 @@
     },
     "TrafficDistributionGroup": {
       "arn_field": "Arn",
-      "cfn_class": "CfnTrafficDistributionGroup",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::TrafficDistributionGroup",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "TrafficDistributionGroupId"
@@ -1055,10 +1103,10 @@
     },
     "User": {
       "arn_field": "Arn",
-      "cfn_class": "CfnUser",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::User",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "InstanceId",
@@ -1094,10 +1142,10 @@
     },
     "UserHierarchyGroup": {
       "arn_field": "Arn",
-      "cfn_class": "CfnUserHierarchyGroup",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::UserHierarchyGroup",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "HierarchyGroupId",
@@ -1133,10 +1181,10 @@
     },
     "View": {
       "arn_field": "Arn",
-      "cfn_class": "CfnView",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::View",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "InstanceId",
@@ -1171,10 +1219,10 @@
     },
     "ViewVersion": {
       "arn_field": "Arn",
-      "cfn_class": "CfnViewVersion",
-      "cfn_module": "aws_cdk.aws_connect",
-      "cfn_type": "AWS::Connect::ViewVersion",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [],
       "l2_class": null,

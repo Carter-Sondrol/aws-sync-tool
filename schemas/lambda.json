@@ -25,16 +25,16 @@
     },
     "CodeSigningConfig": {
       "arn_field": "CodeSigningConfigArn",
-      "cfn_class": "CfnCodeSigningConfig",
-      "cfn_module": "aws_cdk.aws_lambda",
-      "cfn_type": "AWS::Lambda::CodeSigningConfig",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [
         "CodeSigningConfigArn"
       ],
-      "l2_class": "CodeSigningConfig",
-      "l2_module": "aws_cdk.aws_lambda",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "CodeSigningConfigs",
       "notes": [],
       "operations": {
@@ -62,16 +62,16 @@
     },
     "EventSourceMapping": {
       "arn_field": "EventSourceArn",
-      "cfn_class": "CfnEventSourceMapping",
-      "cfn_module": "aws_cdk.aws_lambda",
-      "cfn_type": "AWS::Lambda::EventSourceMapping",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [
         "UUID"
       ],
-      "l2_class": "EventSourceMapping",
-      "l2_module": "aws_cdk.aws_lambda",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "EventSourceMappings",
       "notes": [],
       "operations": {
@@ -316,16 +316,16 @@
     },
     "Function": {
       "arn_field": "FunctionArn",
-      "cfn_class": "CfnFunction",
-      "cfn_module": "aws_cdk.aws_lambda",
-      "cfn_type": "AWS::Lambda::Function",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [
         "FunctionName"
       ],
-      "l2_class": "Function",
-      "l2_module": "aws_cdk.aws_lambda",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "Functions",
       "notes": [],
       "operations": {
@@ -902,16 +902,16 @@
     },
     "LayerVersion": {
       "arn_field": "LayerVersionArn",
-      "cfn_class": "CfnLayerVersion",
-      "cfn_module": "aws_cdk.aws_lambda",
-      "cfn_type": "AWS::Lambda::LayerVersion",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [
         "LayerName"
       ],
-      "l2_class": "LayerVersion",
-      "l2_module": "aws_cdk.aws_lambda",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "LayerVersions",
       "notes": [],
       "operations": {

@@ -152,7 +152,7 @@ def sanitize_props(cfn_type: str, props: dict[str, Any]) -> dict[str, Any]:
     drops = set(READ_ONLY_GLOBAL)
     drops |= TYPE_SPECIFIC_DROPS.get(cfn_type, set())
     for key in list(props.keys()):
-        if key in drops:
+        if key in drops or key == "response_metadata":
             props.pop(key, None)
 
     if cfn_type == "AWS::DynamoDB::Table":
@@ -176,6 +176,22 @@ def sanitize_props(cfn_type: str, props: dict[str, Any]) -> dict[str, Any]:
                 props["provisioned_throughput"] = cleaned
             else:
                 props.pop("provisioned_throughput", None)
+
+    if cfn_type == "AWS::S3::Bucket":
+        name_val = props.pop("bucket", None)
+        if name_val and "bucket_name" not in props:
+            props["bucket_name"] = name_val
+        versioning = props.pop("versioning", None)
+        if isinstance(versioning, dict):
+            status = versioning.get("status") or versioning.get("Status")
+            if status:
+                props["versioning_configuration"] = {"status": status}
+        # Drop noisy discovery artifacts that don't map to CDK helpers
+        props.pop("tagging", None)
+
+    if cfn_type == "AWS::IAM::Role":
+        for readonly in ("role_id", "create_date", "role_last_used"):
+            props.pop(readonly, None)
 
     return props
 

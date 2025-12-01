@@ -53,10 +53,10 @@
     },
     "Parameter": {
       "arn_field": "ARN",
-      "cfn_class": "CfnParameter",
-      "cfn_module": "aws_cdk.aws_ssm",
-      "cfn_type": "AWS::SSM::Parameter",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "Name"

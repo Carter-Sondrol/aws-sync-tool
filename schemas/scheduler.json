@@ -2,17 +2,17 @@
   "resources": {
     "Schedule": {
       "arn_field": "Arn",
-      "cfn_class": "CfnSchedule",
-      "cfn_module": "aws_cdk.aws_scheduler",
-      "cfn_type": "AWS::Scheduler::Schedule",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [
         "Name",
         "GroupName"
       ],
-      "l2_class": "Schedule",
-      "l2_module": "aws_cdk.aws_scheduler",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "Schedules",
       "notes": [],
       "operations": {
@@ -138,16 +138,16 @@
     },
     "ScheduleGroup": {
       "arn_field": "Arn",
-      "cfn_class": "CfnScheduleGroup",
-      "cfn_module": "aws_cdk.aws_scheduler",
-      "cfn_type": "AWS::Scheduler::ScheduleGroup",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [
         "Name"
       ],
-      "l2_class": "ScheduleGroup",
-      "l2_module": "aws_cdk.aws_scheduler",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "ScheduleGroups",
       "notes": [],
       "operations": {

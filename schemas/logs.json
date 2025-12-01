@@ -2,10 +2,10 @@
   "resources": {
     "LogAnomalyDetector": {
       "arn_field": "anomalyDetectorArn",
-      "cfn_class": "CfnLogAnomalyDetector",
-      "cfn_module": "aws_cdk.aws_logs",
-      "cfn_type": "AWS::Logs::LogAnomalyDetector",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "anomalyDetectorArn"
@@ -95,14 +95,14 @@
     },
     "LogGroup": {
       "arn_field": "logGroupArn",
-      "cfn_class": "CfnLogGroup",
-      "cfn_module": "aws_cdk.aws_logs",
-      "cfn_type": "AWS::Logs::LogGroup",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [],
-      "l2_class": "LogGroup",
-      "l2_module": "aws_cdk.aws_logs",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "logGroups",
       "notes": [],
       "operations": {

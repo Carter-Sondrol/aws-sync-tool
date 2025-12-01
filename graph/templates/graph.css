@@ -13,6 +13,17 @@ html, body {
   width: 100vw;
   height: 100vh;
 }
+#miniMap {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  width: 180px;
+  height: 180px;
+  background: rgba(10,12,18,0.85);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  z-index: 15;
+}
 
 /* --- Controls --- */
 #controls {
@@ -42,6 +53,51 @@ html, body {
   padding: 6px 10px;
 }
 #controls button:hover { background: #444; }
+
+/* Category panel */
+#categoryPanel {
+  position: fixed;
+  top: 10px;
+  right: 230px;
+  background: rgba(20,22,28,0.9);
+  padding: 10px;
+  border-radius: 8px;
+  color: #ddd;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 25;
+  min-width: 170px;
+}
+#categoryPanel label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.category-title {
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+  margin-top: 4px;
+}
+.param-list {
+  max-height: 180px;
+  overflow-y: auto;
+  background: rgba(10,12,16,0.8);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 6px;
+  font-size: 12px;
+}
+.param-item {
+  padding: 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  cursor: pointer;
+}
+.param-item:last-child { border-bottom: none; }
+.param-item:hover { background: rgba(255,255,255,0.05); }
 
 /* --- Legend --- */
 #legend {
@@ -77,6 +133,13 @@ html, body {
   height: 12px;
   margin-right: 6px;
   border-radius: 3px;
+}
+.shape-dot {
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  border-radius: 50%;
+  border: 1px solid #888;
 }
 
 /* --- Info panel --- */
@@ -127,6 +190,9 @@ html, body {
   font-size: 13px;
 }
 .editable-textarea { min-height: 80px; resize: vertical; }
+.editable-textarea.edited,
+.editable-field.edited { border-color: #00c896; }
+.disabled-field { opacity: 0.6; pointer-events: none; }
 
 /* Buttons inside panel */
 .panel-actions {

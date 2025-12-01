@@ -77,7 +77,8 @@ class CloudFormationTemplateBuilder:
         # Classify nodes
         for lid, n in self.node_index.items():
             implicit = bool(n.metadata.get("implicit_aws_managed") or n.metadata.get("service_linked"))
-            self._is_param[lid] = implicit or n.reference_only
+            skip_cdk = bool(n.metadata.get("skip_cdk") or n.metadata.get("SkipCDK"))
+            self._is_param[lid] = implicit or n.reference_only or skip_cdk
             self._is_resource[lid] = not self._is_param[lid]
             if "RefAttr" in n.metadata:
                 self._ref_attr_override[lid] = str(n.metadata["RefAttr"])

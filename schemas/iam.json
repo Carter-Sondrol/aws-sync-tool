@@ -138,16 +138,16 @@
     },
     "Group": {
       "arn_field": "Arn",
-      "cfn_class": "CfnGroup",
-      "cfn_module": "aws_cdk.aws_iam",
-      "cfn_type": "AWS::IAM::Group",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [
         "GroupName"
       ],
-      "l2_class": "Group",
-      "l2_module": "aws_cdk.aws_iam",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "Users",
       "notes": [],
       "operations": {
@@ -220,16 +220,16 @@
     },
     "InstanceProfile": {
       "arn_field": "Arn",
-      "cfn_class": "CfnInstanceProfile",
-      "cfn_module": "aws_cdk.aws_iam",
-      "cfn_type": "AWS::IAM::InstanceProfile",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [
         "InstanceProfileName"
       ],
-      "l2_class": "InstanceProfile",
-      "l2_module": "aws_cdk.aws_iam",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "InstanceProfiles",
       "notes": [],
       "operations": {
@@ -283,12 +283,12 @@
       "cfn_module": null,
       "cfn_type": null,
       "deployable_via_cfn": false,
-      "deployable_via_l2": true,
+      "deployable_via_l2": false,
       "id_params": [
         "OpenIDConnectProviderArn"
       ],
-      "l2_class": "OpenIdConnectProvider",
-      "l2_module": "aws_cdk.aws_iam",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "OpenIDConnectProviderList",
       "notes": [],
       "operations": {
@@ -344,16 +344,16 @@
     },
     "Policy": {
       "arn_field": "Arn",
-      "cfn_class": "CfnPolicy",
-      "cfn_module": "aws_cdk.aws_iam",
-      "cfn_type": "AWS::IAM::Policy",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [
         "PolicyArn"
       ],
-      "l2_class": "Policy",
-      "l2_module": "aws_cdk.aws_iam",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "Policies",
       "notes": [],
       "operations": {
@@ -381,16 +381,16 @@
     },
     "Role": {
       "arn_field": "Arn",
-      "cfn_class": "CfnRole",
-      "cfn_module": "aws_cdk.aws_iam",
-      "cfn_type": "AWS::IAM::Role",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [
         "RoleName"
       ],
-      "l2_class": "Role",
-      "l2_module": "aws_cdk.aws_iam",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "Roles",
       "notes": [],
       "operations": {
@@ -418,16 +418,16 @@
     },
     "SAMLProvider": {
       "arn_field": "Arn",
-      "cfn_class": "CfnSAMLProvider",
-      "cfn_module": "aws_cdk.aws_iam",
-      "cfn_type": "AWS::IAM::SAMLProvider",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [
         "SAMLProviderArn"
       ],
-      "l2_class": "SamlProvider",
-      "l2_module": "aws_cdk.aws_iam",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "SAMLProviderList",
       "notes": [],
       "operations": {
@@ -497,10 +497,10 @@
     },
     "ServerCertificate": {
       "arn_field": "Arn",
-      "cfn_class": "CfnServerCertificate",
-      "cfn_module": "aws_cdk.aws_iam",
-      "cfn_type": "AWS::IAM::ServerCertificate",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "ServerCertificateName"
@@ -533,16 +533,16 @@
     },
     "User": {
       "arn_field": "Arn",
-      "cfn_class": "CfnUser",
-      "cfn_module": "aws_cdk.aws_iam",
-      "cfn_type": "AWS::IAM::User",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [
         "UserName"
       ],
-      "l2_class": "User",
-      "l2_module": "aws_cdk.aws_iam",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "Users",
       "notes": [],
       "operations": {

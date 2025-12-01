@@ -113,6 +113,8 @@ def render_interactive_graph(
                 "subtype": subtype,
                 "cfn_type": cfn_type,
                 "properties": n.properties or {},
+                "classification": getattr(n, "classification", None).name if getattr(n, "classification", None) else "",
+                "reference_only": bool(getattr(n, "reference_only", False)),
                 "metadata": n.metadata or {},
                 "color_key": key,
                 "is_error": is_error,

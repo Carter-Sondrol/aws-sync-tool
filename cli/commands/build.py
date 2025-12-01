@@ -7,6 +7,7 @@ from boto3 import Session
 
 from graph.resource_graph_builder import ResourceGraphBuilder
 from graph.registry import ResolverRegistry
+# Temporarily use the new metadata-driven resolvers
 from resolvers import register_all
 from utils.arn import ARN
 from utils.seed_loader import SeedRecord
@@ -36,6 +37,11 @@ def register(subparsers):
     parser.add_argument("--target-env", default="target", help="Target environment label")
     parser.add_argument("--target-account", help="Target AWS account for remap")
     parser.add_argument("--default-region", help="Default region override in target")
+    parser.add_argument(
+        "--deep",
+        action="store_true",
+        help="Enable deep discovery (e.g., enumerate Connect child resources from an instance)",
+    )
 
     # Output
     parser.add_argument("--output", "-o", default="graph.json", help="Portable graph output")
@@ -108,7 +114,8 @@ def handler(args):
     #--------------------------------------------------
     # Build graph
     #--------------------------------------------------
-    builder = ResourceGraphBuilder(registry, session=session)
+    discovery_config = {"deep": bool(args.deep)}
+    builder = ResourceGraphBuilder(registry, session=session, discovery_config=discovery_config)
     graph = builder.build(
         arn_objects,
         seed_metadata=seed_overrides,

@@ -20,7 +20,8 @@
                 "--seed-env",
                 "dev",
                 "--output",
-                "./graph.json"
+                "./graph.json",
+                "--deep"
             ],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}"
@@ -41,6 +42,27 @@
                 "--visual",
                 "--out",
                 "./graph.html"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Generate CDK",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "cli.cli",
+            "args": [
+                "--profile",
+                "SafeRideHealth",
+                "--region",
+                "us-west-2",
+                "generate",
+                "--graph",
+                "./graph.json",
+                "--output",
+                "./cdk-out",
+                "--stack-name",
+                "GraphStack"
             ],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}"

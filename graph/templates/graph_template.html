@@ -14,7 +14,18 @@ __STYLE__
     <input id="searchBox" type="text" placeholder="Search nodes..." />
     <button id="resetBtn" title="Clear search & re-enable all groups">Reset</button>
     <button id="editToggleBtn" title="Toggle Edit Mode (Ctrl+E)">Edit: Off</button>
+    <button id="layoutBtn" title="Toggle hierarchical layout">Layout: Free</button>
     <button id="exportBtn" title="Download current graph JSON">Export</button>
+  </div>
+
+  <div id="categoryPanel">
+    <div class="category-title">Filters</div>
+    <label><input type="checkbox" id="catFull" checked /> Full resources</label>
+    <label><input type="checkbox" id="catManaged" checked /> AWS managed</label>
+    <label><input type="checkbox" id="catReference" checked /> Reference resources</label>
+    <label><input type="checkbox" id="catParam" checked /> Raw parameters</label>
+    <div class="category-title">Project Parameters</div>
+    <div id="paramList" class="param-list"></div>
   </div>
 
   <!-- Legend -->
@@ -27,8 +38,9 @@ __STYLE__
     <div id="nodeDetails"></div>
   </div>
 
-  <!-- Graph -->
+  <!-- Graph + Mini-map overlay -->
   <div id="graph"></div>
+  <canvas id="miniMap" width="200" height="200"></canvas>
 
   <script>
     const data = __GRAPH_DATA__;

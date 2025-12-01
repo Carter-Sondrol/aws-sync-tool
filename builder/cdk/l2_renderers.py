@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any, Callable, Dict
+from typing import Any, Callable
 
 from graph.dependency_graph import DependencyGraph
 
@@ -38,6 +38,52 @@ def _render_s3_bucket(
     make_construct_id: Callable[[str], str],
     render_value: Callable[[Any], str],
 ) -> L2RenderResult | None:
+    """
+    Prefer an imported bucket when only an ARN/name is known; otherwise emit a simple managed bucket.
+    """
+    name_val = props.get("bucket_name") or props.get("bucket")
+    arn_val = props.get("bucket_arn")
+    if not arn_val:
+        metadata = getattr(node, "metadata", {}) or {}
+        if isinstance(metadata, dict):
+            arn_val = metadata.get("PrimaryArn")
+
+    configurable_keys = {
+        "public_access_block_configuration",
+        "versioning_configuration",
+        "enforce_ssl",
+    }
+    present_config = configurable_keys.intersection(props.keys())
+
+    # Import existing bucket if we have an ARN/name and no additional config
+    if arn_val and not present_config:
+        lines = [
+            f"        self.{var_name} = aws_s3.Bucket.from_bucket_arn(",
+            f"            self, {construct_id}, {render_value(arn_val)}",
+            "        )",
+            "",
+        ]
+        return L2RenderResult(
+            lines=lines,
+            used_modules={"aws_s3"},
+            cdk_symbols=set(),
+            ref_override=lambda var_expr: f"{var_expr}.bucket_arn",
+        )
+    if name_val and not present_config:
+        lines = [
+            f"        self.{var_name} = aws_s3.Bucket.from_bucket_name(",
+            f"            self, {construct_id}, {render_value(name_val)}",
+            "        )",
+            "",
+        ]
+        return L2RenderResult(
+            lines=lines,
+            used_modules={"aws_s3"},
+            cdk_symbols=set(),
+            ref_override=lambda var_expr: f"{var_expr}.bucket_arn",
+        )
+
+    # Otherwise, create a managed bucket with a conservative property subset.
     supported_keys = {
         "bucket_name",
         "public_access_block_configuration",
@@ -59,12 +105,8 @@ def _render_s3_bucket(
         if status in {"enabled", "suspended"}:
             versioned = status == "enabled"
             prop_lines.append(f"versioned={'True' if versioned else 'False'}")
-        elif version_config:
-            return None
     pab = props.get("public_access_block_configuration")
-    if pab is not None:
-        if not isinstance(pab, dict):
-            return None
+    if isinstance(pab, dict):
         bools = {
             "block_public_acls": bool(pab.get("block_public_acls")),
             "ignore_public_acls": bool(pab.get("ignore_public_acls")),
@@ -75,9 +117,6 @@ def _render_s3_bucket(
             prop_lines.append(
                 "block_public_access=aws_s3.BlockPublicAccess.BLOCK_ALL"
             )
-        else:
-            # Mixed configurations can't be easily represented with L2 helpers yet.
-            return None
 
     lines = [
         f"        self.{var_name} = aws_s3.Bucket(",
@@ -410,7 +449,7 @@ def _render_kms_key(
 ) -> L2RenderResult | None:
     arn_value = None
     metadata = getattr(node, "metadata", {}) or {}
-    if isinstance(metadata, Dict):
+    if isinstance(metadata, dict):
         arn_value = metadata.get("PrimaryArn")
     if not arn_value:
         raw_arn = props.get("arn") or props.get("key_arn")
@@ -433,7 +472,13 @@ def _render_kms_key(
         cdk_symbols=set(),
         ref_override=lambda var_expr: f"{var_expr}.key_arn",
     )
-    
+
+def _ref_target(val: str) -> str | None:
+    if isinstance(val, str) and val.startswith("__REF_") and val.endswith("__"):
+        return val[len("__REF_") : -2]
+    return None
+
+
 def _render_lambda_function(
     graph: DependencyGraph,
     node,
@@ -443,36 +488,111 @@ def _render_lambda_function(
     make_construct_id: Callable[[str], str],
     render_value: Callable[[Any], str],
     ) -> L2RenderResult | None:
-        arn_value = None
-        metadata = getattr(node, "metadata", {}) or {}
-        if isinstance(metadata, Dict):
-            arn_value = metadata.get("FunctionArn")
+    arn_value = None
+    metadata = getattr(node, "metadata", {}) or {}
+    if isinstance(metadata, dict):
+        arn_value = metadata.get("FunctionArn") or metadata.get("PrimaryArn")
 
-        # Fallback: CFN properties
-        if not arn_value:
-            raw_arn = props.get("function_arn") or props.get("arn")
-            if isinstance(raw_arn, str):
-                arn_value = raw_arn
+    # Fallback: CFN properties
+    if not arn_value:
+        raw_arn = props.get("function_arn") or props.get("arn")
+        if isinstance(raw_arn, str):
+            if _ref_target(raw_arn) == getattr(node, "logical_id", None):
+                raw_arn = None
+            arn_value = raw_arn
+    if not arn_value:
+        func_name = props.get("function_name")
+        if isinstance(func_name, str):
+            lines = [
+                f"        self.{var_name} = aws_lambda.Function.from_function_name(",
+                f"            self, {construct_id}, {render_value(func_name)}",
+                "        )",
+                "",
+            ]
+            return L2RenderResult(
+                lines=lines,
+                used_modules={"aws_lambda"},
+                cdk_symbols=set(),
+                ref_override=lambda var_expr: f"{var_expr}.function_arn",
+            )
 
-        # If still no ARN → cannot L2-render it
-        if not isinstance(arn_value, str):
-            return None
+    if not isinstance(arn_value, str):
+        return None
 
-        arn_literal = render_value(arn_value)
+    arn_literal = render_value(arn_value)
 
-        lines = [
-            f"        self.{var_name} = aws_lambda.Function.from_function_arn(",
-            f"            self, {construct_id}, {arn_literal}",
-            "        )",
-            "",
-        ]
+    lines = [
+        f"        self.{var_name} = aws_lambda.Function.from_function_arn(",
+        f"            self, {construct_id}, {arn_literal}",
+        "        )",
+        "",
+    ]
 
-        return L2RenderResult(
-            lines=lines,
-            used_modules={"aws_lambda"},
-            cdk_symbols=set(),
-            ref_override=lambda var_expr: f"{var_expr}.function_arn",
-        )
+    return L2RenderResult(
+        lines=lines,
+        used_modules={"aws_lambda"},
+        cdk_symbols=set(),
+        ref_override=lambda var_expr: f"{var_expr}.function_arn",
+    )
+
+
+def _render_secretsmanager_secret(
+    graph: DependencyGraph,
+    node,
+    props: dict[str, Any],
+    var_name: str,
+    construct_id: str,
+    make_construct_id: Callable[[str], str],
+    render_value: Callable[[Any], str],
+) -> L2RenderResult | None:
+    arn_value = None
+    metadata = getattr(node, "metadata", {}) or {}
+    if isinstance(metadata, dict):
+        arn_value = metadata.get("PrimaryArn") or metadata.get("SecretArn")
+    if not arn_value:
+        arn_value = props.get("secret_arn") or props.get("arn")
+    if not isinstance(arn_value, str):
+        return None
+
+    lines = [
+        f"        self.{var_name} = aws_secretsmanager.Secret.from_secret_complete_arn(",
+        f"            self, {construct_id}, {render_value(arn_value)}",
+        "        )",
+        "",
+    ]
+    return L2RenderResult(
+        lines=lines,
+        used_modules={"aws_secretsmanager"},
+        cdk_symbols=set(),
+        ref_override=lambda var_expr: f"{var_expr}.secret_arn",
+    )
+
+
+def _render_logs_log_group(
+    graph: DependencyGraph,
+    node,
+    props: dict[str, Any],
+    var_name: str,
+    construct_id: str,
+    make_construct_id: Callable[[str], str],
+    render_value: Callable[[Any], str],
+) -> L2RenderResult | None:
+    name_val = props.get("log_group_name")
+    if not name_val or not isinstance(name_val, str):
+        return None
+
+    lines = [
+        f"        self.{var_name} = aws_logs.LogGroup.from_log_group_name(",
+        f"            self, {construct_id}, {json.dumps(name_val)}",
+        "        )",
+        "",
+    ]
+    return L2RenderResult(
+        lines=lines,
+        used_modules={"aws_logs"},
+        cdk_symbols=set(),
+        ref_override=lambda var_expr: f"{var_expr}.log_group_name",
+    )
 
 
 L2_RENDERERS: dict[str, L2Renderer] = {
@@ -480,5 +600,7 @@ L2_RENDERERS: dict[str, L2Renderer] = {
     "AWS::DynamoDB::Table": _render_dynamodb_table,
     "AWS::IAM::Role": _render_iam_role,
     "AWS::KMS::Key": _render_kms_key,
-    "AWS::Lambda::Function": _render_lambda_function
+    "AWS::Lambda::Function": _render_lambda_function,
+    "AWS::SecretsManager::Secret": _render_secretsmanager_secret,
+    "AWS::Logs::LogGroup": _render_logs_log_group,
 }

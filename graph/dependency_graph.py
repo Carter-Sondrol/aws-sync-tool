@@ -96,6 +96,29 @@ class DependencyGraph:
         """
         lid = node.logical_id
 
+        # If a placeholder/reference node already exists for the same ARN, prefer
+        # the richer node (non-reference) and evict the placeholder.
+        for arn_val in node.arns.values():
+            arn_obj = ARN.parse(arn_val)
+            existing_lid = self._arn_index.get(arn_obj)
+            if existing_lid and existing_lid != lid:
+                existing = self._nodes.get(existing_lid)
+                if existing and existing.reference_only and not node.reference_only:
+                    self._remove_node(existing_lid)
+                elif existing and not node.reference_only and existing.classification in (
+                    NodeClassification.EXTERNAL,
+                    NodeClassification.PARAMETER,
+                ):
+                    self._remove_node(existing_lid)
+                elif node.reference_only:
+                    logger.debug(
+                        "[Graph] Keeping existing node %s for ARN %s; skipping ref-only %s",
+                        existing_lid,
+                        arn_obj,
+                        lid,
+                    )
+                    return
+
         # Overwrite-safe: if re-adding same logical_id, just replace node
         self._nodes[lid] = node
         self._g.add_node(lid, data=node)
@@ -221,6 +244,22 @@ class DependencyGraph:
             return lid
         return self._normalized_index.get((arn.service, arn.resource_type, arn.resource_id))
 
+    def _remove_node(self, logical_id: str) -> None:
+        """Remove a node and clean up indexes/pending links."""
+        if logical_id in self._g:
+            self._g.remove_node(logical_id)
+        node = self._nodes.pop(logical_id, None)
+        if node:
+            # prune ARN indexes pointing to this node
+            self._arn_index = {k: v for k, v in self._arn_index.items() if v != logical_id}
+            self._normalized_index = {
+                k: v for k, v in self._normalized_index.items() if v != logical_id
+            }
+        # drop pending links originating from the removed node
+        self._pending_links = [
+            (src, arn, label) for src, arn, label in self._pending_links if src != logical_id
+        ]
+
     # ============================================================
     # Wildcard reference handling
     # ============================================================
@@ -293,8 +332,15 @@ class DependencyGraph:
         if not self._pending_links:
             return
 
-        unresolved_arns = {ARN.parse(arn) for _, arn, _ in self._pending_links}
+        # Preserve which source nodes pointed at each missing ARN so we can
+        # connect the placeholder back to its owners.
+        fanout: dict[ARN, list[tuple[str, Optional[str]]]] = {}
+        for src_lid, arn, label in self._pending_links:
+            a = ARN.parse(arn)
+            fanout.setdefault(a, []).append((src_lid, label))
         self._pending_links.clear()
+
+        unresolved_arns = set(fanout)
 
         logger.info(
             "[Graph] Generating %d orphan placeholders", len(unresolved_arns)
@@ -306,6 +352,15 @@ class DependencyGraph:
             if resolvable and resolvable(arn):
                 # Skip placeholders for resources that should be resolved later.
                 continue
+
+            # If a node already exists for this ARN (e.g., a richer resource),
+            # reuse it and just add edges rather than duplicating a ref node.
+            existing_lid = self._lookup_lid(arn)
+            if existing_lid:
+                for src_lid, label in fanout.get(arn, []):
+                    self.add_edge(src_lid, existing_lid, label=label or "referenced_arn")
+                continue
+
             # Lightweight logical ID; purely internal
             lid = f"Ref_{arn.resource_id.replace('-', '')[:30]}"
             if callable(hint_fn):
@@ -333,6 +388,8 @@ class DependencyGraph:
             )
 
             self.add_node(node)
+            for src_lid, label in fanout.get(arn, []):
+                self.add_edge(src_lid, lid, label=label or "referenced_arn")
 
     # Backwards-compatible alias
     def resolve_orphans(self) -> None:
@@ -524,8 +581,8 @@ class DependencyGraph:
         """
         Return nodes in dependency order (parents depend on children).
 
-        If cycles exist, raise a clear error so the CDK generator can fall back
-        to heuristic ordering.
+        If cycles exist, we record them and return insertion-order nodes instead
+        of failing — callers that can tolerate cycles keep working.
         """
         try:
             order = list(nx.topological_sort(self._g))
@@ -533,7 +590,10 @@ class DependencyGraph:
             return order
         except nx.NetworkXUnfeasible:
             cycles = list(nx.simple_cycles(self._g))
-            raise RuntimeError(f"Dependency cycle detected: {cycles}")
+            logger.warning("[Graph] Dependency cycle detected: %s", cycles)
+            self.metadata["cycles"] = cycles
+            # Fall back to a stable node listing (insertion order)
+            return list(self._g.nodes())
 
     # ============================================================
     # Reconstruction helpers

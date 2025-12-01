@@ -61,16 +61,16 @@
     },
     "Subscription": {
       "arn_field": "SubscriptionArn",
-      "cfn_class": "CfnSubscription",
-      "cfn_module": "aws_cdk.aws_sns",
-      "cfn_type": "AWS::SNS::Subscription",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [
         "SubscriptionArn"
       ],
-      "l2_class": "Subscription",
-      "l2_module": "aws_cdk.aws_sns",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "Subscriptions",
       "notes": [],
       "operations": {
@@ -118,16 +118,16 @@
     },
     "Topic": {
       "arn_field": "TopicArn",
-      "cfn_class": "CfnTopic",
-      "cfn_module": "aws_cdk.aws_sns",
-      "cfn_type": "AWS::SNS::Topic",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [
         "TopicArn"
       ],
-      "l2_class": "Topic",
-      "l2_module": "aws_cdk.aws_sns",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "Topics",
       "notes": [],
       "operations": {

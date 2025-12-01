@@ -2,16 +2,16 @@
   "resources": {
     "ApiDestination": {
       "arn_field": "ApiDestinationArn",
-      "cfn_class": "CfnApiDestination",
-      "cfn_module": "aws_cdk.aws_events",
-      "cfn_type": "AWS::Events::ApiDestination",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [
         "Name"
       ],
-      "l2_class": "ApiDestination",
-      "l2_module": "aws_cdk.aws_events",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "ApiDestinations",
       "notes": [],
       "operations": {
@@ -102,16 +102,16 @@
     },
     "Connection": {
       "arn_field": "ConnectionArn",
-      "cfn_class": "CfnConnection",
-      "cfn_module": "aws_cdk.aws_events",
-      "cfn_type": "AWS::Events::Connection",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [
         "Name"
       ],
-      "l2_class": "Connection",
-      "l2_module": "aws_cdk.aws_events",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "Connections",
       "notes": [],
       "operations": {
@@ -223,10 +223,10 @@
     },
     "Endpoint": {
       "arn_field": "Arn",
-      "cfn_class": "CfnEndpoint",
-      "cfn_module": "aws_cdk.aws_events",
-      "cfn_type": "AWS::Events::Endpoint",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "Name"
@@ -481,17 +481,17 @@
     },
     "Rule": {
       "arn_field": "Arn",
-      "cfn_class": "CfnRule",
-      "cfn_module": "aws_cdk.aws_events",
-      "cfn_type": "AWS::Events::Rule",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [
         "Name",
         "EventBusName"
       ],
-      "l2_class": "Rule",
-      "l2_module": "aws_cdk.aws_events",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "Rules",
       "notes": [],
       "operations": {

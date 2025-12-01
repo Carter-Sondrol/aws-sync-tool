@@ -2,16 +2,16 @@
   "resources": {
     "Dashboard": {
       "arn_field": "DashboardArn",
-      "cfn_class": "CfnDashboard",
-      "cfn_module": "aws_cdk.aws_cloudwatch",
-      "cfn_type": "AWS::CloudWatch::Dashboard",
-      "deployable_via_cfn": true,
-      "deployable_via_l2": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
+      "deployable_via_l2": false,
       "id_params": [
         "DashboardName"
       ],
-      "l2_class": "Dashboard",
-      "l2_module": "aws_cdk.aws_cloudwatch",
+      "l2_class": null,
+      "l2_module": null,
       "list_result_path": "DashboardEntries",
       "notes": [],
       "operations": {
@@ -51,10 +51,10 @@
     },
     "MetricStream": {
       "arn_field": "Arn",
-      "cfn_class": "CfnMetricStream",
-      "cfn_module": "aws_cdk.aws_cloudwatch",
-      "cfn_type": "AWS::CloudWatch::MetricStream",
-      "deployable_via_cfn": true,
+      "cfn_class": null,
+      "cfn_module": null,
+      "cfn_type": null,
+      "deployable_via_cfn": false,
       "deployable_via_l2": false,
       "id_params": [
         "Name"

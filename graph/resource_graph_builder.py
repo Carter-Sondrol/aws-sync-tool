@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, Iterable, Optional, Set
+from typing import Any, Dict, Iterable, Optional, Set
 
 from botocore.exceptions import ClientError
 from boto3.session import Session
@@ -35,9 +35,11 @@ class ResourceGraphBuilder:
         registry: ResolverRegistry,
         *,
         session: Optional[Session] = None,
+        discovery_config: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.registry = registry
         self.session = session or registry.session
+        self.discovery_config: Dict[str, Any] = discovery_config or {}
         self.seed_set: Set[ARN] = set()
         self._seed_overrides: Dict[ARN, SeedRecord] = {}
 
@@ -144,11 +146,8 @@ class ResourceGraphBuilder:
         else:
             graph.finalize()
 
-        try:
-            graph.topological_sort()
-        except Exception as e:
-            logger.error("[GraphBuilder] Cycle detected in graph: %s", e)
-            raise
+        # Do not fail the build on cycles; topological_sort now records them.
+        graph.topological_sort()
 
         if visualize:
             try:
@@ -202,6 +201,8 @@ class ResourceGraphBuilder:
             resolver.session = self.session  # type: ignore[attr-defined]
         if getattr(resolver, "session_region", None) is None:
             resolver.session_region = getattr(self.session, "region_name", None)  # type: ignore[attr-defined]
+        # propagate discovery toggles (e.g., --deep)
+        resolver.discovery_config = getattr(self, "discovery_config", {})  # type: ignore[attr-defined]
 
         # ============================================================
         # 3. Fetch + build node
@@ -224,18 +225,61 @@ class ResourceGraphBuilder:
         if seed_meta:
             self._apply_seed_override(node, seed_meta)
 
+        # CDK readiness metadata for visualizer/export hints
+        self._mark_cdk_support(node, resolver)
+
         # Basic classification tweaks
         if node.reference_only and node.classification == NodeClassification.RESOURCE:
             node.classification = NodeClassification.EXTERNAL
 
-        # AWS-managed detection: simple heuristic
-        if node.classification == NodeClassification.RESOURCE:
-            primary = node.get_primary_arn()
-            if primary and ":aws/" in primary.raw:
+        # AWS-managed detection + metadata for CDK-friendly rendering
+        primary = node.get_primary_arn()
+        if primary:
+            node.metadata.setdefault("PrimaryArn", primary.raw)
+
+        if node.classification == NodeClassification.RESOURCE and primary:
+            if primary.is_aws_managed_like() or ":aws/" in primary.raw:
+                node.metadata["AWSManaged"] = True
+                if primary.is_service_linked_role():
+                    node.metadata["ServiceLinkedRole"] = True
                 node.classification = NodeClassification.AWS_MANAGED
+                node.reference_only = True
 
         graph.add_node(node)
         return node
+
+    def _mark_cdk_support(self, node: ResourceNode, resolver) -> None:
+        """
+        Attach metadata that reflects whether this node can be expressed via CDK/CFN.
+
+        Heuristic:
+          - must have a cfn_type
+          - must not be reference-only
+          - resolver.deployment_mode should be "cfn" or "l2"
+        """
+        mode = getattr(resolver, "deployment_mode", None)
+        cfn_type = getattr(node, "cfn_type", None)
+
+        supported = (
+            bool(cfn_type)
+            and not node.reference_only
+            and mode in ("cfn", "l2")
+        )
+
+        if supported:
+            node.metadata["CDKReady"] = True
+            node.metadata.pop("CDKUnsupported", None)
+        else:
+            reasons = []
+            if not cfn_type:
+                reasons.append("No CFN type")
+            if node.reference_only:
+                reasons.append("Reference-only")
+            if mode not in ("cfn", "l2"):
+                reasons.append(f"Resolver mode={mode}")
+
+            node.metadata["CDKUnsupported"] = "; ".join(reasons) or "Unknown"
+            node.metadata.pop("CDKReady", None)
 
     def _apply_seed_override(self, node: ResourceNode, seed: SeedRecord) -> None:
         node.logical_id = seed.logical_id
