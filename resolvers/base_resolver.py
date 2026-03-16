@@ -15,7 +15,24 @@ from typing import (
 )
 
 from boto3 import Session
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, NoCredentialsError
+
+# Mirrored from resource_graph_builder — kept here so resolvers can also
+# react to permission boundaries without depending on the builder module.
+_ACCESS_DENIED_CODES = frozenset({
+    "AccessDenied",
+    "AccessDeniedException",
+    "AuthorizationError",
+    "UnauthorizedOperation",
+})
+
+_NOT_FOUND_CODES = frozenset({
+    "NoSuchEntity",
+    "ResourceNotFoundException",
+    "NotFoundException",
+    "NoSuchBucket",
+    "NoSuchKey",
+})
 
 from graph.resource_node import NodeClassification, ResourceNode
 from utils.arn import ARN, extract_dependencies
@@ -188,7 +205,23 @@ class BaseResolver(ABC, Generic[C, R]):
             return node
 
         except ClientError as e:
-            self.log.warning("[%s] Failed to fetch %s: %s", self.service, arn, e)
+            code = e.response["Error"]["Code"]
+            msg  = e.response["Error"].get("Message", "")
+            if code in _ACCESS_DENIED_CODES:
+                self.log.warning(
+                    "[%s] Access denied fetching %s (%s) — skipping",
+                    self.service, arn, code,
+                )
+            elif code in _NOT_FOUND_CODES:
+                self.log.warning(
+                    "[%s] Resource not found: %s (%s) — may be deleted or ARN is stale",
+                    self.service, arn, code,
+                )
+            else:
+                self.log.warning(
+                    "[%s] ClientError fetching %s: [%s] %s",
+                    self.service, arn, code, msg,
+                )
         except Exception as e:
             self.log.error(
                 "[%s] Unexpected error resolving %s: %s",
@@ -251,7 +284,13 @@ class BaseResolver(ABC, Generic[C, R]):
         try:
             return call()
         except ClientError as e:
-            self.log.warning("[%s] client error: %s", self.service, e)
+            code = e.response["Error"]["Code"]
+            if code in _ACCESS_DENIED_CODES:
+                self.log.warning("[%s] Access denied: %s", self.service, e)
+            elif code in _NOT_FOUND_CODES:
+                self.log.warning("[%s] Resource not found: %s", self.service, e)
+            else:
+                self.log.warning("[%s] Client error: %s", self.service, e)
             return default
 
     # ------------------------------------------------------------------

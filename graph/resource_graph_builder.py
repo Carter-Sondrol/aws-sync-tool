@@ -3,8 +3,26 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Iterable, Optional, Set
 
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, NoCredentialsError
 from boto3.session import Session
+
+# ClientError codes that indicate a permanent permission boundary —
+# these are not bugs; log as warnings and continue building the graph.
+_ACCESS_DENIED_CODES = frozenset({
+    "AccessDenied",
+    "AccessDeniedException",
+    "AuthorizationError",
+    "UnauthorizedOperation",
+})
+
+# ClientError codes that mean the resource simply doesn't exist any more.
+_NOT_FOUND_CODES = frozenset({
+    "NoSuchEntity",
+    "ResourceNotFoundException",
+    "NotFoundException",
+    "NoSuchBucket",
+    "NoSuchKey",
+})
 
 from graph.dependency_graph import DependencyGraph
 from graph.registry import ResolverRegistry
@@ -209,11 +227,76 @@ class ResourceGraphBuilder:
         # ============================================================
         try:
             raw = resolver.fetch_resource(arn)  # type: ignore[arg-type]
-        except ClientError:
-            logger.exception("[GraphBuilder] AWS ClientError resolving %s", arn)
+        except NoCredentialsError as e:
+            # Hard stop — nothing will work without credentials
+            logger.error(
+                "[GraphBuilder] No AWS credentials found. "
+                "Run 'aws configure', set AWS_PROFILE, or use 'aws sso login'."
+            )
             raise
+        except ClientError as e:
+            code = e.response["Error"]["Code"]
+            msg  = e.response["Error"].get("Message", "")
+            if code in _ACCESS_DENIED_CODES:
+                # Very common for service-linked roles and cross-account refs.
+                # Treat as a soft warning so the rest of the graph still builds.
+                logger.warning(
+                    "[GraphBuilder] Access denied on %s (%s) — "
+                    "node will be marked unresolvable and skipped",
+                    arn, code,
+                )
+                node = ResourceNode(
+                    logical_id=f"AccessDenied_{arn.resource_id}",
+                    service=arn.service or "unknown",
+                    cfn_type="Unresolved::AccessDenied",
+                    properties={},
+                    reference_only=True,
+                    arns={"Primary": arn},
+                    metadata={
+                        "Unresolved": True,
+                        "UnresolvedReason": "AccessDenied",
+                        "ErrorCode": code,
+                        "ErrorMessage": msg,
+                        "SourceARN": arn.raw,
+                        "Seed": arn in self.seed_set,
+                    },
+                    classification=NodeClassification.EXTERNAL,
+                )
+                graph.add_node(node)
+                return node
+            elif code in _NOT_FOUND_CODES:
+                logger.warning(
+                    "[GraphBuilder] Resource not found: %s (%s) — "
+                    "may have been deleted or ARN is stale",
+                    arn, code,
+                )
+                node = ResourceNode(
+                    logical_id=f"NotFound_{arn.resource_id}",
+                    service=arn.service or "unknown",
+                    cfn_type="Unresolved::NotFound",
+                    properties={},
+                    reference_only=True,
+                    arns={"Primary": arn},
+                    metadata={
+                        "Unresolved": True,
+                        "UnresolvedReason": "NotFound",
+                        "ErrorCode": code,
+                        "ErrorMessage": msg,
+                        "SourceARN": arn.raw,
+                        "Seed": arn in self.seed_set,
+                    },
+                    classification=NodeClassification.EXTERNAL,
+                )
+                graph.add_node(node)
+                return node
+            else:
+                logger.error(
+                    "[GraphBuilder] AWS ClientError resolving %s: [%s] %s",
+                    arn, code, msg,
+                )
+                raise
         except Exception:
-            logger.exception("[GraphBuilder] Unknown error resolving %s", arn)
+            logger.exception("[GraphBuilder] Unexpected error resolving %s", arn)
             raise
 
         node = resolver.to_node(arn, raw)  # type: ignore[arg-type]
