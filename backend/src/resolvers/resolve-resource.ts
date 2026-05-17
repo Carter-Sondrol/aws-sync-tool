@@ -146,7 +146,7 @@ function buildNode(
 ): DiscoveryNode {
 	const { data, logicalId, classification, referenceOnly, metadata } = output;
 
-	const referencedArns = extractARNs(data, {
+	const referencedArnPaths = extractARNs(data, {
 		knownBuckets: options?.knownBuckets,
 	});
 
@@ -158,7 +158,8 @@ function buildNode(
 			`AWS::${capitalize(resolver.service)}::${capitalize(resolver.resourceType)}`,
 		properties: data,
 		primaryArn: arn,
-		referencedArns,
+		referencedArns: new Set(referencedArnPaths.keys()),
+		referencedArnPaths,
 		classification: classification ?? NodeClassification.RESOURCE,
 		referenceOnly: referenceOnly ?? false,
 		metadata: metadata ?? {},

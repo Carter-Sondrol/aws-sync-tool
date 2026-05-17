@@ -184,8 +184,9 @@ export function canonicalForGraph(arn: string): string | null {
 export function extractARNs(
 	obj: unknown,
 	options: { serviceFilter?: string[]; knownBuckets?: Set<string> } = {},
-): Set<string> {
-	const found = new Set<string>();
+): Map<string, Set<string>> {
+	/** arn → set of path keys (last JSON segment that led to this ARN). */
+	const found = new Map<string, Set<string>>();
 
 	function isProbableBucketName(s: string): boolean {
 		if (!s || !/^[a-z0-9-]+$/.test(s)) return false;
@@ -205,6 +206,15 @@ export function extractARNs(
 		return path.some((p) => p.toLowerCase().includes("bucket"));
 	}
 
+	function addReference(arn: string, path: string[]): void {
+		const labels = found.get(arn);
+		if (!labels) {
+			found.set(arn, new Set([path.at(-1) ?? ""]));
+		} else {
+			labels.add(path.at(-1) ?? "");
+		}
+	}
+
 	function walk(value: unknown, path: string[] = []): void {
 		if (value == null) return;
 
@@ -216,7 +226,7 @@ export function extractARNs(
 				if (!options.serviceFilter || options.serviceFilter.includes("s3")) {
 					const bucketArn = buildARN("s3", value);
 					const canonical = canonicalForGraph(bucketArn);
-					if (canonical) found.add(canonical);
+					if (canonical) addReference(canonical, path);
 				}
 				return;
 			}
@@ -251,7 +261,7 @@ export function extractARNs(
 				return;
 			}
 
-			found.add(arn);
+			addReference(arn, path);
 			return;
 		}
 

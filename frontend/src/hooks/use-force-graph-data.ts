@@ -275,7 +275,7 @@ export function useForceGraphData(): { nodes: FGNode[]; edges: FGEdge[] } {
 					source: src,
 					target: tgt,
 					relationshipType: edge.relationshipType,
-					label: edge.label || edge.relationshipType,
+					label: edge.labels?.[0] ?? edge.relationshipType,
 					dashArray: style.dashArray,
 					color: style.color,
 					animated: edge.relationshipType === "invokes",

@@ -38,7 +38,7 @@ export interface PortableEdge {
 	from: string;
 	to: string;
 	relationshipType: string;
-	label?: string;
+	labels?: string[];
 }
 
 /**
@@ -80,7 +80,7 @@ export function freezeGraph(
 		from: arnMap[e.source] ?? e.source,
 		to: arnMap[e.target] ?? e.target,
 		relationshipType: e.relationshipType,
-		label: e.label,
+		labels: e.labels,
 	}));
 
 	const services = Array.from(
@@ -134,6 +134,7 @@ export function thawGraph(graph: PortableGraph): {
 			properties: restoredProps as Record<string, unknown>,
 			primaryArn: parsed,
 			referencedArns: new Set<string>(),
+			referencedArnPaths: new Map(),
 			classification: pn.classification as DiscoveryNode["classification"],
 			referenceOnly: pn.referenceOnly,
 			metadata: pn.metadata as Record<string, unknown>,
@@ -158,7 +159,7 @@ export function thawGraph(graph: PortableGraph): {
 			source,
 			target,
 			relationshipType: e.relationshipType,
-			label: e.label,
+			labels: e.labels ?? [],
 		};
 	});
 

@@ -28,7 +28,10 @@ export interface DiscoveryNode {
 	cfnType: string | null;
 	properties: Record<string, unknown>;
 	primaryArn: ParsedARN;
+	/** ARNs referenced by this node's data. */
 	referencedArns: Set<string>;
+	/** Path keys from the source data that led to each referenced ARN (e.g. "Role", "S3_BUCKET"). */
+	referencedArnPaths: Map<string, Set<string>>;
 	classification: NodeClassificationT;
 	referenceOnly: boolean;
 	metadata: Record<string, unknown>;
