@@ -4,7 +4,7 @@ import { resolveResource } from "../resolvers/resolve-resource.js";
 import type { ParsedARN } from "../arn.js";
 import type { GraphStore } from "./store.js";
 import type { AwsCredentials, DiscoveryProgress } from "@aws-sync-tool/types";
-import type { Credentials } from "../resolvers/resolve-resource.js";
+import type { Credentials } from "../resolvers/resolver-types.js";
 import type { DiscoveryNode } from "../discovery/discovery-node.js";
 import { NodeClassification } from "../discovery/discovery-node.js";
 
@@ -169,8 +169,7 @@ export class DiscoveryEngine {
 
 	private createPlaceholderNode(parsed: ParsedARN): DiscoveryNode {
 		const logicalId = parsed.resourceId;
-		const capitalize = (s: string) =>
-			s.charAt(0).toUpperCase() + s.slice(1);
+		const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 		return {
 			logicalId,

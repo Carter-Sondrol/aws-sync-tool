@@ -1,16 +1,23 @@
-import type { ParsedARN } from '../arn.js';
-import type { NodeClassification } from '../discovery/discovery-node.js';
+import type { ParsedARN } from "../arn.js";
+import type { NodeClassification } from "../discovery/discovery-node.js";
+
+/** AWS SDK credentials shape. */
+export interface Credentials {
+	accessKeyId: string;
+	secretAccessKey: string;
+	sessionToken?: string;
+}
 
 /**
  * Output from a resolver's fetch() method.
  * The engine uses this to construct the DiscoveryNode.
  */
 export interface ResolverOutput {
-  data: Record<string, unknown>;
-  logicalId: string;
-  classification: NodeClassification;
-  referenceOnly?: boolean;
-  metadata?: Record<string, unknown>;
+	data: Record<string, unknown>;
+	logicalId: string;
+	classification: NodeClassification;
+	referenceOnly?: boolean;
+	metadata?: Record<string, unknown>;
 }
 
 /**
@@ -20,15 +27,18 @@ export interface ResolverOutput {
  *   are included in the returned data — the engine extracts them automatically.
  */
 export interface ResourceResolver {
-  service: string;
-  resourceType: string;
-  cfnType: string;
+	service: string;
+	resourceType: string;
+	cfnType: string | null;
 
-  /**
-   * Fetch resource data from AWS.
-   * Include any referenced ARNs in the returned data (env vars, config, child resources).
-   * The engine scans the output for ARNs and enqueues them — no special wiring needed.
-   * E.g. Connect instance resolver lists its queues/flows and includes their ARNs in data.
-   */
-  fetch(arn: ParsedARN): Promise<ResolverOutput>;
+	/**
+	 * Fetch resource data from AWS.
+	 * Include any referenced ARNs in the returned data (env vars, config, child resources).
+	 * The engine scans the output for ARNs and enqueues them — no special wiring needed.
+	 * E.g. Connect instance resolver lists its queues/flows and includes their ARNs in data.
+	 */
+	fetch(
+		arn: ParsedARN,
+		credentials: () => Promise<Credentials>,
+	): Promise<ResolverOutput>;
 }

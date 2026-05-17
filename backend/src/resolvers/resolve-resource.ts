@@ -1,5 +1,5 @@
 import type { ParsedARN } from "../arn.js";
-import type { ResourceResolver, ResolverOutput } from "./resolver-types.js";
+import type { ResourceResolver, ResolverOutput, Credentials } from "./resolver-types.js";
 import type { DiscoveryNode } from "../discovery/discovery-node.js";
 import { NodeClassification } from "../discovery/discovery-node.js";
 import { extractARNs, makeCanonicalName } from "../arn.js";
@@ -32,13 +32,6 @@ const THROTTLE_CODES = new Set([
 /** Maximum number of retry attempts for throttled requests. */
 const MAX_RETRIES = 3;
 
-/** AWS SDK credentials shape. */
-export interface Credentials {
-	accessKeyId: string;
-	secretAccessKey: string;
-	sessionToken?: string;
-}
-
 /** Options for resolving a resource. */
 export interface ResolveOptions {
 	/** Known S3 bucket names (helps extractARNs identify bucket references). */
@@ -59,7 +52,7 @@ export interface ResolveOptions {
 export async function resolveResource(
 	resolver: ResourceResolver,
 	arn: ParsedARN,
-	_credentials: () => Promise<Credentials>,
+	credentials: () => Promise<Credentials>,
 	options?: ResolveOptions,
 ): Promise<DiscoveryNode | null> {
 	const service = resolver.service;
@@ -69,7 +62,7 @@ export async function resolveResource(
 		try {
 			const fetchStart = Date.now();
 			console.log(`[Resolver:${service}] fetch → ${arn.raw}`);
-			const output = await resolver.fetch(arn);
+			const output = await resolver.fetch(arn, credentials);
 			const fetchMs = Date.now() - fetchStart;
 			console.log(`[Resolver:${service}] fetch ← done in ${fetchMs}ms`);
 
