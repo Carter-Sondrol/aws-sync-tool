@@ -73,7 +73,11 @@ export async function resolveResource(
 			const fetchMs = Date.now() - fetchStart;
 			console.log(`[Resolver:${service}] fetch ← done in ${fetchMs}ms`);
 
-			if (typeof output !== "object" || output === null || Array.isArray(output)) {
+			if (
+				typeof output !== "object" ||
+				output === null ||
+				Array.isArray(output)
+			) {
 				throw new TypeError(
 					`fetch returned ${typeof output}, expected ResolverOutput object`,
 				);
@@ -149,11 +153,6 @@ function buildNode(
 		knownBuckets: options?.knownBuckets,
 	});
 
-	const arns: Record<string, ParsedARN> = { Primary: arn };
-	if (arn.accountId) {
-		arns[arn.accountId] = arn;
-	}
-
 	return {
 		logicalId: logicalId ?? arn.resourceId,
 		canonicalName: makeCanonicalName(
@@ -165,7 +164,7 @@ function buildNode(
 			resolver.cfnType ??
 			`AWS::${capitalize(resolver.service)}::${capitalize(resolver.resourceType)}`,
 		properties: data,
-		arns,
+		primaryArn: arn,
 		referencedArns,
 		classification: classification ?? NodeClassification.RESOURCE,
 		referenceOnly: referenceOnly ?? false,
