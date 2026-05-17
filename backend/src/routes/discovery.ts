@@ -6,6 +6,7 @@ import {
 	getAllServices,
 	getResolversByService,
 } from "../resolvers/registry.js";
+import { getLister, getAllListerNames } from "../resource-listers.js";
 import { resolveResource } from "../resolvers/resolve-resource.js";
 import type { DiscoveryEngine } from "../graph/discovery-engine.js";
 import { toDiscoveredNode } from "../discovery/node-serializer.js";
@@ -141,9 +142,7 @@ export function createDiscoveryRouter(discoveryEngine: DiscoveryEngine) {
 				excludedServices?: string[];
 			}>();
 			const { arn, accountId } = body;
-			console.log(
-				`[API] POST /expand-node arn=${arn}, account=${accountId}`,
-			);
+			console.log(`[API] POST /expand-node arn=${arn}, account=${accountId}`);
 
 			if (!arn) {
 				return c.json({ error: "arn is required" });
@@ -220,27 +219,17 @@ export function createDiscoveryRouter(discoveryEngine: DiscoveryEngine) {
 				profileName: account.profileName as string,
 				region,
 			});
-			// TODO: Task 6 — replace with route-level lister
-			const resolverClass = getResolver(resourceType) as unknown as new (
-				region: string,
-				credFn: () => Promise<{
-					accessKeyId: string;
-					secretAccessKey: string;
-					sessionToken?: string;
-				}>,
-			) => { listAllResources(region: string): Promise<string[]> };
-			if (!resolverClass) {
-				return c.json({ error: `No resolver for ${resourceType}` });
+
+			const lister = getLister(resourceType);
+			if (!lister) {
+				return c.json({ error: `No lister for ${resourceType}` });
 			}
 
-			const credFn = async () => ({
+			const arns = await lister(region, {
 				accessKeyId: creds.accessKeyId,
 				secretAccessKey: creds.secretAccessKey,
 				sessionToken: creds.sessionToken,
 			});
-
-			const resolver = new resolverClass(region || "us-east-1", credFn);
-			const arns = await resolver.listAllResources(region);
 
 			return c.json({ data: { resourceType, arns, count: arns.length } });
 		} catch (err) {
@@ -248,6 +237,11 @@ export function createDiscoveryRouter(discoveryEngine: DiscoveryEngine) {
 				error: err instanceof Error ? err.message : String(err),
 			});
 		}
+	});
+
+	router.get("/listable", (_c) => {
+		const listable = getAllListerNames();
+		return _c.json({ data: listable });
 	});
 
 	router.get("/status", (c) => {
