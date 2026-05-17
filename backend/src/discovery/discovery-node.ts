@@ -24,7 +24,6 @@ export type NodeClassification = NodeClassificationT;
 
 export interface DiscoveryNode {
 	logicalId: string;
-	canonicalName: string;
 	service: string;
 	cfnType: string | null;
 	properties: Record<string, unknown>;

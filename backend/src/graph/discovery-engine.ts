@@ -1,4 +1,4 @@
-import { parseARN, canonicalForGraph, makeCanonicalName } from "../arn.js";
+import { parseARN, canonicalForGraph } from "../arn.js";
 import { getResolver } from "../resolvers/registry.js";
 import { resolveResource } from "../resolvers/resolve-resource.js";
 import type { ParsedARN } from "../arn.js";
@@ -173,7 +173,6 @@ export class DiscoveryEngine {
 
 		return {
 			logicalId,
-			canonicalName: makeCanonicalName(parsed.service, logicalId),
 			service: parsed.service,
 			cfnType: `AWS::${capitalize(parsed.service)}::${capitalize(parsed.resourceType)}`,
 			properties: {},

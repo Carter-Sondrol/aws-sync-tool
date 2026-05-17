@@ -1,8 +1,12 @@
 import type { ParsedARN } from "../arn.js";
-import type { ResourceResolver, ResolverOutput, Credentials } from "./resolver-types.js";
+import type {
+	ResourceResolver,
+	ResolverOutput,
+	Credentials,
+} from "./resolver-types.js";
 import type { DiscoveryNode } from "../discovery/discovery-node.js";
 import { NodeClassification } from "../discovery/discovery-node.js";
-import { extractARNs, makeCanonicalName } from "../arn.js";
+import { extractARNs } from "../arn.js";
 
 /** AWS SDK error codes that indicate access was denied. */
 const ACCESS_DENIED_CODES = new Set([
@@ -148,10 +152,6 @@ function buildNode(
 
 	return {
 		logicalId: logicalId ?? arn.resourceId,
-		canonicalName: makeCanonicalName(
-			resolver.service,
-			logicalId ?? arn.resourceId,
-		),
 		service: resolver.service,
 		cfnType:
 			resolver.cfnType ??
