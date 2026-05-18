@@ -181,12 +181,18 @@ export function canonicalForGraph(arn: string): string | null {
 	return parsed.raw;
 }
 
+export interface ExtractedARNs {
+	/** Sanitized copy of the input with ARNs replaced by `__REF_{identifier}__` placeholders. */
+	sanitizedData: Record<string, unknown>;
+	/** ARN → set of path keys (last JSON segment that led to this ARN). */
+	arnPaths: Map<string, Set<string>>;
+}
+
 export function extractARNs(
 	obj: unknown,
 	options: { serviceFilter?: string[]; knownBuckets?: Set<string> } = {},
-): Map<string, Set<string>> {
-	/** arn → set of path keys (last JSON segment that led to this ARN). */
-	const found = new Map<string, Set<string>>();
+): ExtractedARNs {
+	const arnPaths = new Map<string, Set<string>>();
 
 	function isProbableBucketName(s: string): boolean {
 		if (!s || !/^[a-z0-9-]+$/.test(s)) return false;
@@ -207,14 +213,82 @@ export function extractARNs(
 	}
 
 	function addReference(arn: string, path: string[]): void {
-		const labels = found.get(arn);
+		const labels = arnPaths.get(arn);
 		if (!labels) {
-			found.set(arn, new Set([path.at(-1) ?? ""]));
+			arnPaths.set(arn, new Set([path.at(-1) ?? ""]));
 		} else {
 			labels.add(path.at(-1) ?? "");
 		}
 	}
 
+	function sanitizeValue(value: unknown): unknown {
+		if (value == null) return value;
+
+		if (typeof value === "string") {
+			// Bucket name detection
+			if (
+				isProbableBucketName(value) &&
+				(options.knownBuckets?.has(value) || inBucketContext([]))
+			) {
+				if (!options.serviceFilter || options.serviceFilter.includes("s3")) {
+					const bucketArn = buildARN("s3", value);
+					const canonical = canonicalForGraph(bucketArn);
+					if (canonical) return `__REF_${canonical}__`;
+				}
+				return value;
+			}
+
+			// ARN detection
+			if (
+				!value.startsWith("arn:") ||
+				value.length > 512 ||
+				value.includes(" ")
+			) {
+				return value;
+			}
+
+			const arn = canonicalForGraph(value);
+			if (!arn) return value;
+
+			const parsed = parseARN(arn);
+			if (parsed?.service === "lambda" && parsed.resourceType === "runtime") {
+				return value;
+			}
+
+			if (
+				options.serviceFilter &&
+				parsed &&
+				!options.serviceFilter.includes(parsed.service)
+			) {
+				return value;
+			}
+
+			if (
+				parsed?.service === "cloudformation" &&
+				!["stack", "stackset", "changeset"].includes(parsed.resourceType)
+			) {
+				return value;
+			}
+
+			return `__REF_${arn}__`;
+		}
+
+		if (Array.isArray(value)) {
+			return value.map((item) => sanitizeValue(item));
+		}
+
+		if (typeof value === "object") {
+			const out: Record<string, unknown> = {};
+			for (const [k, v] of Object.entries(value)) {
+				out[k] = sanitizeValue(v);
+			}
+			return out;
+		}
+
+		return value;
+	}
+
+	// Walk to collect ARN paths (for edge labels)
 	function walk(value: unknown, path: string[] = []): void {
 		if (value == null) return;
 
@@ -235,8 +309,9 @@ export function extractARNs(
 				!value.startsWith("arn:") ||
 				value.length > 512 ||
 				value.includes(" ")
-			)
+			) {
 				return;
+			}
 
 			const arn = canonicalForGraph(value);
 			if (!arn) return;
@@ -277,7 +352,8 @@ export function extractARNs(
 	}
 
 	walk(obj);
-	return found;
+	const sanitizedData = sanitizeValue(obj) as Record<string, unknown>;
+	return { sanitizedData, arnPaths };
 }
 
 function fnmatch(value: string, pattern: string): boolean {

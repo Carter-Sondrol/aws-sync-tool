@@ -1,12 +1,7 @@
-import type { ParsedARN } from "../arn.js";
-import type {
-	ResourceResolver,
-	ResolverOutput,
-	Credentials,
-} from "./resolver-types.js";
-import type { DiscoveryNode } from "../discovery/discovery-node.js";
-import { NodeClassification } from "../discovery/discovery-node.js";
-import { extractARNs } from "../arn.js";
+import type { ParsedARN } from "../../../packages/types/src/arn.js";
+import type { ResourceResolver, Credentials } from "./resolver-types.js";
+import type { Node } from "@aws-sync-tool/types";
+import { extractARNs } from "../../../packages/types/src/arn.js";
 
 /** AWS SDK error codes that indicate access was denied. */
 const ACCESS_DENIED_CODES = new Set([
@@ -43,22 +38,28 @@ export interface ResolveOptions {
 }
 
 /**
- * Resolve a single resource ARN to a DiscoveryNode.
+ * Resolve a single resource ARN to a Node.
  *
  * Shared pipeline that handles:
  * - Retry with exponential backoff on throttling
  * - Error classification (access denied, not found, unexpected)
- * - Node construction (canonical name, ARN extraction, classification)
+ * - Node construction (ARN extraction, classification, data sanitization)
  *
  * The resolver's `fetch()` method does the actual AWS API call.
  * This function wraps it with retry, error handling, and node construction.
  */
+export interface ResolveResult {
+	node: Node;
+	/** ARN → path keys from the source data (for edge labels). */
+	arnPaths: Map<string, Set<string>>;
+}
+
 export async function resolveResource(
 	resolver: ResourceResolver,
 	arn: ParsedARN,
 	credentials: () => Promise<Credentials>,
 	options?: ResolveOptions,
-): Promise<DiscoveryNode | null> {
+): Promise<ResolveResult | null> {
 	const service = resolver.service;
 	const t0 = Date.now();
 
@@ -66,29 +67,24 @@ export async function resolveResource(
 		try {
 			const fetchStart = Date.now();
 			console.log(`[Resolver:${service}] fetch → ${arn.raw}`);
-			const output = await resolver.fetch(arn, credentials);
+			const data = await resolver.fetch(arn, credentials);
 			const fetchMs = Date.now() - fetchStart;
 			console.log(`[Resolver:${service}] fetch ← done in ${fetchMs}ms`);
 
-			if (
-				typeof output !== "object" ||
-				output === null ||
-				Array.isArray(output)
-			) {
-				throw new TypeError(
-					`fetch returned ${typeof output}, expected ResolverOutput object`,
-				);
+			if (data === null) {
+				console.warn(`[${service}] Resource not found: ${arn.raw}`);
+				return null;
 			}
 
 			const nodeStart = Date.now();
-			const node = buildNode(resolver, arn, output, options);
+			const result = buildNode(resolver, arn, data, options);
 			const nodeMs = Date.now() - nodeStart;
 
 			const totalMs = Date.now() - t0;
 			console.log(
-				`[Resolver:${service}] ✓ ${arn.raw} → ${node.logicalId} (fetch=${fetchMs}ms, build=${nodeMs}ms, total=${totalMs}ms)`,
+				`[Resolver:${service}] ✓ ${arn.raw} → ${result.node.logicalId} (fetch=${fetchMs}ms, build=${nodeMs}ms, total=${totalMs}ms)`,
 			);
-			return node;
+			return result;
 		} catch (err: unknown) {
 			const error = err as {
 				code?: string;
@@ -98,7 +94,6 @@ export async function resolveResource(
 			};
 			const code = error.code ?? error.name ?? "";
 
-			// Throttle error — wait for retryAfterSeconds (or 1s fallback) and retry
 			if (THROTTLE_CODES.has(code) && attempt < MAX_RETRIES) {
 				const retryAfter = (error.$metadata?.retryAfterSeconds ?? 1) * 1000;
 				console.warn(
@@ -128,43 +123,47 @@ export async function resolveResource(
 		}
 	}
 
-	// Exhausted all retries
 	return null;
 }
 
 /**
- * Build a DiscoveryNode from a resolver output.
+ * Build a Node from resolver output data.
  *
- * Extracts referenced ARNs from the data, builds the canonical name,
+ * Extracts referenced ARNs from the data, replaces them with placeholders,
  * and sets the discovery state to 'resolved'.
  */
 function buildNode(
 	resolver: ResourceResolver,
 	arn: ParsedARN,
-	output: ResolverOutput,
+	data: Record<string, unknown>,
 	options?: ResolveOptions,
-): DiscoveryNode {
-	const { data, logicalId, classification, referenceOnly, metadata } = output;
-
-	const referencedArnPaths = extractARNs(data, {
+): ResolveResult {
+	const { sanitizedData, arnPaths } = extractARNs(data, {
 		knownBuckets: options?.knownBuckets,
 	});
 
-	return {
-		logicalId: logicalId ?? arn.resourceId,
+	const classification = resolver.classify
+		? resolver.classify(data, arn)
+		: "resource";
+
+	const logicalId = arn.resourceId || arn.resource || arn.raw;
+
+	const node: Node = {
+		logicalId,
 		service: resolver.service,
 		cfnType:
 			resolver.cfnType ??
 			`AWS::${capitalize(resolver.service)}::${capitalize(resolver.resourceType)}`,
-		properties: data,
-		primaryArn: arn,
-		referencedArns: new Set(referencedArnPaths.keys()),
-		referencedArnPaths,
-		classification: classification ?? NodeClassification.RESOURCE,
-		referenceOnly: referenceOnly ?? false,
-		metadata: metadata ?? {},
+		arn: arn.raw,
+		data: sanitizedData,
+		referencedArns: Array.from(arnPaths.keys()),
+		classification,
+		referenceOnly: false,
+		metadata: {},
 		discoveryState: "resolved" as const,
 	};
+
+	return { node, arnPaths };
 }
 
 /**

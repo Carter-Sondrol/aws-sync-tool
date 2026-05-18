@@ -1,5 +1,4 @@
-import type { DiscoveryNode } from "../discovery/discovery-node.js";
-import type { GraphEdge } from "@aws-sync-tool/types";
+import type { Node, GraphEdge } from "@aws-sync-tool/types";
 
 /** Derive a stable edge key from source + target ARNs. */
 function edgeKey(source: string, target: string): string {
@@ -7,24 +6,18 @@ function edgeKey(source: string, target: string): string {
 }
 
 export class GraphStore {
-	private nodes = new Map<string, DiscoveryNode>();
+	private nodes = new Map<string, Node>();
 	private edges = new Map<string, GraphEdge>();
 
-	addNode(node: DiscoveryNode): void {
-		const primaryArn = node.primaryArn.raw;
-		if (primaryArn) {
-			this.nodes.set(primaryArn, node);
-		}
+	addNode(node: Node): void {
+		this.nodes.set(node.arn, node);
 	}
 
-	updateNode(node: DiscoveryNode): void {
-		const primaryArn = node.primaryArn.raw;
-		if (primaryArn) {
-			this.nodes.set(primaryArn, node);
-		}
+	updateNode(node: Node): void {
+		this.nodes.set(node.arn, node);
 	}
 
-	getNode(arn: string): DiscoveryNode | undefined {
+	getNode(arn: string): Node | undefined {
 		return this.nodes.get(arn);
 	}
 
@@ -37,14 +30,12 @@ export class GraphStore {
 		const existing = this.edges.get(key);
 
 		if (existing) {
-			// Merge: keep the most specific relationshipType, combine labels
-			const existingTypes = new Set(existing.labels);
+			const existingLabels = new Set(existing.labels);
 			for (const label of edge.labels) {
-				if (!existingTypes.has(label)) {
+				if (!existingLabels.has(label)) {
 					existing.labels.push(label);
 				}
 			}
-			// If the new edge has a typed relationship, prefer it
 			if (edge.relationshipType !== "referenced_arn") {
 				existing.relationshipType = edge.relationshipType;
 			}
@@ -53,7 +44,7 @@ export class GraphStore {
 		}
 	}
 
-	getAllNodes(): Map<string, DiscoveryNode> {
+	getAllNodes(): Map<string, Node> {
 		return new Map(this.nodes);
 	}
 
@@ -78,5 +69,3 @@ export class GraphStore {
 		return this.edges.size;
 	}
 }
-
-// No singleton — instantiate in index.ts and inject into routes

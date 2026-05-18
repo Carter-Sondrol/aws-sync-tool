@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { DiscoveryNode } from "../discovery/discovery-node.js";
 import type { NodeClassification } from "../discovery/discovery-node.js";
 import type { DiscoveredNode, GraphEdge } from "@aws-sync-tool/types";
-import { parseARN } from "../arn.js";
+import { parseARN } from "../../../packages/types/src/arn.js";
 import { freezeGraph, thawGraph } from "../graph/frozen-graph.js";
 import { validateImportGraph } from "../graph/graph-schemas.js";
 import type { GraphStore } from "../graph/store.js";

@@ -36,7 +36,7 @@ export function createDiscoveryRouter(discoveryEngine: DiscoveryEngine) {
 				region: (account.region as string) || "us-east-1",
 			});
 
-			const { parseARN, canonicalForGraph } = await import("../arn.js");
+			const { parseARN, canonicalForGraph } = await import("../../../packages/types/src/arn.js");
 
 			const parsed = parseARN(arn);
 			if (!parsed) {

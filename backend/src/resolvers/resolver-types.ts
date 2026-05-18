@@ -1,5 +1,5 @@
-import type { ParsedARN } from "../arn.js";
-import type { NodeClassification } from "../discovery/discovery-node.js";
+import type { ParsedARN } from "../../../packages/types/src/arn.js";
+import type { NodeClassification } from "@aws-sync-tool/types";
 
 /** AWS SDK credentials shape. */
 export interface Credentials {
@@ -9,22 +9,10 @@ export interface Credentials {
 }
 
 /**
- * Output from a resolver's fetch() method.
- * The engine uses this to construct the DiscoveryNode.
- */
-export interface ResolverOutput {
-	data: Record<string, unknown>;
-	logicalId: string;
-	classification: NodeClassification;
-	referenceOnly?: boolean;
-	metadata?: Record<string, unknown>;
-}
-
-/**
  * Minimal resolver contract.
- * - fetch(): call the AWS API, return structured data
- *   Any referenced ARNs (dependencies, child resources, related resources)
- *   are included in the returned data — the engine extracts them automatically.
+ * - fetch(): call the AWS API, return raw resource data as a plain object.
+ *   Include any referenced ARNs in the returned data (env vars, config, child resources).
+ *   The engine scans the output for ARNs, replaces them with placeholders, and enqueues them.
  */
 export interface ResourceResolver {
 	service: string;
@@ -33,12 +21,19 @@ export interface ResourceResolver {
 
 	/**
 	 * Fetch resource data from AWS.
-	 * Include any referenced ARNs in the returned data (env vars, config, child resources).
-	 * The engine scans the output for ARNs and enqueues them — no special wiring needed.
-	 * E.g. Connect instance resolver lists its queues/flows and includes their ARNs in data.
+	 * Return the raw API response as a plain object.
+	 * Any referenced ARNs in the data are extracted and replaced with `__REF_` placeholders.
+	 *
+	 * @returns raw resource data, or null if the resource is not found.
 	 */
 	fetch(
 		arn: ParsedARN,
 		credentials: () => Promise<Credentials>,
-	): Promise<ResolverOutput>;
+	): Promise<Record<string, unknown> | null>;
+
+	/**
+	 * Optional classifier. Called with the fetched data to determine
+	 * the node's classification. Defaults to "resource" if not provided.
+	 */
+	classify?(data: Record<string, unknown>, arn: ParsedARN): NodeClassification;
 }
