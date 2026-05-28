@@ -1,0 +1,66 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "01ff30ed-12af-4fb9-a6d2-4de80a7ec1be",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": 40,
+      "y": 40
+    },
+    "ActionMetadata": {
+      "cc8e587c-7c99-4cf3-a7c0-ad494b3c5305": {
+        "position": {
+          "x": 640.8,
+          "y": 315.2
+        }
+      },
+      "01ff30ed-12af-4fb9-a6d2-4de80a7ec1be": {
+        "position": {
+          "x": 150.4,
+          "y": 148
+        }
+      },
+      "succesfully migrated": {
+        "position": {
+          "x": 405.6,
+          "y": 187.2
+        },
+        "isFriendlyName": true
+      }
+    },
+    "Annotations": []
+  },
+  "Actions": [
+    {
+      "Parameters": {},
+      "Identifier": "cc8e587c-7c99-4cf3-a7c0-ad494b3c5305",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "FlowLoggingBehavior": "Enabled"
+      },
+      "Identifier": "01ff30ed-12af-4fb9-a6d2-4de80a7ec1be",
+      "Type": "UpdateFlowLoggingBehavior",
+      "Transitions": {
+        "NextAction": "succesfully migrated"
+      }
+    },
+    {
+      "Parameters": {
+        "Text": "succesfully migrated"
+      },
+      "Identifier": "succesfully migrated",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "cc8e587c-7c99-4cf3-a7c0-ad494b3c5305",
+        "Errors": [
+          {
+            "NextAction": "cc8e587c-7c99-4cf3-a7c0-ad494b3c5305",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ]
+}

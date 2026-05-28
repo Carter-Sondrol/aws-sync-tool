@@ -1,0 +1,282 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "enable-logging",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": -260,
+      "y": 119.2
+    },
+    "ActionMetadata": {
+      "set-voice": {
+        "position": {
+          "x": 120.8,
+          "y": 120.8
+        },
+        "children": [
+          "2f6b7649-162d-4bba-9c51-a4ba0c30998a"
+        ],
+        "parameters": {
+          "TextToSpeechVoice": {
+            "languageCode": "en-US"
+          }
+        },
+        "overrideConsoleVoice": true,
+        "fragments": {
+          "SetContactData": "2f6b7649-162d-4bba-9c51-a4ba0c30998a"
+        },
+        "overrideLanguageAttribute": true
+      },
+      "2f6b7649-162d-4bba-9c51-a4ba0c30998a": {
+        "position": {
+          "x": 120.8,
+          "y": 120.8
+        },
+        "dynamicParams": []
+      },
+      "set-flow-attributes": {
+        "position": {
+          "x": 588.8,
+          "y": 122.4
+        }
+      },
+      "enable-logging": {
+        "position": {
+          "x": -117.6,
+          "y": 117.6
+        }
+      },
+      "get-prompts": {
+        "position": {
+          "x": 360.8,
+          "y": 116.8
+        },
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-get-prompts"
+          }
+        },
+        "dynamicMetadata": {
+          "flow_name": false
+        }
+      },
+      "play-greeting": {
+        "position": {
+          "x": 830.4,
+          "y": 124
+        },
+        "parameters": {
+          "SSML": {
+            "useDynamic": true
+          }
+        },
+        "useDynamic": true
+      },
+      "disconnect": {
+        "position": {
+          "x": 1800.8,
+          "y": 120
+        }
+      },
+      "set-queue": {
+        "position": {
+          "x": 1079.2,
+          "y": 121.6
+        },
+        "parameters": {
+          "QueueId": {
+            "displayName": "Q_CSC_Customer_Service_Center"
+          }
+        },
+        "queue": {
+          "text": "Q_CSC_Customer_Service_Center"
+        }
+      },
+      "transfer-to-prequeue": {
+        "position": {
+          "x": 1563.2,
+          "y": 121.6
+        },
+        "parameters": {
+          "ContactFlowId": {
+            "displayName": "Pre-Queue Preparation"
+          }
+        },
+        "ContactFlow": {
+          "text": "Pre-Queue Preparation"
+        }
+      },
+      "c65c67a5-d002-4925-82db-65088a67e6a2": {
+        "position": {
+          "x": 1324,
+          "y": 122.4
+        },
+        "dynamicParams": []
+      }
+    },
+    "Annotations": []
+  },
+  "Actions": [
+    {
+      "Parameters": {
+        "TextToSpeechVoice": "Stephen",
+        "TextToSpeechEngine": "Generative",
+        "TextToSpeechStyle": "None"
+      },
+      "Identifier": "set-voice",
+      "Type": "UpdateContactTextToSpeechVoice",
+      "Transitions": {
+        "NextAction": "2f6b7649-162d-4bba-9c51-a4ba0c30998a",
+        "Errors": [
+          {
+            "NextAction": "get-prompts",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LanguageCode": "en-US"
+      },
+      "Identifier": "2f6b7649-162d-4bba-9c51-a4ba0c30998a",
+      "Type": "UpdateContactData",
+      "Transitions": {
+        "NextAction": "get-prompts",
+        "Errors": [
+          {
+            "NextAction": "get-prompts",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowAttributes": {
+          "greeting_msg": {
+            "Value": "$.External.greeting_msg"
+          }
+        }
+      },
+      "Identifier": "set-flow-attributes",
+      "Type": "UpdateFlowAttributes",
+      "Transitions": {
+        "NextAction": "play-greeting",
+        "Errors": [
+          {
+            "NextAction": "play-greeting",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowLoggingBehavior": "Enabled"
+      },
+      "Identifier": "enable-logging",
+      "Type": "UpdateFlowLoggingBehavior",
+      "Transitions": {
+        "NextAction": "set-voice"
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-get-prompts",
+        "InvocationTimeLimitSeconds": "3",
+        "InvocationType": "SYNCHRONOUS",
+        "LambdaInvocationAttributes": {
+          "flow_name": "Tax Evasion Entry"
+        },
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "get-prompts",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "set-flow-attributes",
+        "Errors": [
+          {
+            "NextAction": "set-flow-attributes",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "SSML": "$.FlowAttributes.greeting_msg"
+      },
+      "Identifier": "play-greeting",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "set-queue",
+        "Errors": [
+          {
+            "NextAction": "set-queue",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "disconnect",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "QueueId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/queue/c722618c-3377-479a-ba6b-843ab648ff49"
+      },
+      "Identifier": "set-queue",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "c65c67a5-d002-4925-82db-65088a67e6a2",
+        "Errors": [
+          {
+            "NextAction": "c65c67a5-d002-4925-82db-65088a67e6a2",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ContactFlowId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/contact-flow/02b68552-8598-4adb-aa3a-8152aa2ac153"
+      },
+      "Identifier": "transfer-to-prequeue",
+      "Type": "TransferToFlow",
+      "Transitions": {
+        "NextAction": "disconnect",
+        "Errors": [
+          {
+            "NextAction": "disconnect",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "Attributes": {
+          "WhisperOverride": "Tax Evasion Hotline Call"
+        },
+        "TargetContact": "Current"
+      },
+      "Identifier": "c65c67a5-d002-4925-82db-65088a67e6a2",
+      "Type": "UpdateContactAttributes",
+      "Transitions": {
+        "NextAction": "transfer-to-prequeue",
+        "Errors": [
+          {
+            "NextAction": "transfer-to-prequeue",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,415 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "14defb20-850b-4728-b5a2-216fdb814534",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": 296.8,
+      "y": 39.2
+    },
+    "ActionMetadata": {
+      "9dde1f03-f3bc-493d-a502-7d2feed31707": {
+        "position": {
+          "x": 3300.8,
+          "y": 38.4
+        }
+      },
+      "4b23d56f-8468-4866-aefa-8de32cdb413c": {
+        "position": {
+          "x": 2258.4,
+          "y": 39.2
+        },
+        "dynamicParams": []
+      },
+      "1461e8d5-62db-442a-a452-9c95893062f1": {
+        "position": {
+          "x": 2000,
+          "y": 38.4
+        },
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-get-agent-by-phone-number"
+          }
+        },
+        "dynamicMetadata": {}
+      },
+      "15798930-2157-4ad0-91b5-a2638581cc2d": {
+        "position": {
+          "x": 3038.4,
+          "y": 39.2
+        }
+      },
+      "125b4698-8c90-48a0-b009-ef3bb35f8193": {
+        "position": {
+          "x": 2520.8,
+          "y": 40
+        },
+        "parameters": {
+          "AgentId": {
+            "useDynamic": true
+          }
+        },
+        "useDynamic": true
+      },
+      "03865475-520e-4fb3-a58d-821afce52d8c": {
+        "position": {
+          "x": 2780.8,
+          "y": 38.4
+        },
+        "parameters": {
+          "EventHooks": {
+            "CustomerQueue": {
+              "displayName": "Direct Dial Customer Queue"
+            }
+          }
+        },
+        "contactFlow": {
+          "text": "Direct Dial Customer Queue",
+          "id": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/contact-flow/3eabb6f0-47d4-441d-b9a6-0c98e355c41e"
+        },
+        "customerOrAgent": true
+      },
+      "welcome_msg": {
+        "position": {
+          "x": 1740,
+          "y": 35.2
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "SSML": {
+            "useDynamic": true
+          }
+        },
+        "useDynamic": true
+      },
+      "14defb20-850b-4728-b5a2-216fdb814534": {
+        "position": {
+          "x": 439.2,
+          "y": 37.6
+        }
+      },
+      "1392433f-a1ee-4890-ab1d-f59e39002866": {
+        "position": {
+          "x": 698.4,
+          "y": 39.2
+        },
+        "parameters": {
+          "TextToSpeechVoice": {
+            "languageCode": "en-US"
+          }
+        },
+        "overrideConsoleVoice": true
+      },
+      "40ce3056-7b37-406c-b539-53587b891a71": {
+        "position": {
+          "x": 1481.6,
+          "y": 38.4
+        }
+      },
+      "91f0bcdd-538a-4e33-8c86-64cd1c873147": {
+        "position": {
+          "x": 960,
+          "y": 39.2
+        },
+        "dynamicParams": []
+      },
+      "906b363a-052f-45f8-81ca-f0b6cb47950b": {
+        "position": {
+          "x": 1220,
+          "y": 36.8
+        },
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-get-prompts"
+          }
+        },
+        "dynamicMetadata": {
+          "flow_name": false
+        }
+      }
+    },
+    "Annotations": [
+      {
+        "type": "default",
+        "id": "e749e7b8-b3dc-47f4-94ce-50d32d86eb46",
+        "content": "Uses the system phone number to do a lookup on the agent table. No need to double up like the previous flow.\n\nCurrently, it seems that the voicemail table extension numbers are preferred.",
+        "actionId": "",
+        "isFolded": false,
+        "position": {
+          "x": 2476,
+          "y": 297
+        },
+        "size": {
+          "height": 295,
+          "width": 300
+        }
+      },
+      {
+        "type": "default",
+        "id": "dfbdc602-f330-4363-9205-2b52c9f9ad3f",
+        "content": "Maybe just leave default agent whisper? Handle the attributes the way Brandon has been suggesting",
+        "actionId": "",
+        "isFolded": false,
+        "position": {
+          "x": 1176,
+          "y": 295
+        },
+        "size": {
+          "height": 295,
+          "width": 300
+        }
+      },
+      {
+        "type": "default",
+        "id": "f4e74aec-ec7a-4c01-9024-25add3540e5d",
+        "content": "Prompt(s)",
+        "actionId": "",
+        "isFolded": false,
+        "position": {
+          "x": 1749,
+          "y": 310
+        },
+        "size": {
+          "height": 295,
+          "width": 300
+        }
+      },
+      {
+        "type": "default",
+        "id": "82e3ac69-5680-4cf6-86c7-d43c4a2e5b07",
+        "content": "Set queue for agent via ID. Set customer queue to vm queue. ",
+        "actionId": "",
+        "isFolded": false,
+        "position": {
+          "x": 2873,
+          "y": 292
+        },
+        "size": {
+          "height": 295,
+          "width": 300
+        }
+      },
+      {
+        "type": "default",
+        "id": "fde14cb8-9a2d-4fee-83c7-752b27b50425",
+        "content": "Probably need an error path here in case an agent gets fired or something and the table isn't updated before a customer calls in.",
+        "actionId": "",
+        "isFolded": false,
+        "position": {
+          "x": 3120,
+          "y": -288
+        },
+        "size": {
+          "height": 295,
+          "width": 300
+        }
+      }
+    ]
+  },
+  "Actions": [
+    {
+      "Parameters": {},
+      "Identifier": "9dde1f03-f3bc-493d-a502-7d2feed31707",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "Attributes": {
+          "agent_id": "$.External.agent_id"
+        },
+        "TargetContact": "Current"
+      },
+      "Identifier": "4b23d56f-8468-4866-aefa-8de32cdb413c",
+      "Type": "UpdateContactAttributes",
+      "Transitions": {
+        "NextAction": "125b4698-8c90-48a0-b009-ef3bb35f8193",
+        "Errors": [
+          {
+            "NextAction": "125b4698-8c90-48a0-b009-ef3bb35f8193",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-get-agent-by-phone-number",
+        "InvocationTimeLimitSeconds": "3",
+        "InvocationType": "SYNCHRONOUS",
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "1461e8d5-62db-442a-a452-9c95893062f1",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "4b23d56f-8468-4866-aefa-8de32cdb413c",
+        "Errors": [
+          {
+            "NextAction": "4b23d56f-8468-4866-aefa-8de32cdb413c",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "15798930-2157-4ad0-91b5-a2638581cc2d",
+      "Type": "TransferContactToQueue",
+      "Transitions": {
+        "NextAction": "9dde1f03-f3bc-493d-a502-7d2feed31707",
+        "Errors": [
+          {
+            "NextAction": "9dde1f03-f3bc-493d-a502-7d2feed31707",
+            "ErrorType": "QueueAtCapacity"
+          },
+          {
+            "NextAction": "9dde1f03-f3bc-493d-a502-7d2feed31707",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "AgentId": "$.Attributes.agent_id"
+      },
+      "Identifier": "125b4698-8c90-48a0-b009-ef3bb35f8193",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "03865475-520e-4fb3-a58d-821afce52d8c",
+        "Errors": [
+          {
+            "NextAction": "03865475-520e-4fb3-a58d-821afce52d8c",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "EventHooks": {
+          "CustomerQueue": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/contact-flow/3eabb6f0-47d4-441d-b9a6-0c98e355c41e"
+        }
+      },
+      "Identifier": "03865475-520e-4fb3-a58d-821afce52d8c",
+      "Type": "UpdateContactEventHooks",
+      "Transitions": {
+        "NextAction": "15798930-2157-4ad0-91b5-a2638581cc2d",
+        "Errors": [
+          {
+            "NextAction": "15798930-2157-4ad0-91b5-a2638581cc2d",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SSML": "$.FlowAttributes.welcome_msg"
+      },
+      "Identifier": "welcome_msg",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "1461e8d5-62db-442a-a452-9c95893062f1",
+        "Errors": [
+          {
+            "NextAction": "1461e8d5-62db-442a-a452-9c95893062f1",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowLoggingBehavior": "Enabled"
+      },
+      "Identifier": "14defb20-850b-4728-b5a2-216fdb814534",
+      "Type": "UpdateFlowLoggingBehavior",
+      "Transitions": {
+        "NextAction": "1392433f-a1ee-4890-ab1d-f59e39002866"
+      }
+    },
+    {
+      "Parameters": {
+        "TextToSpeechVoice": "Stephen",
+        "TextToSpeechEngine": "Generative",
+        "TextToSpeechStyle": "None"
+      },
+      "Identifier": "1392433f-a1ee-4890-ab1d-f59e39002866",
+      "Type": "UpdateContactTextToSpeechVoice",
+      "Transitions": {
+        "NextAction": "91f0bcdd-538a-4e33-8c86-64cd1c873147",
+        "Errors": [
+          {
+            "NextAction": "91f0bcdd-538a-4e33-8c86-64cd1c873147",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowAttributes": {
+          "welcome_msg": {
+            "Value": "$.External.welcome_msg"
+          }
+        }
+      },
+      "Identifier": "40ce3056-7b37-406c-b539-53587b891a71",
+      "Type": "UpdateFlowAttributes",
+      "Transitions": {
+        "NextAction": "welcome_msg",
+        "Errors": [
+          {
+            "NextAction": "welcome_msg",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "Attributes": {
+          "agent_whisper": "<speak>Direct dial call</speak>"
+        },
+        "TargetContact": "Current"
+      },
+      "Identifier": "91f0bcdd-538a-4e33-8c86-64cd1c873147",
+      "Type": "UpdateContactAttributes",
+      "Transitions": {
+        "NextAction": "906b363a-052f-45f8-81ca-f0b6cb47950b",
+        "Errors": [
+          {
+            "NextAction": "906b363a-052f-45f8-81ca-f0b6cb47950b",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-get-prompts",
+        "InvocationTimeLimitSeconds": "3",
+        "InvocationType": "SYNCHRONOUS",
+        "LambdaInvocationAttributes": {
+          "flow_name": "Direct Dial Inbound"
+        },
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "906b363a-052f-45f8-81ca-f0b6cb47950b",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "40ce3056-7b37-406c-b539-53587b891a71",
+        "Errors": [
+          {
+            "NextAction": "40ce3056-7b37-406c-b539-53587b891a71",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ]
+}

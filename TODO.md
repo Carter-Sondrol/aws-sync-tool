@@ -1,0 +1,20 @@
+- [x] Add right click menu to resources tree
+- [x] Sync Parameters as its own panel for better sizing (resizable bottom drawer)
+- [x] Remove redunant graph links between grouped oject's group node's link and the resource itself
+- [x] Graph interactions don't scale with slider correctly (in-graph mouse positions is different from true) — use webFrame.setZoomFactor
+- Decouple Sync Parameter + ENV from "Environments" tab accounts - Same account can have multiple environments
+- [x] Sync parameter shouldn't have a row for unsync'd resources or parameters — referenced excluded nodes show compact ARN-only rows; dynamic refs show clickable logicalId chips
+- [x] foldable tree for parameters grouped by type like dynamic refrence (link to another sync'd resource), static value, dynamic value
+- [x] Integrate scripts/generate_resolvers.ts with discovery - If discovery finds no existing resolver for a given resource, generate one 
+- Bug: Fix graph resetting position everytime something changes
+- Unfreeze the graph when dragging a node + allow "pinning" or locking nodes in place
+- improve browse resources menu
+- Give subresource nodes their own style rather than copy the top resource
+- Update the node color/shape coding to be more consistent and visually distinct
+- Rgith click resource tree headers to batch select (with right click and everything)
+- Clicking a resource in either the tree or the sync table should center the camera on said node (without resetting the graph)
+- Make box select more inuitive and not require a seperate button push to use
+- All example EXAMPLE WORKFLOWS should be doable and a good UX for users
+- Add directionality to edges (node A refrences node B etc)
+- If node A has a edge to B and C, and B has an edge to C, we can hide the edge from A to C
+- Use edges to display type of refrence (moving colorconnect dots? Edges look unique?)

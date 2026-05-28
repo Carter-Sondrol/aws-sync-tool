@@ -1,0 +1,256 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "enable-logging",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": -324,
+      "y": 113.6
+    },
+    "ActionMetadata": {
+      "set-flow-attributes": {
+        "position": {
+          "x": 534.4,
+          "y": 120.8
+        }
+      },
+      "play-greeting": {
+        "position": {
+          "x": 779.2,
+          "y": 121.6
+        },
+        "parameters": {
+          "SSML": {
+            "useDynamic": true
+          }
+        },
+        "useDynamic": true
+      },
+      "disconnect": {
+        "position": {
+          "x": 1488,
+          "y": 123.2
+        }
+      },
+      "set-queue": {
+        "position": {
+          "x": 1009.6,
+          "y": 124
+        },
+        "parameters": {
+          "QueueId": {
+            "displayName": "Q_CSC_NCW_Closeouts"
+          }
+        },
+        "queue": {
+          "text": "Q_CSC_NCW_Closeouts"
+        }
+      },
+      "transfer-to-prequeue": {
+        "position": {
+          "x": 1247.2,
+          "y": 120.8
+        },
+        "parameters": {
+          "ContactFlowId": {
+            "displayName": "Pre-Queue Preparation"
+          }
+        },
+        "ContactFlow": {
+          "text": "Pre-Queue Preparation"
+        }
+      },
+      "enable-logging": {
+        "position": {
+          "x": -210.4,
+          "y": 119.2
+        }
+      },
+      "get-prompts": {
+        "position": {
+          "x": 284,
+          "y": 120.8
+        },
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-get-prompts"
+          }
+        },
+        "dynamicMetadata": {
+          "flow_name": false
+        }
+      },
+      "set-voice": {
+        "position": {
+          "x": 33.6,
+          "y": 119.2
+        },
+        "children": [
+          "5377dcaf-3ea1-4bc5-ab45-4202cc5e1aad"
+        ],
+        "parameters": {
+          "TextToSpeechVoice": {
+            "languageCode": "en-US"
+          }
+        },
+        "overrideConsoleVoice": true,
+        "fragments": {
+          "SetContactData": "5377dcaf-3ea1-4bc5-ab45-4202cc5e1aad"
+        },
+        "overrideLanguageAttribute": true
+      },
+      "5377dcaf-3ea1-4bc5-ab45-4202cc5e1aad": {
+        "position": {
+          "x": 33.6,
+          "y": 119.2
+        },
+        "dynamicParams": []
+      }
+    },
+    "Annotations": []
+  },
+  "Actions": [
+    {
+      "Parameters": {
+        "FlowAttributes": {
+          "greeting_msg": {
+            "Value": "$.External.greeting_msg"
+          }
+        }
+      },
+      "Identifier": "set-flow-attributes",
+      "Type": "UpdateFlowAttributes",
+      "Transitions": {
+        "NextAction": "play-greeting",
+        "Errors": [
+          {
+            "NextAction": "play-greeting",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "SSML": "$.FlowAttributes.greeting_msg"
+      },
+      "Identifier": "play-greeting",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "set-queue",
+        "Errors": [
+          {
+            "NextAction": "set-queue",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "disconnect",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "QueueId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/queue/fc15ad9e-4c8a-44ca-a108-8647a6cdd038"
+      },
+      "Identifier": "set-queue",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "transfer-to-prequeue",
+        "Errors": [
+          {
+            "NextAction": "transfer-to-prequeue",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ContactFlowId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/contact-flow/02b68552-8598-4adb-aa3a-8152aa2ac153"
+      },
+      "Identifier": "transfer-to-prequeue",
+      "Type": "TransferToFlow",
+      "Transitions": {
+        "NextAction": "disconnect",
+        "Errors": [
+          {
+            "NextAction": "disconnect",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowLoggingBehavior": "Enabled"
+      },
+      "Identifier": "enable-logging",
+      "Type": "UpdateFlowLoggingBehavior",
+      "Transitions": {
+        "NextAction": "set-voice"
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-get-prompts",
+        "InvocationTimeLimitSeconds": "3",
+        "InvocationType": "SYNCHRONOUS",
+        "LambdaInvocationAttributes": {
+          "flow_name": "NCW Closeouts Entry"
+        },
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "get-prompts",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "set-flow-attributes",
+        "Errors": [
+          {
+            "NextAction": "set-flow-attributes",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "TextToSpeechVoice": "Stephen",
+        "TextToSpeechEngine": "Generative",
+        "TextToSpeechStyle": "None"
+      },
+      "Identifier": "set-voice",
+      "Type": "UpdateContactTextToSpeechVoice",
+      "Transitions": {
+        "NextAction": "5377dcaf-3ea1-4bc5-ab45-4202cc5e1aad",
+        "Errors": [
+          {
+            "NextAction": "get-prompts",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LanguageCode": "en-US"
+      },
+      "Identifier": "5377dcaf-3ea1-4bc5-ab45-4202cc5e1aad",
+      "Type": "UpdateContactData",
+      "Transitions": {
+        "NextAction": "get-prompts",
+        "Errors": [
+          {
+            "NextAction": "get-prompts",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "09ff3ae8-3378-4d48-a3ac-8ad2c8a9d007",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": 242.4,
+      "y": 172
+    },
+    "ActionMetadata": {
+      "8d0499df-b480-4f43-b1b7-cb91592673ea": {
+        "position": {
+          "x": 627.2,
+          "y": 479.2
+        }
+      },
+      "098007b7-e257-4b7c-9c3c-741d4680517d": {
+        "position": {
+          "x": 639.2,
+          "y": 228.8
+        },
+        "parameters": {
+          "Messages": [
+            null,
+            {
+              "PromptId": {}
+            }
+          ]
+        },
+        "audio": [
+          {
+            "id": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/58313a70-074b-40b4-a5fd-7bacb01623dc",
+            "type": "Prompt"
+          }
+        ]
+      },
+      "09ff3ae8-3378-4d48-a3ac-8ad2c8a9d007": {
+        "position": {
+          "x": 374.4,
+          "y": 381.6
+        },
+        "conditionMetadata": [
+          {
+            "id": "19f0b1e1-5c64-4660-ab7d-7a761f12fcba",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "TASK"
+          }
+        ]
+      }
+    },
+    "Annotations": []
+  },
+  "Actions": [
+    {
+      "Parameters": {},
+      "Identifier": "8d0499df-b480-4f43-b1b7-cb91592673ea",
+      "Type": "EndFlowExecution",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "Messages": [
+          {
+            "Text": "Thank you for calling. Your call is very important to us and will be answered in the order it was received."
+          },
+          {
+            "PromptId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/58313a70-074b-40b4-a5fd-7bacb01623dc"
+          }
+        ],
+        "ContinueMessagingDuringInterrupt": "false"
+      },
+      "Identifier": "098007b7-e257-4b7c-9c3c-741d4680517d",
+      "Type": "MessageParticipantIteratively",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "ComparisonValue": "$.Channel"
+      },
+      "Identifier": "09ff3ae8-3378-4d48-a3ac-8ad2c8a9d007",
+      "Type": "Compare",
+      "Transitions": {
+        "NextAction": "098007b7-e257-4b7c-9c3c-741d4680517d",
+        "Conditions": [
+          {
+            "NextAction": "8d0499df-b480-4f43-b1b7-cb91592673ea",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "TASK"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "098007b7-e257-4b7c-9c3c-741d4680517d",
+            "ErrorType": "NoMatchingCondition"
+          }
+        ]
+      }
+    }
+  ]
+}

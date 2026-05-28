@@ -1,0 +1,438 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "enable_logging",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": -400,
+      "y": 40
+    },
+    "ActionMetadata": {
+      "enable_logging": {
+        "position": {
+          "x": -260,
+          "y": 20
+        },
+        "isFriendlyName": true
+      },
+      "set_voice_stephen": {
+        "position": {
+          "x": 780,
+          "y": 20
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "TextToSpeechVoice": {
+            "languageCode": "en-US"
+          }
+        },
+        "overrideConsoleVoice": true
+      },
+      "get-prompts": {
+        "position": {
+          "x": 1040,
+          "y": 20
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-get-prompts"
+          }
+        },
+        "dynamicMetadata": {
+          "flow_name": false
+        }
+      },
+      "set_flow_attributes": {
+        "position": {
+          "x": 1300,
+          "y": 20
+        },
+        "isFriendlyName": true
+      },
+      "greeting_msg": {
+        "position": {
+          "x": 1560,
+          "y": 20
+        },
+        "isFriendlyName": true
+      },
+      "play_emergency_msg": {
+        "position": {
+          "x": 2080,
+          "y": -160
+        },
+        "isFriendlyName": true
+      },
+      "disconnect_emergency": {
+        "position": {
+          "x": 2340,
+          "y": -160
+        },
+        "isFriendlyName": true
+      },
+      "check_emergency_close": {
+        "position": {
+          "x": 1820,
+          "y": 20
+        },
+        "isFriendlyName": true,
+        "conditions": [],
+        "conditionMetadata": [
+          {
+            "id": "763ce78d-26ac-405a-ab51-41c8a9dcdd69",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "true"
+          },
+          {
+            "id": "381161f5-eea2-4c86-b4dc-846eb2b70fed",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "false"
+          }
+        ]
+      },
+      "transfer_to_prequeue": {
+        "position": {
+          "x": 2340,
+          "y": 20
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "ContactFlowId": {
+            "displayName": "Pre-Queue Preperation"
+          }
+        },
+        "ContactFlow": {
+          "text": "Pre-Queue Preperation"
+        }
+      },
+      "disconnect": {
+        "position": {
+          "x": 2600,
+          "y": 20
+        },
+        "isFriendlyName": true
+      },
+      "set_queue_tra": {
+        "position": {
+          "x": 2080,
+          "y": 20
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "QueueId": {
+            "displayName": "Q_TRA"
+          }
+        },
+        "queue": {
+          "text": "Q_TRA"
+        }
+      },
+      "get-dnis-config": {
+        "position": {
+          "x": 0,
+          "y": 20
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-get-dnis-config"
+          }
+        },
+        "dynamicMetadata": {}
+      },
+      "enable_recording": {
+        "position": {
+          "x": 520,
+          "y": 20
+        },
+        "isFriendlyName": true
+      },
+      "set_dnis_attributes": {
+        "position": {
+          "x": 260,
+          "y": 20
+        },
+        "isFriendlyName": true,
+        "dynamicParams": []
+      }
+    },
+    "Annotations": []
+  },
+  "Actions": [
+    {
+      "Parameters": {
+        "FlowLoggingBehavior": "Enabled"
+      },
+      "Identifier": "enable_logging",
+      "Type": "UpdateFlowLoggingBehavior",
+      "Transitions": {
+        "NextAction": "get-dnis-config"
+      }
+    },
+    {
+      "Parameters": {
+        "TextToSpeechVoice": "Stephen",
+        "TextToSpeechEngine": "Generative",
+        "TextToSpeechStyle": "None"
+      },
+      "Identifier": "set_voice_stephen",
+      "Type": "UpdateContactTextToSpeechVoice",
+      "Transitions": {
+        "NextAction": "get-prompts",
+        "Errors": [
+          {
+            "NextAction": "get-prompts",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-get-prompts",
+        "InvocationTimeLimitSeconds": "8",
+        "InvocationType": "SYNCHRONOUS",
+        "LambdaInvocationAttributes": {
+          "flow_name": "TRA Entry"
+        },
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "get-prompts",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "set_flow_attributes",
+        "Errors": [
+          {
+            "NextAction": "set_flow_attributes",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowAttributes": {
+          "greeting_msg": {
+            "Value": "$.External.greeting_msg"
+          },
+          "emergency_closure_msg": {
+            "Value": "$.External.emergency_closure_msg"
+          }
+        }
+      },
+      "Identifier": "set_flow_attributes",
+      "Type": "UpdateFlowAttributes",
+      "Transitions": {
+        "NextAction": "greeting_msg",
+        "Errors": [
+          {
+            "NextAction": "greeting_msg",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "SSML": "$.FlowAttributes.greeting_msg"
+      },
+      "Identifier": "greeting_msg",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "check_emergency_close",
+        "Errors": [
+          {
+            "NextAction": "check_emergency_close",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "SSML": "$.FlowAttributes.emergency_closure_msg"
+      },
+      "Identifier": "play_emergency_msg",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "disconnect_emergency",
+        "Errors": [
+          {
+            "NextAction": "disconnect_emergency",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "disconnect_emergency",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "ComparisonValue": "$.Attributes.emergency_close_flag"
+      },
+      "Identifier": "check_emergency_close",
+      "Type": "Compare",
+      "Transitions": {
+        "NextAction": "set_queue_tra",
+        "Conditions": [
+          {
+            "NextAction": "play_emergency_msg",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "true"
+              ]
+            }
+          },
+          {
+            "NextAction": "set_queue_tra",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "false"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "set_queue_tra",
+            "ErrorType": "NoMatchingCondition"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ContactFlowId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/contact-flow/02b68552-8598-4adb-aa3a-8152aa2ac153"
+      },
+      "Identifier": "transfer_to_prequeue",
+      "Type": "TransferToFlow",
+      "Transitions": {
+        "NextAction": "disconnect",
+        "Errors": [
+          {
+            "NextAction": "disconnect",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "disconnect",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "QueueId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/queue/b0151f5c-0e85-402e-9d91-7638ad9b9246"
+      },
+      "Identifier": "set_queue_tra",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "transfer_to_prequeue",
+        "Errors": [
+          {
+            "NextAction": "disconnect",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-get-dnis-config",
+        "InvocationTimeLimitSeconds": "8",
+        "InvocationType": "SYNCHRONOUS",
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "get-dnis-config",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "set_dnis_attributes",
+        "Errors": [
+          {
+            "NextAction": "set_dnis_attributes",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "VoiceBehavior": {
+          "VoiceRecordingBehavior": {
+            "RecordedParticipants": [
+              "Agent",
+              "Customer"
+            ],
+            "IVRRecordingBehavior": "Enabled"
+          },
+          "VoiceAnalyticsBehavior": {
+            "Enabled": "False"
+          }
+        }
+      },
+      "Identifier": "enable_recording",
+      "Type": "UpdateContactRecordingAndAnalyticsBehavior",
+      "Transitions": {
+        "NextAction": "set_voice_stephen",
+        "Errors": [
+          {
+            "NextAction": "set_voice_stephen",
+            "ErrorType": "NoMatchingError"
+          },
+          {
+            "NextAction": "set_voice_stephen",
+            "ErrorType": "ChannelMismatch"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "Attributes": {
+          "DNIS_authentication_flag": "$.External.DNIS_authentication_flag",
+          "DNIS_monitoring_flag": "$.External.DNIS_monitoring_flag",
+          "DNIS_survey_flag": "$.External.DNIS_survey_flag",
+          "emergency_close_flag": "$.External.emergency_close_flag",
+          "language_selection_flag": "$.External.language_selection_flag",
+          "prioritize_call_flag": "$.External.prioritize_call_flag",
+          "default_language": "$.External.default_language",
+          "selected_language": "$.External.default_language"
+        },
+        "TargetContact": "Current"
+      },
+      "Identifier": "set_dnis_attributes",
+      "Type": "UpdateContactAttributes",
+      "Transitions": {
+        "NextAction": "enable_recording",
+        "Errors": [
+          {
+            "NextAction": "enable_recording",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,189 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "enable-logging",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": -174.4,
+      "y": 132
+    },
+    "ActionMetadata": {
+      "disconnect": {
+        "position": {
+          "x": 1084,
+          "y": 144.8
+        }
+      },
+      "set-queue": {
+        "position": {
+          "x": 609.6,
+          "y": 138.4
+        },
+        "parameters": {
+          "QueueId": {
+            "displayName": "Q_CSC_Spanish"
+          }
+        },
+        "queue": {
+          "text": "Q_CSC_Spanish"
+        }
+      },
+      "transfer-to-prequeue": {
+        "position": {
+          "x": 852,
+          "y": 145.6
+        },
+        "parameters": {
+          "ContactFlowId": {
+            "displayName": "Pre-Queue Preparation"
+          }
+        },
+        "ContactFlow": {
+          "text": "Pre-Queue Preparation"
+        }
+      },
+      "enable-logging": {
+        "position": {
+          "x": -64.8,
+          "y": 132
+        }
+      },
+      "set-language": {
+        "position": {
+          "x": 384,
+          "y": 140
+        },
+        "dynamicParams": []
+      },
+      "set-voice": {
+        "position": {
+          "x": 161.6,
+          "y": 136
+        },
+        "children": [
+          "fd3c6685-10a2-433e-9b48-02293e9e4efd"
+        ],
+        "parameters": {
+          "TextToSpeechVoice": {
+            "languageCode": "es-US"
+          }
+        },
+        "overrideConsoleVoice": true,
+        "fragments": {
+          "SetContactData": "fd3c6685-10a2-433e-9b48-02293e9e4efd"
+        },
+        "overrideLanguageAttribute": true
+      },
+      "fd3c6685-10a2-433e-9b48-02293e9e4efd": {
+        "position": {
+          "x": 161.6,
+          "y": 136
+        },
+        "dynamicParams": []
+      }
+    },
+    "Annotations": []
+  },
+  "Actions": [
+    {
+      "Parameters": {},
+      "Identifier": "disconnect",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "QueueId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/queue/4eb48de3-4364-45d1-9524-50b953f7c38d"
+      },
+      "Identifier": "set-queue",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "transfer-to-prequeue",
+        "Errors": [
+          {
+            "NextAction": "transfer-to-prequeue",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ContactFlowId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/contact-flow/02b68552-8598-4adb-aa3a-8152aa2ac153"
+      },
+      "Identifier": "transfer-to-prequeue",
+      "Type": "TransferToFlow",
+      "Transitions": {
+        "NextAction": "disconnect",
+        "Errors": [
+          {
+            "NextAction": "disconnect",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowLoggingBehavior": "Enabled"
+      },
+      "Identifier": "enable-logging",
+      "Type": "UpdateFlowLoggingBehavior",
+      "Transitions": {
+        "NextAction": "set-voice"
+      }
+    },
+    {
+      "Parameters": {
+        "Attributes": {
+          "language_code": "es-US"
+        },
+        "TargetContact": "Current"
+      },
+      "Identifier": "set-language",
+      "Type": "UpdateContactAttributes",
+      "Transitions": {
+        "NextAction": "set-queue",
+        "Errors": [
+          {
+            "NextAction": "set-queue",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "TextToSpeechVoice": "Lupe",
+        "TextToSpeechEngine": "Generative",
+        "TextToSpeechStyle": "None"
+      },
+      "Identifier": "set-voice",
+      "Type": "UpdateContactTextToSpeechVoice",
+      "Transitions": {
+        "NextAction": "fd3c6685-10a2-433e-9b48-02293e9e4efd",
+        "Errors": [
+          {
+            "NextAction": "set-language",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LanguageCode": "es-US"
+      },
+      "Identifier": "fd3c6685-10a2-433e-9b48-02293e9e4efd",
+      "Type": "UpdateContactData",
+      "Transitions": {
+        "NextAction": "set-language",
+        "Errors": [
+          {
+            "NextAction": "set-language",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ]
+}
