@@ -1,0 +1,50 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "8f409795-d5e5-4d68-99e0-720896b1393a",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": 75,
+      "y": 20
+    },
+    "snapToGrid": false,
+    "ActionMetadata": {
+      "8f409795-d5e5-4d68-99e0-720896b1393a": {
+        "position": {
+          "x": 288,
+          "y": 58
+        },
+        "audio": [
+          {
+            "type": "Prompt",
+            "prompt": {
+              "id": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/64e535ce-0fe4-471a-a47f-3d62a54754a2",
+              "text": "Music_Jazz_MyTimetoFly_Inst.wav"
+            },
+            "$$hashKey": "01G"
+          }
+        ],
+        "timeoutUnit": {
+          "display": "Minutes",
+          "value": "min"
+        }
+      }
+    }
+  },
+  "Actions": [
+    {
+      "Identifier": "8f409795-d5e5-4d68-99e0-720896b1393a",
+      "Parameters": {
+        "Messages": [
+          {
+            "PromptId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/64e535ce-0fe4-471a-a47f-3d62a54754a2"
+          }
+        ]
+      },
+      "Transitions": {
+        "Errors": [],
+        "Conditions": []
+      },
+      "Type": "MessageParticipantIteratively"
+    }
+  ]
+}

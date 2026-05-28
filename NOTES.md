@@ -1,1 +1,0 @@
-In resolvers, rather than getting a client per fetch, we can be more efficient and persist the client for future fetchs. 

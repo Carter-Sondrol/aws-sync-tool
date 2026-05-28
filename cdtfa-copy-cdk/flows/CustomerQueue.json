@@ -1,0 +1,720 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "check_tra",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": -200,
+      "y": 40
+    },
+    "ActionMetadata": {
+      "get_prompts": {
+        "position": {
+          "x": 245.6,
+          "y": 111.2
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-get-prompts"
+          }
+        },
+        "dynamicMetadata": {
+          "flow_name": false
+        }
+      },
+      "set_vm_attributes": {
+        "position": {
+          "x": 2120.8,
+          "y": -298.4
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "Attributes": {
+            "trim_timestamp": {
+              "useDynamic": true
+            }
+          }
+        },
+        "dynamicParams": [
+          "trim_timestamp"
+        ]
+      },
+      "wait_for_recording": {
+        "position": {
+          "x": 2380.8,
+          "y": -298.4
+        },
+        "isFriendlyName": true,
+        "conditionMetadata": [
+          {
+            "id": "e780f938-755e-4715-93a5-15b910fd8c3d",
+            "value": "#"
+          }
+        ]
+      },
+      "disconnect": {
+        "position": {
+          "x": 2640.8,
+          "y": -298.4
+        }
+      },
+      "set_timestamp": {
+        "position": {
+          "x": 1860.8,
+          "y": -298.4
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-set-timestamp"
+          }
+        },
+        "dynamicMetadata": {}
+      },
+      "play_vm_announce": {
+        "position": {
+          "x": 1340.8,
+          "y": -298.4
+        },
+        "isFriendlyName": true
+      },
+      "c740ddb3-f9bc-4f6d-808d-31ebfbcad6f9": {
+        "position": {
+          "x": 1602.4,
+          "y": -299.2
+        },
+        "parameters": {
+          "PromptId": {
+            "displayName": "Beep.wav"
+          }
+        },
+        "promptName": "Beep.wav"
+      },
+      "end_flow": {
+        "position": {
+          "x": 1094.4,
+          "y": 134.4
+        },
+        "isFriendlyName": true
+      },
+      "set_prompts": {
+        "position": {
+          "x": 515.2,
+          "y": 99.2
+        },
+        "isFriendlyName": true
+      },
+      "queue_messages": {
+        "position": {
+          "x": 826.4,
+          "y": 137.6
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "Messages": [
+            null,
+            {
+              "PromptId": {
+                "displayName": "Jazz Trim 1"
+              }
+            },
+            null,
+            {
+              "PromptId": {
+                "displayName": "Jazz Trim 2"
+              }
+            },
+            null,
+            {
+              "PromptId": {
+                "displayName": "Jazz Trim 3"
+              }
+            },
+            null,
+            {
+              "PromptId": {
+                "displayName": "Jazz Trim 1"
+              }
+            },
+            null,
+            {
+              "PromptId": {
+                "displayName": "Jazz Trim 2"
+              }
+            },
+            null,
+            {
+              "PromptId": {
+                "displayName": "Jazz Trim 3"
+              }
+            },
+            null,
+            {
+              "PromptId": {
+                "displayName": "Jazz Trim 1"
+              }
+            },
+            null,
+            {
+              "PromptId": {
+                "displayName": "Jazz Trim 2"
+              }
+            },
+            null,
+            {
+              "PromptId": {
+                "displayName": "Jazz Trim 3"
+              }
+            }
+          ]
+        },
+        "audio": [
+          {
+            "id": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/e104be28-cfb5-4605-be54-3d57d5555a58",
+            "text": "Jazz Trim 1",
+            "type": "Prompt"
+          },
+          {
+            "id": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/18beccb2-d52b-4cae-896c-96a6daded739",
+            "text": "Jazz Trim 2",
+            "type": "Prompt"
+          },
+          {
+            "id": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/2cbfb4ad-ece0-48b1-83c0-d68b087c8c92",
+            "text": "Jazz Trim 3",
+            "type": "Prompt"
+          },
+          {
+            "id": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/e104be28-cfb5-4605-be54-3d57d5555a58",
+            "text": "Jazz Trim 1",
+            "type": "Prompt"
+          },
+          {
+            "id": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/18beccb2-d52b-4cae-896c-96a6daded739",
+            "text": "Jazz Trim 2",
+            "type": "Prompt"
+          },
+          {
+            "id": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/2cbfb4ad-ece0-48b1-83c0-d68b087c8c92",
+            "text": "Jazz Trim 3",
+            "type": "Prompt"
+          },
+          {
+            "id": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/e104be28-cfb5-4605-be54-3d57d5555a58",
+            "text": "Jazz Trim 1",
+            "type": "Prompt"
+          },
+          {
+            "id": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/18beccb2-d52b-4cae-896c-96a6daded739",
+            "text": "Jazz Trim 2",
+            "type": "Prompt"
+          },
+          {
+            "id": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/2cbfb4ad-ece0-48b1-83c0-d68b087c8c92",
+            "text": "Jazz Trim 3",
+            "type": "Prompt"
+          }
+        ]
+      },
+      "check_tra": {
+        "position": {
+          "x": -54.4,
+          "y": 38.4
+        },
+        "isFriendlyName": true,
+        "conditions": [],
+        "conditionMetadata": [
+          {
+            "id": "20eb398c-ea5b-4a54-bbb9-98035ebebf88",
+            "operator": {
+              "name": "Starts with",
+              "value": "StartsWith",
+              "shortDisplay": "starts with"
+            },
+            "value": "Q_TRA"
+          }
+        ]
+      },
+      "get_prompts_tra": {
+        "position": {
+          "x": 235.2,
+          "y": -200.8
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-get-prompts"
+          }
+        },
+        "dynamicMetadata": {
+          "flow_name": false
+        }
+      },
+      "play_force_vm": {
+        "position": {
+          "x": 1080.8,
+          "y": -298.4
+        },
+        "isFriendlyName": true
+      },
+      "set_prompts-tra": {
+        "position": {
+          "x": 485.6,
+          "y": -198.4
+        },
+        "isFriendlyName": true
+      },
+      "tra_queue_messages": {
+        "position": {
+          "x": 818.4,
+          "y": -300
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "Messages": [
+            null,
+            {
+              "PromptId": {
+                "displayName": "Music_Jazz_MyTimetoFly_Inst.wav"
+              }
+            },
+            null,
+            {
+              "PromptId": {
+                "displayName": "Music_Jazz_MyTimetoFly_Inst.wav"
+              }
+            }
+          ],
+          "InterruptFrequencySeconds": {
+            "unit": 60
+          }
+        },
+        "audio": [
+          {
+            "id": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/56bb99c5-ebdd-4931-992c-8341d226b784",
+            "text": "Music_Jazz_MyTimetoFly_Inst.wav",
+            "type": "Prompt"
+          },
+          {
+            "id": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/56bb99c5-ebdd-4931-992c-8341d226b784",
+            "text": "Music_Jazz_MyTimetoFly_Inst.wav",
+            "type": "Prompt"
+          }
+        ],
+        "timeoutUnit": {
+          "value": "min"
+        }
+      }
+    },
+    "Annotations": []
+  },
+  "Actions": [
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-get-prompts",
+        "InvocationTimeLimitSeconds": "8",
+        "InvocationType": "SYNCHRONOUS",
+        "LambdaInvocationAttributes": {
+          "flow_name": "Customer Queue"
+        },
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "get_prompts",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "set_prompts",
+        "Errors": [
+          {
+            "NextAction": "set_prompts",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "Attributes": {
+          "trim_timestamp": "$.External.timestamp",
+          "post_contact_process": "voicemail",
+          "line_of_business": "TRA - Taxpayer Rights Advocate"
+        },
+        "TargetContact": "Current"
+      },
+      "Identifier": "set_vm_attributes",
+      "Type": "UpdateContactAttributes",
+      "Transitions": {
+        "NextAction": "wait_for_recording",
+        "Errors": [
+          {
+            "NextAction": "wait_for_recording",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SSML": "<speak></speak>",
+        "StoreInput": "False",
+        "InputTimeLimitSeconds": "60"
+      },
+      "Identifier": "wait_for_recording",
+      "Type": "GetParticipantInput",
+      "Transitions": {
+        "NextAction": "disconnect",
+        "Conditions": [
+          {
+            "NextAction": "disconnect",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "#"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "disconnect",
+            "ErrorType": "InputTimeLimitExceeded"
+          },
+          {
+            "NextAction": "disconnect",
+            "ErrorType": "NoMatchingCondition"
+          },
+          {
+            "NextAction": "disconnect",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "disconnect",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-set-timestamp",
+        "InvocationTimeLimitSeconds": "3",
+        "InvocationType": "SYNCHRONOUS",
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "set_timestamp",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "set_vm_attributes",
+        "Errors": [
+          {
+            "NextAction": "set_vm_attributes",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "SSML": "$.FlowAttributes.vm_announce_msg"
+      },
+      "Identifier": "play_vm_announce",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "c740ddb3-f9bc-4f6d-808d-31ebfbcad6f9",
+        "Errors": [
+          {
+            "NextAction": "c740ddb3-f9bc-4f6d-808d-31ebfbcad6f9",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "PromptId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/9a2f2993-f8eb-4dc6-bf50-aac8da55e725"
+      },
+      "Identifier": "c740ddb3-f9bc-4f6d-808d-31ebfbcad6f9",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "set_timestamp",
+        "Errors": [
+          {
+            "NextAction": "set_timestamp",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "end_flow",
+      "Type": "EndFlowExecution",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "FlowAttributes": {
+          "QMSG_Efile": {
+            "Value": "$.External.QMSG_Efile"
+          },
+          "QMSG_CROS_Password_Username": {
+            "Value": "$.External.QMSG_CROS_Password_Username"
+          },
+          "QMSG_eReg": {
+            "Value": "$.External.QMSG_eReg"
+          },
+          "QMSG_Webinars": {
+            "Value": "$.External.QMSG_Webinars"
+          },
+          "QMSG_Rep_Soon": {
+            "Value": "$.External.QMSG_Rep_Soon"
+          },
+          "QMSG_LongWait": {
+            "Value": "$.External.QMSG_LongWait"
+          },
+          "QMSG_eWaste": {
+            "Value": "$.External.QMSG_eWaste"
+          },
+          "QMSG_VideoTutorial": {
+            "Value": "$.External.QMSG_VideoTutorial"
+          },
+          "QMSG_Credit_Card": {
+            "Value": "$.External.QMSG_Credit_Card"
+          }
+        }
+      },
+      "Identifier": "set_prompts",
+      "Type": "UpdateFlowAttributes",
+      "Transitions": {
+        "NextAction": "queue_messages",
+        "Errors": [
+          {
+            "NextAction": "queue_messages",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "Messages": [
+          {
+            "SSML": "$.FlowAttributes.QMSG_Efile"
+          },
+          {
+            "PromptId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/e104be28-cfb5-4605-be54-3d57d5555a58"
+          },
+          {
+            "SSML": "$.FlowAttributes.QMSG_CROS_Password_Username"
+          },
+          {
+            "PromptId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/18beccb2-d52b-4cae-896c-96a6daded739"
+          },
+          {
+            "SSML": "$.FlowAttributes.QMSG_eReg"
+          },
+          {
+            "PromptId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/2cbfb4ad-ece0-48b1-83c0-d68b087c8c92"
+          },
+          {
+            "SSML": "$.FlowAttributes.QMSG_Webinars"
+          },
+          {
+            "PromptId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/e104be28-cfb5-4605-be54-3d57d5555a58"
+          },
+          {
+            "SSML": "$.FlowAttributes.QMSG_Rep_Soon"
+          },
+          {
+            "PromptId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/18beccb2-d52b-4cae-896c-96a6daded739"
+          },
+          {
+            "SSML": "$.FlowAttributes.QMSG_LongWait"
+          },
+          {
+            "PromptId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/2cbfb4ad-ece0-48b1-83c0-d68b087c8c92"
+          },
+          {
+            "SSML": "$.FlowAttributes.QMSG_eWaste"
+          },
+          {
+            "PromptId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/e104be28-cfb5-4605-be54-3d57d5555a58"
+          },
+          {
+            "SSML": "$.FlowAttributes.QMSG_VideoTutorial"
+          },
+          {
+            "PromptId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/18beccb2-d52b-4cae-896c-96a6daded739"
+          },
+          {
+            "SSML": "$.FlowAttributes.QMSG_Credit_Card"
+          },
+          {
+            "PromptId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/2cbfb4ad-ece0-48b1-83c0-d68b087c8c92"
+          },
+          {
+            "SSML": "$.FlowAttributes.QMSG_Rep_Soon"
+          }
+        ],
+        "ContinueMessagingDuringInterrupt": "false"
+      },
+      "Identifier": "queue_messages",
+      "Type": "MessageParticipantIteratively",
+      "Transitions": {
+        "NextAction": "end_flow",
+        "Errors": [
+          {
+            "NextAction": "end_flow",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ComparisonValue": "$.Queue.Name"
+      },
+      "Identifier": "check_tra",
+      "Type": "Compare",
+      "Transitions": {
+        "NextAction": "get_prompts",
+        "Conditions": [
+          {
+            "NextAction": "get_prompts_tra",
+            "Condition": {
+              "Operator": "TextStartsWith",
+              "Operands": [
+                "Q_TRA"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "get_prompts",
+            "ErrorType": "NoMatchingCondition"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-get-prompts",
+        "InvocationTimeLimitSeconds": "8",
+        "InvocationType": "SYNCHRONOUS",
+        "LambdaInvocationAttributes": {
+          "flow_name": "Customer Queue"
+        },
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "get_prompts_tra",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "set_prompts-tra",
+        "Errors": [
+          {
+            "NextAction": "set_prompts-tra",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "SSML": "$.FlowAttributes.tra_force_vm"
+      },
+      "Identifier": "play_force_vm",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "play_vm_announce",
+        "Errors": [
+          {
+            "NextAction": "play_vm_announce",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowAttributes": {
+          "tra_queue_msg": {
+            "Value": "$.External.tra_queue_msg"
+          },
+          "tra_bill_of_rights": {
+            "Value": "$.External.tra_bill_of_rights"
+          },
+          "tra_force_vm": {
+            "Value": "$.External.tra_force_vm"
+          },
+          "vm_announce_msg": {
+            "Value": "$.External.vm_announce_msg"
+          }
+        }
+      },
+      "Identifier": "set_prompts-tra",
+      "Type": "UpdateFlowAttributes",
+      "Transitions": {
+        "NextAction": "tra_queue_messages",
+        "Errors": [
+          {
+            "NextAction": "tra_queue_messages",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "Messages": [
+          {
+            "SSML": "$.FlowAttributes.tra_queue_msg"
+          },
+          {
+            "PromptId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/56bb99c5-ebdd-4931-992c-8341d226b784"
+          },
+          {
+            "SSML": "$.FlowAttributes.tra_bill_of_rights"
+          },
+          {
+            "PromptId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/56bb99c5-ebdd-4931-992c-8341d226b784"
+          }
+        ],
+        "InterruptFrequencySeconds": "300",
+        "ContinueMessagingDuringInterrupt": "false"
+      },
+      "Identifier": "tra_queue_messages",
+      "Type": "MessageParticipantIteratively",
+      "Transitions": {
+        "NextAction": "play_force_vm",
+        "Conditions": [
+          {
+            "NextAction": "play_force_vm",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "MessagesInterrupted"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "play_force_vm",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ]
+}

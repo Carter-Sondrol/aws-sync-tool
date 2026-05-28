@@ -1,0 +1,214 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "9e376c57-c592-4558-a2c8-d35baf5d7e7e",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": -183.2,
+      "y": 18.4
+    },
+    "ActionMetadata": {
+      "9e376c57-c592-4558-a2c8-d35baf5d7e7e": {
+        "position": {
+          "x": -41.6,
+          "y": 19.2
+        },
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-get-prompts"
+          }
+        },
+        "dynamicMetadata": {
+          "flow_name": false
+        }
+      },
+      "6f6df4a9-8271-4fbc-ae94-897db1b15bea": {
+        "position": {
+          "x": 220,
+          "y": 20.8
+        }
+      },
+      "f81dbb35-00af-41b6-88d7-f30cc98d7464": {
+        "position": {
+          "x": 748.8,
+          "y": 12.8
+        }
+      },
+      "04bc54a3-f601-4911-b2a9-59ad70752a1d": {
+        "position": {
+          "x": 472,
+          "y": 20
+        },
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-get-agent-preferred-name"
+          },
+          "LambdaInvocationAttributes": {
+            "agent_arn": {
+              "useDynamic": true
+            }
+          }
+        },
+        "dynamicMetadata": {
+          "agent_arn": true
+        }
+      },
+      "preferred_name": {
+        "position": {
+          "x": 995.2,
+          "y": 15.2
+        },
+        "isFriendlyName": true
+      },
+      "94ccb1ff-95ab-4eb7-b477-e3e38dff713d": {
+        "position": {
+          "x": 1253.6,
+          "y": 12.8
+        }
+      }
+    },
+    "Annotations": [
+      {
+        "type": "default",
+        "id": "a8d23457-7cc3-44c6-876f-b9516e35b51b",
+        "content": "Get agent preferred name",
+        "actionId": "04bc54a3-f601-4911-b2a9-59ad70752a1d",
+        "isFolded": true,
+        "position": {
+          "x": 1111.5,
+          "y": 222
+        },
+        "size": {
+          "height": 295,
+          "width": 300
+        }
+      },
+      {
+        "type": "default",
+        "id": "d92badea-4073-4191-ac8c-fe8bf678fa82",
+        "content": "Get prompts",
+        "actionId": "9e376c57-c592-4558-a2c8-d35baf5d7e7e",
+        "isFolded": true,
+        "position": {
+          "x": -39.5,
+          "y": 232
+        },
+        "size": {
+          "height": 295,
+          "width": 300
+        }
+      }
+    ]
+  },
+  "Actions": [
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-get-prompts",
+        "InvocationTimeLimitSeconds": "3",
+        "InvocationType": "SYNCHRONOUS",
+        "LambdaInvocationAttributes": {
+          "flow_name": "Default customer whisper"
+        },
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "9e376c57-c592-4558-a2c8-d35baf5d7e7e",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "6f6df4a9-8271-4fbc-ae94-897db1b15bea",
+        "Errors": [
+          {
+            "NextAction": "6f6df4a9-8271-4fbc-ae94-897db1b15bea",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowAttributes": {
+          "preferred_name_msg": {
+            "Value": "$.External.preferred_name_msg"
+          }
+        }
+      },
+      "Identifier": "6f6df4a9-8271-4fbc-ae94-897db1b15bea",
+      "Type": "UpdateFlowAttributes",
+      "Transitions": {
+        "NextAction": "04bc54a3-f601-4911-b2a9-59ad70752a1d",
+        "Errors": [
+          {
+            "NextAction": "04bc54a3-f601-4911-b2a9-59ad70752a1d",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowAttributes": {
+          "preferred_name": {
+            "Value": "$.External.preferred_name"
+          }
+        }
+      },
+      "Identifier": "f81dbb35-00af-41b6-88d7-f30cc98d7464",
+      "Type": "UpdateFlowAttributes",
+      "Transitions": {
+        "NextAction": "preferred_name",
+        "Errors": [
+          {
+            "NextAction": "preferred_name",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-get-agent-preferred-name",
+        "InvocationTimeLimitSeconds": "3",
+        "InvocationType": "SYNCHRONOUS",
+        "LambdaInvocationAttributes": {
+          "agent_arn": "$.Agent.ARN"
+        },
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "04bc54a3-f601-4911-b2a9-59ad70752a1d",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "f81dbb35-00af-41b6-88d7-f30cc98d7464",
+        "Errors": [
+          {
+            "NextAction": "f81dbb35-00af-41b6-88d7-f30cc98d7464",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SSML": "$.FlowAttributes.preferred_name_msg"
+      },
+      "Identifier": "preferred_name",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "94ccb1ff-95ab-4eb7-b477-e3e38dff713d",
+        "Errors": [
+          {
+            "NextAction": "94ccb1ff-95ab-4eb7-b477-e3e38dff713d",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "94ccb1ff-95ab-4eb7-b477-e3e38dff713d",
+      "Type": "EndFlowExecution",
+      "Transitions": {}
+    }
+  ]
+}

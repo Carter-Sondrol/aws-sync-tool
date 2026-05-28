@@ -1,0 +1,758 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "cbf827b1-d6ac-45a1-8797-0683870b8df9",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": -467.2,
+      "y": 45.6
+    },
+    "ActionMetadata": {
+      "cbf827b1-d6ac-45a1-8797-0683870b8df9": {
+        "position": {
+          "x": -328.8,
+          "y": 43.2
+        }
+      },
+      "f44dbbd4-ff13-4758-b52f-f6e5659554af": {
+        "position": {
+          "x": 720,
+          "y": -103.2
+        },
+        "parameters": {
+          "ChatBehavior": {
+            "ChatAnalyticsBehavior": {
+              "AnalyticsLanguage": {
+                "useDynamic": true
+              }
+            }
+          }
+        }
+      },
+      "5a43b1ae-b369-476e-940e-ec88bbbe0b97": {
+        "position": {
+          "x": 721.6,
+          "y": 221.6
+        },
+        "parameters": {
+          "VoiceBehavior": {
+            "VoiceAnalyticsBehavior": {
+              "AnalyticsLanguage": {
+                "useDynamic": true
+              }
+            }
+          }
+        }
+      },
+      "beab3ac3-77e1-4526-8fb4-9742c330da90": {
+        "position": {
+          "x": 998.4,
+          "y": 68
+        },
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-start-lex-session"
+          }
+        },
+        "dynamicMetadata": {
+          "channel": false
+        }
+      },
+      "survey_start_msg": {
+        "position": {
+          "x": 1237.6,
+          "y": 71.2
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "SSML": {
+            "useDynamic": true
+          }
+        },
+        "useDynamic": true
+      },
+      "9b4d26e1-1daa-4327-ab2c-b0ba95ff8115": {
+        "position": {
+          "x": -63.2,
+          "y": 43.2
+        },
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-get-prompts"
+          }
+        },
+        "dynamicMetadata": {
+          "flow_name": false
+        }
+      },
+      "cf29d6aa-b984-49fe-b6cb-fb7f8ddf46b6": {
+        "position": {
+          "x": 456.8,
+          "y": 39.2
+        },
+        "conditions": [],
+        "conditionMetadata": [
+          {
+            "id": "d051afda-aa93-4cc4-9a41-e2553ef23cbe",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "CHAT"
+          },
+          {
+            "id": "1f63010b-ddee-4366-acc4-fc8b2743f5b1",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "VOICE"
+          }
+        ]
+      },
+      "238f03c3-1f18-450b-9e3d-cad8584441d0": {
+        "position": {
+          "x": 198.4,
+          "y": 41.6
+        }
+      },
+      "Survey Bot": {
+        "position": {
+          "x": 1500.8,
+          "y": 38.4
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "LexV2Bot": {
+            "AliasArn": {
+              "displayName": "Prod",
+              "useLexBotDropdown": true,
+              "lexV2BotName": "disconnect-survey-bot"
+            }
+          }
+        },
+        "dynamicMetadata": {
+          "channel": false
+        },
+        "useLexBotDropdown": true,
+        "lexV2BotName": "disconnect-survey-bot",
+        "lexV2BotAliasName": "Prod",
+        "conditionMetadata": [
+          {
+            "id": "fe257e62-9c9d-4466-adcf-4ac1ca66dbea",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "SurveyIntent"
+          },
+          {
+            "id": "c2edd641-ab7d-426f-9b3f-a6fbf61a9959",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "FallbackIntent"
+          }
+        ]
+      },
+      "25367e11-282a-45dd-abb5-6756a1ada2fd": {
+        "position": {
+          "x": 1760.8,
+          "y": 40
+        },
+        "conditions": [],
+        "conditionMetadata": [
+          {
+            "id": "2051771e-ccfb-4cbf-80c2-176cda3a18db",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "YES"
+          },
+          {
+            "id": "7c0a6d27-37ce-4f25-964d-15b9787f61d1",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "NO"
+          }
+        ]
+      },
+      "06f8ffcf-ee07-43b0-882d-195a4b7e9d3a": {
+        "position": {
+          "x": 3004,
+          "y": -58.4
+        },
+        "conditionMetadata": [
+          {
+            "id": "464ed218-90d0-43c4-b8c0-30d8aa40fee7",
+            "value": "#"
+          }
+        ]
+      },
+      "6f1a3ce3-141f-47ca-947e-497a27783c4b": {
+        "position": {
+          "x": 2776,
+          "y": -53.6
+        },
+        "parameters": {
+          "PromptId": {
+            "displayName": "Beep.wav"
+          }
+        },
+        "promptName": "Beep.wav"
+      },
+      "freeform_input_msg": {
+        "position": {
+          "x": 2024.8,
+          "y": -61.6
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "SSML": {
+            "useDynamic": true
+          }
+        },
+        "useDynamic": true
+      },
+      "553665ab-165b-4452-8a37-bda17ecb977b": {
+        "position": {
+          "x": 2544,
+          "y": -61.6
+        },
+        "parameters": {
+          "Attributes": {
+            "locale": {
+              "useDynamic": true
+            }
+          }
+        },
+        "dynamicParams": [
+          "locale"
+        ]
+      },
+      "68d87956-7c7f-49bc-9b5f-f4357cd77329": {
+        "position": {
+          "x": 2292,
+          "y": -60.8
+        },
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-set-timestamp"
+          }
+        },
+        "dynamicMetadata": {}
+      },
+      "6ffa33eb-b048-45f9-aa69-7295c2336995": {
+        "position": {
+          "x": 1248.8,
+          "y": 324
+        }
+      },
+      "survey_close_msg": {
+        "position": {
+          "x": 3268.8,
+          "y": -68.8
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "SSML": {
+            "useDynamic": true
+          }
+        },
+        "useDynamic": true
+      },
+      "23fad90f-6a78-413a-898a-c2c8c68a908f": {
+        "position": {
+          "x": 3519.2,
+          "y": -72.8
+        }
+      }
+    },
+    "Annotations": []
+  },
+  "Actions": [
+    {
+      "Parameters": {
+        "FlowLoggingBehavior": "Enabled"
+      },
+      "Identifier": "cbf827b1-d6ac-45a1-8797-0683870b8df9",
+      "Type": "UpdateFlowLoggingBehavior",
+      "Transitions": {
+        "NextAction": "9b4d26e1-1daa-4327-ab2c-b0ba95ff8115"
+      }
+    },
+    {
+      "Parameters": {
+        "ChatBehavior": {
+          "ChatAnalyticsBehavior": {
+            "Enabled": "True",
+            "AnalyticsLanguage": "$.LanguageCode",
+            "AnalyticsModes": [
+              "ContactLens"
+            ],
+            "ConversationalAnalyticsRedactionConfiguration": {
+              "Enabled": "False"
+            },
+            "InFlightChatRedactionConfiguration": {
+              "Enabled": "False"
+            },
+            "SentimentConfiguration": {
+              "Enabled": "True"
+            },
+            "SummaryConfiguration": {
+              "SummaryModes": [
+                "PostContact"
+              ]
+            }
+          }
+        }
+      },
+      "Identifier": "f44dbbd4-ff13-4758-b52f-f6e5659554af",
+      "Type": "UpdateContactRecordingAndAnalyticsBehavior",
+      "Transitions": {
+        "NextAction": "beab3ac3-77e1-4526-8fb4-9742c330da90",
+        "Errors": [
+          {
+            "NextAction": "beab3ac3-77e1-4526-8fb4-9742c330da90",
+            "ErrorType": "NoMatchingError"
+          },
+          {
+            "NextAction": "beab3ac3-77e1-4526-8fb4-9742c330da90",
+            "ErrorType": "ChannelMismatch"
+          },
+          {
+            "NextAction": "beab3ac3-77e1-4526-8fb4-9742c330da90",
+            "ErrorType": "InFlightRedactionConfigurationFailed"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "VoiceBehavior": {
+          "VoiceRecordingBehavior": {
+            "RecordedParticipants": [
+              "Agent",
+              "Customer"
+            ],
+            "IVRRecordingBehavior": "Enabled"
+          },
+          "VoiceAnalyticsBehavior": {
+            "Enabled": "True",
+            "AnalyticsLanguage": "$.LanguageCode",
+            "AnalyticsModes": [
+              "PostContact"
+            ],
+            "ConversationalAnalyticsRedactionConfiguration": {
+              "Enabled": "False"
+            },
+            "SentimentConfiguration": {
+              "Enabled": "True"
+            },
+            "SummaryConfiguration": {
+              "SummaryModes": [
+                "PostContact"
+              ]
+            }
+          }
+        }
+      },
+      "Identifier": "5a43b1ae-b369-476e-940e-ec88bbbe0b97",
+      "Type": "UpdateContactRecordingAndAnalyticsBehavior",
+      "Transitions": {
+        "NextAction": "beab3ac3-77e1-4526-8fb4-9742c330da90",
+        "Errors": [
+          {
+            "NextAction": "beab3ac3-77e1-4526-8fb4-9742c330da90",
+            "ErrorType": "NoMatchingError"
+          },
+          {
+            "NextAction": "beab3ac3-77e1-4526-8fb4-9742c330da90",
+            "ErrorType": "ChannelMismatch"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-start-lex-session",
+        "InvocationTimeLimitSeconds": "3",
+        "InvocationType": "SYNCHRONOUS",
+        "LambdaInvocationAttributes": {
+          "channel": "$.Channel"
+        },
+        "ResponseValidation": {
+          "ResponseType": "JSON"
+        }
+      },
+      "Identifier": "beab3ac3-77e1-4526-8fb4-9742c330da90",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "survey_start_msg",
+        "Errors": [
+          {
+            "NextAction": "survey_start_msg",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SSML": "$.FlowAttributes.survey_start_msg"
+      },
+      "Identifier": "survey_start_msg",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "Survey Bot",
+        "Errors": [
+          {
+            "NextAction": "Survey Bot",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-get-prompts",
+        "InvocationTimeLimitSeconds": "3",
+        "InvocationType": "SYNCHRONOUS",
+        "LambdaInvocationAttributes": {
+          "flow_name": "Survey Disconnect Flow"
+        },
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "9b4d26e1-1daa-4327-ab2c-b0ba95ff8115",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "238f03c3-1f18-450b-9e3d-cad8584441d0",
+        "Errors": [
+          {
+            "NextAction": "238f03c3-1f18-450b-9e3d-cad8584441d0",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ComparisonValue": "$.Channel"
+      },
+      "Identifier": "cf29d6aa-b984-49fe-b6cb-fb7f8ddf46b6",
+      "Type": "Compare",
+      "Transitions": {
+        "NextAction": "5a43b1ae-b369-476e-940e-ec88bbbe0b97",
+        "Conditions": [
+          {
+            "NextAction": "f44dbbd4-ff13-4758-b52f-f6e5659554af",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "CHAT"
+              ]
+            }
+          },
+          {
+            "NextAction": "5a43b1ae-b369-476e-940e-ec88bbbe0b97",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "VOICE"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "5a43b1ae-b369-476e-940e-ec88bbbe0b97",
+            "ErrorType": "NoMatchingCondition"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowAttributes": {
+          "survey_start_msg": {
+            "Value": "$.External.survey_start_msg"
+          },
+          "survey_close_msg": {
+            "Value": "$.External.survey_close_msg"
+          },
+          "freeform_input_msg": {
+            "Value": "$.External.freeform_input_msg"
+          }
+        }
+      },
+      "Identifier": "238f03c3-1f18-450b-9e3d-cad8584441d0",
+      "Type": "UpdateFlowAttributes",
+      "Transitions": {
+        "NextAction": "cf29d6aa-b984-49fe-b6cb-fb7f8ddf46b6",
+        "Errors": [
+          {
+            "NextAction": "cf29d6aa-b984-49fe-b6cb-fb7f8ddf46b6",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "Text": "$.External.first_survey_question",
+        "LexV2Bot": {
+          "AliasArn": "arn:aws:lex:us-west-2:797776209609:bot-alias/L865FGLYJ7/MXCTO2CQOD"
+        },
+        "LexSessionAttributes": {
+          "channel": "$.Channel"
+        }
+      },
+      "Identifier": "Survey Bot",
+      "Type": "ConnectParticipantWithLexBot",
+      "Transitions": {
+        "NextAction": "6ffa33eb-b048-45f9-aa69-7295c2336995",
+        "Conditions": [
+          {
+            "NextAction": "25367e11-282a-45dd-abb5-6756a1ada2fd",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "SurveyIntent"
+              ]
+            }
+          },
+          {
+            "NextAction": "6ffa33eb-b048-45f9-aa69-7295c2336995",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "FallbackIntent"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "6ffa33eb-b048-45f9-aa69-7295c2336995",
+            "ErrorType": "NoMatchingCondition"
+          },
+          {
+            "NextAction": "6ffa33eb-b048-45f9-aa69-7295c2336995",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ComparisonValue": "$.Lex.SessionAttributes.FreeFormSelection"
+      },
+      "Identifier": "25367e11-282a-45dd-abb5-6756a1ada2fd",
+      "Type": "Compare",
+      "Transitions": {
+        "NextAction": "survey_close_msg",
+        "Conditions": [
+          {
+            "NextAction": "freeform_input_msg",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "YES"
+              ]
+            }
+          },
+          {
+            "NextAction": "survey_close_msg",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "NO"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "survey_close_msg",
+            "ErrorType": "NoMatchingCondition"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "StoreInput": "False",
+        "InputTimeLimitSeconds": "60",
+        "SSML": "<speak></speak>"
+      },
+      "Identifier": "06f8ffcf-ee07-43b0-882d-195a4b7e9d3a",
+      "Type": "GetParticipantInput",
+      "Transitions": {
+        "NextAction": "survey_close_msg",
+        "Conditions": [
+          {
+            "NextAction": "survey_close_msg",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "#"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "survey_close_msg",
+            "ErrorType": "InputTimeLimitExceeded"
+          },
+          {
+            "NextAction": "survey_close_msg",
+            "ErrorType": "NoMatchingCondition"
+          },
+          {
+            "NextAction": "survey_close_msg",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "PromptId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/prompt/9a2f2993-f8eb-4dc6-bf50-aac8da55e725"
+      },
+      "Identifier": "6f1a3ce3-141f-47ca-947e-497a27783c4b",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "06f8ffcf-ee07-43b0-882d-195a4b7e9d3a",
+        "Errors": [
+          {
+            "NextAction": "06f8ffcf-ee07-43b0-882d-195a4b7e9d3a",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SSML": "$.FlowAttributes.freeform_input_msg"
+      },
+      "Identifier": "freeform_input_msg",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "68d87956-7c7f-49bc-9b5f-f4357cd77329",
+        "Errors": [
+          {
+            "NextAction": "68d87956-7c7f-49bc-9b5f-f4357cd77329",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "Attributes": {
+          "trim_timestamp": "$.External.timestamp",
+          "post_contact_process": "survey",
+          "locale": "$.LanguageCode"
+        },
+        "TargetContact": "Current"
+      },
+      "Identifier": "553665ab-165b-4452-8a37-bda17ecb977b",
+      "Type": "UpdateContactAttributes",
+      "Transitions": {
+        "NextAction": "6f1a3ce3-141f-47ca-947e-497a27783c4b",
+        "Errors": [
+          {
+            "NextAction": "6f1a3ce3-141f-47ca-947e-497a27783c4b",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-set-timestamp",
+        "InvocationTimeLimitSeconds": "3",
+        "InvocationType": "SYNCHRONOUS",
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "68d87956-7c7f-49bc-9b5f-f4357cd77329",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "553665ab-165b-4452-8a37-bda17ecb977b",
+        "Errors": [
+          {
+            "NextAction": "553665ab-165b-4452-8a37-bda17ecb977b",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LoopCount": "2"
+      },
+      "Identifier": "6ffa33eb-b048-45f9-aa69-7295c2336995",
+      "Type": "Loop",
+      "Transitions": {
+        "NextAction": "23fad90f-6a78-413a-898a-c2c8c68a908f",
+        "Conditions": [
+          {
+            "NextAction": "Survey Bot",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "ContinueLooping"
+              ]
+            }
+          },
+          {
+            "NextAction": "23fad90f-6a78-413a-898a-c2c8c68a908f",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "DoneLooping"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SSML": "$.FlowAttributes.survey_close_msg"
+      },
+      "Identifier": "survey_close_msg",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "23fad90f-6a78-413a-898a-c2c8c68a908f",
+        "Errors": [
+          {
+            "NextAction": "23fad90f-6a78-413a-898a-c2c8c68a908f",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "23fad90f-6a78-413a-898a-c2c8c68a908f",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    }
+  ]
+}

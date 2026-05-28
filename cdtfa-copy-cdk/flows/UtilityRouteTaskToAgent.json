@@ -1,0 +1,95 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "a9561280-656c-43cb-92d8-bbb8baf6dd1d",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": 36.8,
+      "y": 39.2
+    },
+    "ActionMetadata": {
+      "6e664f08-97b9-4bb2-883e-3d1fd045db17": {
+        "position": {
+          "x": 956.8,
+          "y": 40
+        }
+      },
+      "a9561280-656c-43cb-92d8-bbb8baf6dd1d": {
+        "position": {
+          "x": 180,
+          "y": 38.4
+        }
+      },
+      "7429b20f-99ae-404f-b236-f0ab24871fd1": {
+        "position": {
+          "x": 700.8,
+          "y": 40
+        }
+      },
+      "2fb7b419-ee3f-4ba3-8f8d-75c260cd042a": {
+        "position": {
+          "x": 440.8,
+          "y": 40
+        },
+        "parameters": {
+          "AgentId": {
+            "useDynamic": true
+          }
+        },
+        "useDynamic": true
+      }
+    },
+    "Annotations": []
+  },
+  "Actions": [
+    {
+      "Parameters": {},
+      "Identifier": "6e664f08-97b9-4bb2-883e-3d1fd045db17",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "FlowLoggingBehavior": "Enabled"
+      },
+      "Identifier": "a9561280-656c-43cb-92d8-bbb8baf6dd1d",
+      "Type": "UpdateFlowLoggingBehavior",
+      "Transitions": {
+        "NextAction": "2fb7b419-ee3f-4ba3-8f8d-75c260cd042a"
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "7429b20f-99ae-404f-b236-f0ab24871fd1",
+      "Type": "TransferContactToQueue",
+      "Transitions": {
+        "NextAction": "6e664f08-97b9-4bb2-883e-3d1fd045db17",
+        "Errors": [
+          {
+            "NextAction": "6e664f08-97b9-4bb2-883e-3d1fd045db17",
+            "ErrorType": "QueueAtCapacity"
+          },
+          {
+            "NextAction": "6e664f08-97b9-4bb2-883e-3d1fd045db17",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "AgentId": "$.Attributes.agent_id"
+      },
+      "Identifier": "2fb7b419-ee3f-4ba3-8f8d-75c260cd042a",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "7429b20f-99ae-404f-b236-f0ab24871fd1",
+        "Errors": [
+          {
+            "NextAction": "7429b20f-99ae-404f-b236-f0ab24871fd1",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ]
+}

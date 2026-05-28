@@ -1,0 +1,1126 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "enable-logging",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": -880,
+      "y": 80
+    },
+    "ActionMetadata": {
+      "set-voice": {
+        "position": {
+          "x": -480,
+          "y": 80
+        },
+        "children": [
+          "28ffeb66-625b-416f-a767-09de0644390c"
+        ],
+        "parameters": {
+          "TextToSpeechVoice": {
+            "languageCode": "en-US"
+          }
+        },
+        "overrideConsoleVoice": true,
+        "fragments": {
+          "SetContactData": "28ffeb66-625b-416f-a767-09de0644390c"
+        },
+        "overrideLanguageAttribute": true
+      },
+      "28ffeb66-625b-416f-a767-09de0644390c": {
+        "position": {
+          "x": -480,
+          "y": 80
+        },
+        "dynamicParams": []
+      },
+      "enable-logging": {
+        "position": {
+          "x": -720,
+          "y": 80
+        }
+      },
+      "get-prompts": {
+        "position": {
+          "x": -240,
+          "y": 80
+        },
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-get-prompts"
+          }
+        },
+        "dynamicMetadata": {
+          "flow_name": false
+        }
+      },
+      "set-flow-attributes": {
+        "position": {
+          "x": 0,
+          "y": 80
+        }
+      },
+      "get-queue-config": {
+        "position": {
+          "x": 240,
+          "y": 80
+        },
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-get-queue-config"
+          }
+        },
+        "dynamicMetadata": {}
+      },
+      "set-queue-config": {
+        "position": {
+          "x": 480,
+          "y": 80
+        },
+        "parameters": {
+          "Attributes": {
+            "recording_flag": {
+              "useDynamic": true
+            },
+            "authentication_flag": {
+              "useDynamic": true
+            },
+            "meeting_flag": {
+              "useDynamic": true
+            },
+            "survey_flag": {
+              "useDynamic": true
+            },
+            "holiday_flag": {
+              "useDynamic": true
+            },
+            "agent_whisper": {
+              "useDynamic": true
+            }
+          }
+        },
+        "dynamicParams": [
+          "recording_flag",
+          "authentication_flag",
+          "meeting_flag",
+          "survey_flag",
+          "holiday_flag",
+          "agent_whisper"
+        ]
+      },
+      "play-closed": {
+        "position": {
+          "x": 960,
+          "y": 240
+        }
+      },
+      "disconnect-closed": {
+        "position": {
+          "x": 1200,
+          "y": 240
+        }
+      },
+      "set-survey-hook": {
+        "position": {
+          "x": 2400,
+          "y": -40
+        },
+        "parameters": {
+          "EventHooks": {
+            "CustomerRemaining": {
+              "displayName": "Survey Disconnect Flow"
+            }
+          }
+        },
+        "contactFlow": {
+          "text": "Survey Disconnect Flow",
+          "id": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/contact-flow/45095ff7-3b18-482b-aa21-49c734491c7a"
+        }
+      },
+      "set-priority": {
+        "position": {
+          "x": 2880,
+          "y": -40
+        }
+      },
+      "play-monitoring": {
+        "position": {
+          "x": 3120,
+          "y": 80
+        }
+      },
+      "play-verification": {
+        "position": {
+          "x": 3360,
+          "y": 80
+        }
+      },
+      "invoke-recording": {
+        "position": {
+          "x": 3600,
+          "y": 80
+        },
+        "parameters": {
+          "FlowModuleId": {
+            "displayName": "Call Recording Module",
+            "Alias": {
+              "displayName": "$LATEST"
+            }
+          }
+        },
+        "contactFlowModuleName": "Call Recording Module"
+      },
+      "check-tra": {
+        "position": {
+          "x": 3840,
+          "y": 80
+        },
+        "isFriendlyName": true,
+        "conditions": [],
+        "conditionMetadata": [
+          {
+            "id": "0857acc5-fbab-44b6-8368-e9449067a03d",
+            "operator": {
+              "name": "Starts with",
+              "value": "StartsWith",
+              "shortDisplay": "starts with"
+            },
+            "value": "Q_TRA"
+          }
+        ]
+      },
+      "invoke-tra-vm": {
+        "position": {
+          "x": 4080,
+          "y": -80
+        },
+        "parameters": {
+          "FlowModuleId": {
+            "displayName": "TRA Voicemail Module",
+            "Alias": {
+              "displayName": "$LATEST"
+            }
+          }
+        },
+        "contactFlowModuleName": "TRA Voicemail Module"
+      },
+      "invoke-callback": {
+        "position": {
+          "x": 4080,
+          "y": 180
+        },
+        "parameters": {
+          "FlowModuleId": {
+            "displayName": "Callback Module",
+            "Alias": {
+              "displayName": "$LATEST"
+            }
+          }
+        },
+        "contactFlowModuleName": "Callback Module"
+      },
+      "invoke-whisper": {
+        "position": {
+          "x": 4320,
+          "y": 80
+        },
+        "parameters": {
+          "FlowModuleId": {
+            "displayName": "Queue Whisper Mapping",
+            "Alias": {
+              "displayName": "$LATEST"
+            }
+          }
+        },
+        "contactFlowModuleName": "Queue Whisper Mapping"
+      },
+      "set-customer-queue": {
+        "position": {
+          "x": 4560,
+          "y": 80
+        },
+        "parameters": {
+          "EventHooks": {
+            "CustomerQueue": {
+              "displayName": "Customer Queue"
+            }
+          }
+        },
+        "contactFlow": {
+          "text": "Customer Queue",
+          "id": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/contact-flow/443a35b9-dca8-40c7-98d8-77ffcca31f99"
+        },
+        "customerOrAgent": true
+      },
+      "set-queue-name": {
+        "position": {
+          "x": 4800,
+          "y": 80
+        },
+        "parameters": {
+          "Attributes": {
+            "queueName": {
+              "useDynamic": true
+            }
+          }
+        },
+        "dynamicParams": [
+          "queueName"
+        ]
+      },
+      "set-disposition-hook": {
+        "position": {
+          "x": 5040,
+          "y": 80
+        },
+        "parameters": {
+          "EventHooks": {
+            "DisconnectAgentUI": {
+              "displayName": "Disposition Codes"
+            }
+          }
+        }
+      },
+      "transfer-to-queue": {
+        "position": {
+          "x": 5280,
+          "y": 80
+        }
+      },
+      "disconnect": {
+        "position": {
+          "x": 5520,
+          "y": 80
+        }
+      },
+      "hoop-check": {
+        "position": {
+          "x": 720,
+          "y": 80
+        }
+      },
+      "check-holiday": {
+        "position": {
+          "x": 953.6,
+          "y": 41.6
+        },
+        "conditions": [],
+        "conditionMetadata": [
+          {
+            "id": "8d35478c-a4fe-4ea7-9adb-eae9b7790a9e",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "true"
+          }
+        ]
+      },
+      "check-meeting": {
+        "position": {
+          "x": 1200,
+          "y": 80
+        },
+        "conditions": [],
+        "conditionMetadata": [
+          {
+            "id": "b64db846-5ca3-49b0-a359-bd7f515f5093",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "true"
+          }
+        ]
+      },
+      "play-holiday": {
+        "position": {
+          "x": 1212,
+          "y": -356
+        }
+      },
+      "play-meeting": {
+        "position": {
+          "x": 1431.2,
+          "y": -148
+        }
+      },
+      "disconnect-holiday": {
+        "position": {
+          "x": 1698.4,
+          "y": -339.2
+        }
+      },
+      "set-not-authenticated": {
+        "position": {
+          "x": 1680,
+          "y": 180
+        },
+        "dynamicParams": []
+      },
+      "play-survey": {
+        "position": {
+          "x": 2160,
+          "y": -40
+        }
+      },
+      "check-priority": {
+        "position": {
+          "x": 2640,
+          "y": 80
+        },
+        "conditions": [],
+        "conditionMetadata": [
+          {
+            "id": "cbf50528-d634-40da-aaa1-e274a127d1ae",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "true"
+          }
+        ]
+      },
+      "check-auth": {
+        "position": {
+          "x": 1440,
+          "y": 80
+        },
+        "conditions": [],
+        "conditionMetadata": [
+          {
+            "id": "e88a3d6d-c73c-493d-a31d-926aacbe81d9",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "true"
+          }
+        ]
+      },
+      "check-survey": {
+        "position": {
+          "x": 1943.2,
+          "y": 104.8
+        },
+        "conditions": [],
+        "conditionMetadata": [
+          {
+            "id": "7b082116-18b5-4d8c-96f5-65070c772d82",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "true"
+          }
+        ]
+      },
+      "invoke-auth": {
+        "position": {
+          "x": 1700,
+          "y": -35.2
+        },
+        "parameters": {
+          "FlowModuleId": {
+            "displayName": "Authentication Module",
+            "Alias": {
+              "displayName": "$LATEST"
+            }
+          }
+        },
+        "contactFlowModuleName": "Authentication Module"
+      }
+    },
+    "Annotations": []
+  },
+  "Actions": [
+    {
+      "Parameters": {
+        "TextToSpeechVoice": "Stephen",
+        "TextToSpeechEngine": "Generative",
+        "TextToSpeechStyle": "None"
+      },
+      "Identifier": "set-voice",
+      "Type": "UpdateContactTextToSpeechVoice",
+      "Transitions": {
+        "NextAction": "28ffeb66-625b-416f-a767-09de0644390c",
+        "Errors": [
+          {
+            "NextAction": "get-prompts",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LanguageCode": "en-US"
+      },
+      "Identifier": "28ffeb66-625b-416f-a767-09de0644390c",
+      "Type": "UpdateContactData",
+      "Transitions": {
+        "NextAction": "get-prompts",
+        "Errors": [
+          {
+            "NextAction": "get-prompts",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowLoggingBehavior": "Enabled"
+      },
+      "Identifier": "enable-logging",
+      "Type": "UpdateFlowLoggingBehavior",
+      "Transitions": {
+        "NextAction": "set-voice"
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-get-prompts",
+        "InvocationTimeLimitSeconds": "8",
+        "InvocationType": "SYNCHRONOUS",
+        "LambdaInvocationAttributes": {
+          "flow_name": "Pre-Queue Preparation"
+        },
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "get-prompts",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "set-flow-attributes",
+        "Errors": [
+          {
+            "NextAction": "set-flow-attributes",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowAttributes": {
+          "closed_msg": {
+            "Value": "$.External.closed_msg"
+          },
+          "holiday_msg": {
+            "Value": "$.External.holiday_msg"
+          },
+          "meeting_msg": {
+            "Value": "$.External.meeting_msg"
+          },
+          "survey_msg": {
+            "Value": "$.External.survey_msg"
+          },
+          "monitoring_disclaimer_msg": {
+            "Value": "$.External.monitoring_disclaimer_msg"
+          },
+          "verification_disclaimer_msg": {
+            "Value": "$.External.verification_disclaimer_msg"
+          }
+        }
+      },
+      "Identifier": "set-flow-attributes",
+      "Type": "UpdateFlowAttributes",
+      "Transitions": {
+        "NextAction": "get-queue-config",
+        "Errors": [
+          {
+            "NextAction": "get-queue-config",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-get-queue-config",
+        "InvocationTimeLimitSeconds": "8",
+        "InvocationType": "SYNCHRONOUS",
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "get-queue-config",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "set-queue-config",
+        "Errors": [
+          {
+            "NextAction": "set-queue-config",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "Attributes": {
+          "recording_flag": "$.External.recording_flag",
+          "authentication_flag": "$.External.authentication_flag",
+          "meeting_flag": "$.External.meeting_flag",
+          "survey_flag": "$.External.survey_flag",
+          "holiday_flag": "$.External.holiday_flag",
+          "agent_whisper": "$.External.agent_whisper"
+        },
+        "TargetContact": "Current"
+      },
+      "Identifier": "set-queue-config",
+      "Type": "UpdateContactAttributes",
+      "Transitions": {
+        "NextAction": "hoop-check",
+        "Errors": [
+          {
+            "NextAction": "hoop-check",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "SSML": "$.FlowAttributes.closed_msg"
+      },
+      "Identifier": "play-closed",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "disconnect-closed",
+        "Errors": [
+          {
+            "NextAction": "disconnect-closed",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "disconnect-closed",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "EventHooks": {
+          "CustomerRemaining": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/contact-flow/45095ff7-3b18-482b-aa21-49c734491c7a"
+        }
+      },
+      "Identifier": "set-survey-hook",
+      "Type": "UpdateContactEventHooks",
+      "Transitions": {
+        "NextAction": "check-priority",
+        "Errors": [
+          {
+            "NextAction": "check-priority",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "QueuePriority": "1"
+      },
+      "Identifier": "set-priority",
+      "Type": "UpdateContactRoutingBehavior",
+      "Transitions": {
+        "NextAction": "play-monitoring"
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "SSML": "$.FlowAttributes.monitoring_disclaimer_msg"
+      },
+      "Identifier": "play-monitoring",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "play-verification",
+        "Errors": [
+          {
+            "NextAction": "play-verification",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "SSML": "$.FlowAttributes.verification_disclaimer_msg"
+      },
+      "Identifier": "play-verification",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "invoke-recording",
+        "Errors": [
+          {
+            "NextAction": "invoke-recording",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowModuleId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/flow-module/bd89f737-f104-45dc-b81c-23096bff37dd:$LATEST"
+      },
+      "Identifier": "invoke-recording",
+      "Type": "InvokeFlowModule",
+      "Transitions": {
+        "NextAction": "check-tra",
+        "Errors": [
+          {
+            "NextAction": "check-tra",
+            "ErrorType": "NoMatchingCondition"
+          },
+          {
+            "NextAction": "check-tra",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ComparisonValue": "$.Queue.Name"
+      },
+      "Identifier": "check-tra",
+      "Type": "Compare",
+      "Transitions": {
+        "NextAction": "invoke-callback",
+        "Conditions": [
+          {
+            "NextAction": "invoke-tra-vm",
+            "Condition": {
+              "Operator": "TextStartsWith",
+              "Operands": [
+                "Q_TRA"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "invoke-callback",
+            "ErrorType": "NoMatchingCondition"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowModuleId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/flow-module/0ae506d2-2774-4686-a123-64477f9b36f9:$LATEST"
+      },
+      "Identifier": "invoke-tra-vm",
+      "Type": "InvokeFlowModule",
+      "Transitions": {
+        "NextAction": "invoke-whisper",
+        "Errors": [
+          {
+            "NextAction": "invoke-whisper",
+            "ErrorType": "NoMatchingCondition"
+          },
+          {
+            "NextAction": "invoke-whisper",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowModuleId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/flow-module/fc0ec9c6-5a65-407d-b834-2f15e4c2fc70:$LATEST"
+      },
+      "Identifier": "invoke-callback",
+      "Type": "InvokeFlowModule",
+      "Transitions": {
+        "NextAction": "invoke-whisper",
+        "Errors": [
+          {
+            "NextAction": "invoke-whisper",
+            "ErrorType": "NoMatchingCondition"
+          },
+          {
+            "NextAction": "invoke-whisper",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowModuleId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/flow-module/fa86c8f1-5542-43b2-9859-db3ba55cc3c1:$LATEST"
+      },
+      "Identifier": "invoke-whisper",
+      "Type": "InvokeFlowModule",
+      "Transitions": {
+        "NextAction": "set-customer-queue",
+        "Errors": [
+          {
+            "NextAction": "set-customer-queue",
+            "ErrorType": "NoMatchingCondition"
+          },
+          {
+            "NextAction": "set-customer-queue",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "EventHooks": {
+          "CustomerQueue": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/contact-flow/443a35b9-dca8-40c7-98d8-77ffcca31f99"
+        }
+      },
+      "Identifier": "set-customer-queue",
+      "Type": "UpdateContactEventHooks",
+      "Transitions": {
+        "NextAction": "set-queue-name",
+        "Errors": [
+          {
+            "NextAction": "set-queue-name",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "Attributes": {
+          "queueName": "$.Queue.Name"
+        },
+        "TargetContact": "Current"
+      },
+      "Identifier": "set-queue-name",
+      "Type": "UpdateContactAttributes",
+      "Transitions": {
+        "NextAction": "set-disposition-hook",
+        "Errors": [
+          {
+            "NextAction": "set-disposition-hook",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "EventHooks": {
+          "DisconnectAgentUI": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/contact-flow/aa5ae1c5-cd7e-4321-9ab7-bc674ae3ca3a"
+        }
+      },
+      "Identifier": "set-disposition-hook",
+      "Type": "UpdateContactEventHooks",
+      "Transitions": {
+        "NextAction": "transfer-to-queue",
+        "Errors": [
+          {
+            "NextAction": "transfer-to-queue",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "transfer-to-queue",
+      "Type": "TransferContactToQueue",
+      "Transitions": {
+        "NextAction": "disconnect",
+        "Errors": [
+          {
+            "NextAction": "disconnect",
+            "ErrorType": "QueueAtCapacity"
+          },
+          {
+            "NextAction": "disconnect",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "disconnect",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {},
+      "Identifier": "hoop-check",
+      "Type": "CheckHoursOfOperation",
+      "Transitions": {
+        "NextAction": "play-closed",
+        "Conditions": [
+          {
+            "NextAction": "check-holiday",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "True"
+              ]
+            }
+          },
+          {
+            "NextAction": "play-closed",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "False"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "play-closed",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ComparisonValue": "$.Attributes.holiday_flag"
+      },
+      "Identifier": "check-holiday",
+      "Type": "Compare",
+      "Transitions": {
+        "NextAction": "check-meeting",
+        "Conditions": [
+          {
+            "NextAction": "play-holiday",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "true"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "check-meeting",
+            "ErrorType": "NoMatchingCondition"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ComparisonValue": "$.Attributes.meeting_flag"
+      },
+      "Identifier": "check-meeting",
+      "Type": "Compare",
+      "Transitions": {
+        "NextAction": "check-auth",
+        "Conditions": [
+          {
+            "NextAction": "play-meeting",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "true"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "check-auth",
+            "ErrorType": "NoMatchingCondition"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "SSML": "$.FlowAttributes.holiday_msg"
+      },
+      "Identifier": "play-holiday",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "disconnect-holiday",
+        "Errors": [
+          {
+            "NextAction": "disconnect-holiday",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "SSML": "$.FlowAttributes.meeting_msg"
+      },
+      "Identifier": "play-meeting",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "disconnect-holiday",
+        "Errors": [
+          {
+            "NextAction": "disconnect-holiday",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "disconnect-holiday",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "Attributes": {
+          "Authenticated": "False"
+        },
+        "TargetContact": "Current"
+      },
+      "Identifier": "set-not-authenticated",
+      "Type": "UpdateContactAttributes",
+      "Transitions": {
+        "NextAction": "check-survey",
+        "Errors": [
+          {
+            "NextAction": "check-survey",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "SSML": "$.FlowAttributes.survey_msg"
+      },
+      "Identifier": "play-survey",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "set-survey-hook",
+        "Errors": [
+          {
+            "NextAction": "set-survey-hook",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ComparisonValue": "$.Attributes.addTopOfTheQueue"
+      },
+      "Identifier": "check-priority",
+      "Type": "Compare",
+      "Transitions": {
+        "NextAction": "play-monitoring",
+        "Conditions": [
+          {
+            "NextAction": "set-priority",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "true"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "play-monitoring",
+            "ErrorType": "NoMatchingCondition"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ComparisonValue": "$.Attributes.authentication_flag"
+      },
+      "Identifier": "check-auth",
+      "Type": "Compare",
+      "Transitions": {
+        "NextAction": "set-not-authenticated",
+        "Conditions": [
+          {
+            "NextAction": "invoke-auth",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "true"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "set-not-authenticated",
+            "ErrorType": "NoMatchingCondition"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ComparisonValue": "$.Attributes.survey_flag"
+      },
+      "Identifier": "check-survey",
+      "Type": "Compare",
+      "Transitions": {
+        "NextAction": "check-priority",
+        "Conditions": [
+          {
+            "NextAction": "play-survey",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "true"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "check-priority",
+            "ErrorType": "NoMatchingCondition"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowModuleId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/flow-module/84831b48-a75b-4d18-9e6f-403409e694d3:$LATEST"
+      },
+      "Identifier": "invoke-auth",
+      "Type": "InvokeFlowModule",
+      "Transitions": {
+        "NextAction": "check-survey",
+        "Errors": [
+          {
+            "NextAction": "check-survey",
+            "ErrorType": "NoMatchingCondition"
+          },
+          {
+            "NextAction": "check-survey",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ]
+}

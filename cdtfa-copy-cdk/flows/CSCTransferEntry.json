@@ -1,0 +1,163 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "enable-logging",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": -218.4,
+      "y": 139.2
+    },
+    "ActionMetadata": {
+      "disconnect": {
+        "position": {
+          "x": 933.6,
+          "y": 137.6
+        }
+      },
+      "transfer-to-prequeue": {
+        "position": {
+          "x": 665.6,
+          "y": 133.6
+        },
+        "parameters": {
+          "ContactFlowId": {
+            "displayName": "Pre-Queue Preparation"
+          }
+        },
+        "ContactFlow": {
+          "text": "Pre-Queue Preparation"
+        }
+      },
+      "enable-logging": {
+        "position": {
+          "x": -101.6,
+          "y": 139.2
+        }
+      },
+      "set-queue": {
+        "position": {
+          "x": 396.8,
+          "y": 130.4
+        },
+        "parameters": {
+          "QueueId": {
+            "displayName": "Q_CSC_Customer_Service_Center"
+          }
+        },
+        "queue": {
+          "text": "Q_CSC_Customer_Service_Center"
+        }
+      },
+      "set-voice": {
+        "position": {
+          "x": 156.8,
+          "y": 133.6
+        },
+        "children": [
+          "171a63b8-a87a-42d2-a9ab-69a50e0362b0"
+        ],
+        "parameters": {
+          "TextToSpeechVoice": {
+            "languageCode": "en-US"
+          }
+        },
+        "overrideConsoleVoice": true,
+        "fragments": {
+          "SetContactData": "171a63b8-a87a-42d2-a9ab-69a50e0362b0"
+        },
+        "overrideLanguageAttribute": true
+      },
+      "171a63b8-a87a-42d2-a9ab-69a50e0362b0": {
+        "position": {
+          "x": 156.8,
+          "y": 133.6
+        },
+        "dynamicParams": []
+      }
+    },
+    "Annotations": []
+  },
+  "Actions": [
+    {
+      "Parameters": {},
+      "Identifier": "disconnect",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "ContactFlowId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/contact-flow/02b68552-8598-4adb-aa3a-8152aa2ac153"
+      },
+      "Identifier": "transfer-to-prequeue",
+      "Type": "TransferToFlow",
+      "Transitions": {
+        "NextAction": "disconnect",
+        "Errors": [
+          {
+            "NextAction": "disconnect",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowLoggingBehavior": "Enabled"
+      },
+      "Identifier": "enable-logging",
+      "Type": "UpdateFlowLoggingBehavior",
+      "Transitions": {
+        "NextAction": "set-voice"
+      }
+    },
+    {
+      "Parameters": {
+        "QueueId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/queue/c722618c-3377-479a-ba6b-843ab648ff49"
+      },
+      "Identifier": "set-queue",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "transfer-to-prequeue",
+        "Errors": [
+          {
+            "NextAction": "transfer-to-prequeue",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "TextToSpeechVoice": "Stephen",
+        "TextToSpeechEngine": "Generative",
+        "TextToSpeechStyle": "None"
+      },
+      "Identifier": "set-voice",
+      "Type": "UpdateContactTextToSpeechVoice",
+      "Transitions": {
+        "NextAction": "171a63b8-a87a-42d2-a9ab-69a50e0362b0",
+        "Errors": [
+          {
+            "NextAction": "set-queue",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LanguageCode": "en-US"
+      },
+      "Identifier": "171a63b8-a87a-42d2-a9ab-69a50e0362b0",
+      "Type": "UpdateContactData",
+      "Transitions": {
+        "NextAction": "set-queue",
+        "Errors": [
+          {
+            "NextAction": "set-queue",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,825 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "29f6e374-e596-47cc-98a2-11f9058de6d8",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": -24,
+      "y": 262.4
+    },
+    "ActionMetadata": {
+      "retry_complete_msg": {
+        "position": {
+          "x": 308,
+          "y": 1195.2
+        },
+        "isFriendlyName": true
+      },
+      "29f6e374-e596-47cc-98a2-11f9058de6d8": {
+        "position": {
+          "x": 76,
+          "y": 259.2
+        },
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-get-prompts"
+          }
+        },
+        "dynamicMetadata": {
+          "flow_name": false
+        }
+      },
+      "03a13f86-a128-4fbf-b43c-587ab7c586cc": {
+        "position": {
+          "x": 1342.4,
+          "y": 137.6
+        },
+        "parameters": {
+          "QueueId": {
+            "displayName": "Q_STF_Ret_Alcoholic_Bev"
+          }
+        },
+        "queue": {
+          "text": "Q_STF_Ret_Alcoholic_Bev"
+        }
+      },
+      "2a786841-d048-4cc8-972b-066d976bc91f": {
+        "position": {
+          "x": 1866.4,
+          "y": 156.8
+        }
+      },
+      "89fd385c-2d5c-4502-ac17-6dc34fd8da9e": {
+        "position": {
+          "x": 1611.2,
+          "y": 152.8
+        },
+        "parameters": {
+          "ContactFlowId": {
+            "displayName": "Pre-Queue Preparation"
+          }
+        },
+        "ContactFlow": {
+          "text": "Pre-Queue Preparation"
+        }
+      },
+      "b6373c24-63d0-47cd-8880-d8825ba90398": {
+        "position": {
+          "x": 1008.8,
+          "y": 850.4
+        },
+        "conditions": [],
+        "conditionMetadata": [
+          {
+            "id": "db70fa4d-3db7-43c3-b4c6-80117d07401d",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "en-US"
+          }
+        ]
+      },
+      "34f6e16f-6411-4b74-a775-01c0faef60cd": {
+        "position": {
+          "x": 1324.8,
+          "y": 815.2
+        },
+        "parameters": {
+          "QueueId": {
+            "displayName": "Q_CSC_Customer_Service_Center"
+          }
+        },
+        "queue": {
+          "text": "Q_CSC_Customer_Service_Center"
+        }
+      },
+      "8e19e42a-f717-4161-86cf-dca24d9e6299": {
+        "position": {
+          "x": 1569.6,
+          "y": 823.2
+        },
+        "parameters": {
+          "ContactFlowId": {
+            "displayName": "Pre-Queue Preparation"
+          }
+        },
+        "ContactFlow": {
+          "text": "Pre-Queue Preparation"
+        }
+      },
+      "f8022624-029a-4347-beb7-309cf42f5843": {
+        "position": {
+          "x": 1823.2,
+          "y": 827.2
+        }
+      },
+      "b4fe9329-a2b3-4469-b0a9-6abcf576c930": {
+        "position": {
+          "x": 1344.8,
+          "y": -55.2
+        },
+        "parameters": {
+          "QueueId": {
+            "displayName": "Q_CSC_Customer_Service_Center"
+          }
+        },
+        "queue": {
+          "text": "Q_CSC_Customer_Service_Center"
+        }
+      },
+      "9c0f7e56-04ec-43e8-a603-fec5b6965351": {
+        "position": {
+          "x": 1344.8,
+          "y": 325.6
+        },
+        "parameters": {
+          "QueueId": {
+            "displayName": "Q_CSC_Customer_Service_Center"
+          }
+        },
+        "queue": {
+          "text": "Q_CSC_Customer_Service_Center"
+        }
+      },
+      "csc-spanish-queue": {
+        "position": {
+          "x": 1297.6,
+          "y": 1004
+        },
+        "parameters": {
+          "QueueId": {
+            "displayName": "Q_CSC_Spanish"
+          }
+        },
+        "queue": {
+          "text": "Q_CSC_Spanish"
+        }
+      },
+      "7103e7e0-64bb-47e1-9db9-a16babde9f5b": {
+        "position": {
+          "x": 301.6,
+          "y": 739.2
+        }
+      },
+      "retry_msg": {
+        "position": {
+          "x": 305.6,
+          "y": 995.2
+        },
+        "isFriendlyName": true
+      },
+      "646dffba-d232-4d7c-9781-8caba81f9454": {
+        "position": {
+          "x": 16,
+          "y": 994.4
+        }
+      },
+      "161efa50-0e50-477b-a25f-b4d39a4f873a": {
+        "position": {
+          "x": 346.4,
+          "y": 254.4
+        }
+      },
+      "f7115a09-99a3-462f-82fa-d3d4ed722bd3": {
+        "position": {
+          "x": 1010.4,
+          "y": 630.4
+        },
+        "parameters": {
+          "ContactFlowId": {
+            "displayName": "CDTFA Main Menu"
+          }
+        },
+        "ContactFlow": {
+          "text": "CDTFA Main Menu"
+        }
+      },
+      "check-lang-alcohol": {
+        "position": {
+          "x": 1009.6,
+          "y": 160
+        },
+        "conditions": [],
+        "conditionMetadata": [
+          {
+            "id": "dbf67f4e-9bb3-4fe3-8beb-9725d1270857",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "en-US"
+          }
+        ]
+      },
+      "check-lang-property": {
+        "position": {
+          "x": 991.2,
+          "y": -43.2
+        },
+        "conditions": [],
+        "conditionMetadata": [
+          {
+            "id": "eda8040c-ae43-4356-92f5-3efbc388dc39",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "en-US"
+          }
+        ]
+      },
+      "check-lang-timber": {
+        "position": {
+          "x": 1024,
+          "y": 364
+        },
+        "conditions": [],
+        "conditionMetadata": [
+          {
+            "id": "eb255e63-8b52-4da6-a369-86f464d4cd2e",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "en-US"
+          }
+        ]
+      },
+      "boe_menu_msg": {
+        "position": {
+          "x": 600.8,
+          "y": 264
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "LexV2Bot": {
+            "AliasArn": {
+              "displayName": "Prod",
+              "useLexBotDropdown": true,
+              "lexV2BotName": "cdtfa-boe-menu-bot"
+            }
+          }
+        },
+        "dynamicMetadata": {
+          "x-amz-lex:dtmf:end-timeout-ms:*:*": false,
+          "x-amz-lex:dtmf:max-length:*:*": false,
+          "x-amz-lex:audio:end-timeout-ms:*:*": false
+        },
+        "useLexBotDropdown": true,
+        "lexV2BotName": "cdtfa-boe-menu-bot",
+        "lexV2BotAliasName": "Prod",
+        "conditionMetadata": [
+          {
+            "id": "4032fbd5-dfba-4d44-a055-f7e89ecb761f",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "PropertyAndInsuranceTax"
+          },
+          {
+            "id": "52027151-54f4-4bd2-8017-ee08ed02c47f",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "ExciseTaxOnAlcoholicBeverages"
+          },
+          {
+            "id": "0c2719ad-4c14-4500-ae0d-5e103ebc4f88",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "TimberTax"
+          },
+          {
+            "id": "37deb3ac-354d-45f8-bb48-315d51455660",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "Repeat"
+          },
+          {
+            "id": "fe660b32-5b51-485b-b5df-93bc741d17d4",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "Return"
+          },
+          {
+            "id": "7ccd4287-f44c-4921-a215-c9c2039965ca",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "FallbackIntent"
+          }
+        ]
+      }
+    },
+    "Annotations": []
+  },
+  "Actions": [
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "SSML": "$.FlowAttributes.retry_complete_msg"
+      },
+      "Identifier": "retry_complete_msg",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "b6373c24-63d0-47cd-8880-d8825ba90398",
+        "Errors": [
+          {
+            "NextAction": "b6373c24-63d0-47cd-8880-d8825ba90398",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-get-prompts",
+        "InvocationTimeLimitSeconds": "3",
+        "InvocationType": "SYNCHRONOUS",
+        "LambdaInvocationAttributes": {
+          "flow_name": "BOE Menu"
+        },
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "29f6e374-e596-47cc-98a2-11f9058de6d8",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "161efa50-0e50-477b-a25f-b4d39a4f873a",
+        "Errors": [
+          {
+            "NextAction": "161efa50-0e50-477b-a25f-b4d39a4f873a",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "QueueId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/queue/ae79391a-4ae8-4ccd-98f9-7ff97867fe1b"
+      },
+      "Identifier": "03a13f86-a128-4fbf-b43c-587ab7c586cc",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "89fd385c-2d5c-4502-ac17-6dc34fd8da9e",
+        "Errors": [
+          {
+            "NextAction": "89fd385c-2d5c-4502-ac17-6dc34fd8da9e",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "2a786841-d048-4cc8-972b-066d976bc91f",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "ContactFlowId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/contact-flow/02b68552-8598-4adb-aa3a-8152aa2ac153"
+      },
+      "Identifier": "89fd385c-2d5c-4502-ac17-6dc34fd8da9e",
+      "Type": "TransferToFlow",
+      "Transitions": {
+        "NextAction": "2a786841-d048-4cc8-972b-066d976bc91f",
+        "Errors": [
+          {
+            "NextAction": "2a786841-d048-4cc8-972b-066d976bc91f",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ComparisonValue": "$.Attributes.selected_language"
+      },
+      "Identifier": "b6373c24-63d0-47cd-8880-d8825ba90398",
+      "Type": "Compare",
+      "Transitions": {
+        "NextAction": "csc-spanish-queue",
+        "Conditions": [
+          {
+            "NextAction": "34f6e16f-6411-4b74-a775-01c0faef60cd",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "en-US"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "csc-spanish-queue",
+            "ErrorType": "NoMatchingCondition"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "QueueId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/queue/c722618c-3377-479a-ba6b-843ab648ff49"
+      },
+      "Identifier": "34f6e16f-6411-4b74-a775-01c0faef60cd",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "8e19e42a-f717-4161-86cf-dca24d9e6299",
+        "Errors": [
+          {
+            "NextAction": "8e19e42a-f717-4161-86cf-dca24d9e6299",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ContactFlowId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/contact-flow/02b68552-8598-4adb-aa3a-8152aa2ac153"
+      },
+      "Identifier": "8e19e42a-f717-4161-86cf-dca24d9e6299",
+      "Type": "TransferToFlow",
+      "Transitions": {
+        "NextAction": "f8022624-029a-4347-beb7-309cf42f5843",
+        "Errors": [
+          {
+            "NextAction": "f8022624-029a-4347-beb7-309cf42f5843",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "f8022624-029a-4347-beb7-309cf42f5843",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "QueueId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/queue/c722618c-3377-479a-ba6b-843ab648ff49"
+      },
+      "Identifier": "b4fe9329-a2b3-4469-b0a9-6abcf576c930",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "89fd385c-2d5c-4502-ac17-6dc34fd8da9e",
+        "Errors": [
+          {
+            "NextAction": "89fd385c-2d5c-4502-ac17-6dc34fd8da9e",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "QueueId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/queue/c722618c-3377-479a-ba6b-843ab648ff49"
+      },
+      "Identifier": "9c0f7e56-04ec-43e8-a603-fec5b6965351",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "89fd385c-2d5c-4502-ac17-6dc34fd8da9e",
+        "Errors": [
+          {
+            "NextAction": "89fd385c-2d5c-4502-ac17-6dc34fd8da9e",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "QueueId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/queue/4eb48de3-4364-45d1-9524-50b953f7c38d"
+      },
+      "Identifier": "csc-spanish-queue",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "8e19e42a-f717-4161-86cf-dca24d9e6299",
+        "Errors": [
+          {
+            "NextAction": "8e19e42a-f717-4161-86cf-dca24d9e6299",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LoopCount": "3"
+      },
+      "Identifier": "7103e7e0-64bb-47e1-9db9-a16babde9f5b",
+      "Type": "Loop",
+      "Transitions": {
+        "NextAction": "boe_menu_msg",
+        "Conditions": [
+          {
+            "NextAction": "boe_menu_msg",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "ContinueLooping"
+              ]
+            }
+          },
+          {
+            "NextAction": "boe_menu_msg",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "DoneLooping"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "boe_menu_msg",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "SSML": "$.FlowAttributes.retry_msg"
+      },
+      "Identifier": "retry_msg",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "boe_menu_msg",
+        "Errors": [
+          {
+            "NextAction": "boe_menu_msg",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LoopCount": "2"
+      },
+      "Identifier": "646dffba-d232-4d7c-9781-8caba81f9454",
+      "Type": "Loop",
+      "Transitions": {
+        "NextAction": "retry_complete_msg",
+        "Conditions": [
+          {
+            "NextAction": "retry_msg",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "ContinueLooping"
+              ]
+            }
+          },
+          {
+            "NextAction": "retry_complete_msg",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "DoneLooping"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "retry_complete_msg",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowAttributes": {
+          "boe_menu_msg": {
+            "Value": "$.External.boe_menu_msg"
+          },
+          "retry_msg": {
+            "Value": "$.External.retry_msg"
+          },
+          "retry_complete_msg": {
+            "Value": "$.External.retry_complete_msg"
+          }
+        }
+      },
+      "Identifier": "161efa50-0e50-477b-a25f-b4d39a4f873a",
+      "Type": "UpdateFlowAttributes",
+      "Transitions": {
+        "NextAction": "boe_menu_msg",
+        "Errors": [
+          {
+            "NextAction": "boe_menu_msg",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ContactFlowId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/contact-flow/a4387b2f-db3c-400c-b9be-f394cea82977"
+      },
+      "Identifier": "f7115a09-99a3-462f-82fa-d3d4ed722bd3",
+      "Type": "TransferToFlow",
+      "Transitions": {
+        "NextAction": "2a786841-d048-4cc8-972b-066d976bc91f",
+        "Errors": [
+          {
+            "NextAction": "2a786841-d048-4cc8-972b-066d976bc91f",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ComparisonValue": "$.Attributes.selected_language"
+      },
+      "Identifier": "check-lang-alcohol",
+      "Type": "Compare",
+      "Transitions": {
+        "NextAction": "csc-spanish-queue",
+        "Conditions": [
+          {
+            "NextAction": "03a13f86-a128-4fbf-b43c-587ab7c586cc",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "en-US"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "csc-spanish-queue",
+            "ErrorType": "NoMatchingCondition"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ComparisonValue": "$.Attributes.selected_language"
+      },
+      "Identifier": "check-lang-property",
+      "Type": "Compare",
+      "Transitions": {
+        "NextAction": "csc-spanish-queue",
+        "Conditions": [
+          {
+            "NextAction": "b4fe9329-a2b3-4469-b0a9-6abcf576c930",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "en-US"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "csc-spanish-queue",
+            "ErrorType": "NoMatchingCondition"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ComparisonValue": "$.Attributes.selected_language"
+      },
+      "Identifier": "check-lang-timber",
+      "Type": "Compare",
+      "Transitions": {
+        "NextAction": "csc-spanish-queue",
+        "Conditions": [
+          {
+            "NextAction": "9c0f7e56-04ec-43e8-a603-fec5b6965351",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "en-US"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "csc-spanish-queue",
+            "ErrorType": "NoMatchingCondition"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SSML": "$.FlowAttributes.boe_menu_msg",
+        "LexV2Bot": {
+          "AliasArn": "arn:aws:lex:us-west-2:797776209609:bot-alias/ZQX7FM6YEG/YD73EUX9ZJ"
+        },
+        "LexSessionAttributes": {
+          "x-amz-lex:dtmf:end-timeout-ms:*:*": "1500",
+          "x-amz-lex:dtmf:max-length:*:*": "1",
+          "x-amz-lex:audio:end-timeout-ms:*:*": "2000"
+        }
+      },
+      "Identifier": "boe_menu_msg",
+      "Type": "ConnectParticipantWithLexBot",
+      "Transitions": {
+        "NextAction": "646dffba-d232-4d7c-9781-8caba81f9454",
+        "Conditions": [
+          {
+            "NextAction": "check-lang-property",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "PropertyAndInsuranceTax"
+              ]
+            }
+          },
+          {
+            "NextAction": "check-lang-alcohol",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "ExciseTaxOnAlcoholicBeverages"
+              ]
+            }
+          },
+          {
+            "NextAction": "check-lang-timber",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "TimberTax"
+              ]
+            }
+          },
+          {
+            "NextAction": "7103e7e0-64bb-47e1-9db9-a16babde9f5b",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "Repeat"
+              ]
+            }
+          },
+          {
+            "NextAction": "f7115a09-99a3-462f-82fa-d3d4ed722bd3",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "Return"
+              ]
+            }
+          },
+          {
+            "NextAction": "646dffba-d232-4d7c-9781-8caba81f9454",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "FallbackIntent"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "646dffba-d232-4d7c-9781-8caba81f9454",
+            "ErrorType": "NoMatchingCondition"
+          },
+          {
+            "NextAction": "646dffba-d232-4d7c-9781-8caba81f9454",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ]
+}

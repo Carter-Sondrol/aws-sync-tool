@@ -1,0 +1,439 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "enable_logging",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": -401.6,
+      "y": 96
+    },
+    "ActionMetadata": {
+      "enable_logging": {
+        "position": {
+          "x": -255.2,
+          "y": 95.2
+        },
+        "isFriendlyName": true
+      },
+      "get_queue_config": {
+        "position": {
+          "x": 4,
+          "y": 92
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-get-queue-config"
+          }
+        },
+        "dynamicMetadata": {}
+      },
+      "set_queue_attributes": {
+        "position": {
+          "x": 260,
+          "y": 20
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "Attributes": {
+            "recording_flag": {
+              "useDynamic": true
+            }
+          }
+        },
+        "dynamicParams": [
+          "recording_flag"
+        ]
+      },
+      "call_recording_module": {
+        "position": {
+          "x": 520,
+          "y": 20
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "FlowModuleId": {
+            "displayName": "Call Recording Module",
+            "Alias": {
+              "displayName": "$LATEST"
+            }
+          }
+        },
+        "contactFlowModuleName": "Call Recording Module"
+      },
+      "set_contact_attributes": {
+        "position": {
+          "x": 1074.4,
+          "y": 16.8
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "Attributes": {
+            "preferred_name": {
+              "useDynamic": true
+            },
+            "phoneNumber": {
+              "useDynamic": true
+            }
+          }
+        },
+        "dynamicParams": [
+          "preferred_name",
+          "phoneNumber"
+        ]
+      },
+      "get_agent_preferred_name": {
+        "position": {
+          "x": 805.6,
+          "y": 22.4
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-get-agent-preferred-name"
+          }
+        },
+        "dynamicMetadata": {}
+      },
+      "set_disposition_codes": {
+        "position": {
+          "x": 1344,
+          "y": 19.2
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "EventHooks": {
+            "DefaultAgentUI": {
+              "displayName": "Disposition Codes"
+            }
+          }
+        }
+      },
+      "complete_outbound": {
+        "position": {
+          "x": 1615.2,
+          "y": 102.4
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "CallerId": {
+            "Number": {
+              "displayName": "+12138773853",
+              "inputOption": "claimed"
+            }
+          }
+        },
+        "setOptionalCallerId": true,
+        "callerIdSource": "claimed",
+        "claimedPhoneNumber": {
+          "text": "+12138773853"
+        },
+        "useDynamicConnectionTimeout": false
+      },
+      "c96971ba-356f-45a2-85f8-0f2cad40b262": {
+        "position": {
+          "x": 2091.2,
+          "y": 25.6
+        },
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-get-prompts"
+          }
+        },
+        "dynamicMetadata": {
+          "flow_name": false
+        }
+      },
+      "2941ebe4-d224-4906-be6d-b05085155cae": {
+        "position": {
+          "x": 2368.8,
+          "y": 21.6
+        }
+      },
+      "37b29664-bf26-408b-949f-67e5646e84a7": {
+        "position": {
+          "x": 1843.2,
+          "y": 112
+        },
+        "conditionMetadata": [
+          {
+            "id": "4c0b9734-60fe-41d5-846c-7ff4ab0f07c1",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "CALLBACK"
+          }
+        ]
+      },
+      "d32416e9-3cad-444f-b591-d62124cf7a69": {
+        "position": {
+          "x": 2618.4,
+          "y": 38.4
+        }
+      },
+      "end_flow": {
+        "position": {
+          "x": 2905.6,
+          "y": 31.2
+        },
+        "isFriendlyName": true
+      }
+    },
+    "Annotations": [
+      {
+        "type": "default",
+        "id": "dd5fc144-4ec1-41fb-8498-1a5a91a4d081",
+        "content": "Get prompts",
+        "actionId": "c96971ba-356f-45a2-85f8-0f2cad40b262",
+        "isFolded": true,
+        "position": {
+          "x": 2626.5,
+          "y": 242
+        },
+        "size": {
+          "height": 295,
+          "width": 300
+        }
+      }
+    ]
+  },
+  "Actions": [
+    {
+      "Parameters": {
+        "FlowLoggingBehavior": "Enabled"
+      },
+      "Identifier": "enable_logging",
+      "Type": "UpdateFlowLoggingBehavior",
+      "Transitions": {
+        "NextAction": "get_queue_config"
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-get-queue-config",
+        "InvocationTimeLimitSeconds": "8",
+        "InvocationType": "SYNCHRONOUS",
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "get_queue_config",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "set_queue_attributes",
+        "Errors": [
+          {
+            "NextAction": "get_agent_preferred_name",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "Attributes": {
+          "recording_flag": "$.External.recording_flag"
+        },
+        "TargetContact": "Current"
+      },
+      "Identifier": "set_queue_attributes",
+      "Type": "UpdateContactAttributes",
+      "Transitions": {
+        "NextAction": "call_recording_module",
+        "Errors": [
+          {
+            "NextAction": "get_agent_preferred_name",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowModuleId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/flow-module/bd89f737-f104-45dc-b81c-23096bff37dd"
+      },
+      "Identifier": "call_recording_module",
+      "Type": "InvokeFlowModule",
+      "Transitions": {
+        "NextAction": "get_agent_preferred_name",
+        "Errors": [
+          {
+            "NextAction": "get_agent_preferred_name",
+            "ErrorType": "NoMatchingCondition"
+          },
+          {
+            "NextAction": "get_agent_preferred_name",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "Attributes": {
+          "call_type": "Outbound",
+          "preferred_name": "$.External.preferred_name",
+          "phoneNumber": "$.External.phone_number"
+        },
+        "TargetContact": "Current"
+      },
+      "Identifier": "set_contact_attributes",
+      "Type": "UpdateContactAttributes",
+      "Transitions": {
+        "NextAction": "set_disposition_codes",
+        "Errors": [
+          {
+            "NextAction": "set_disposition_codes",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-get-agent-preferred-name",
+        "InvocationTimeLimitSeconds": "8",
+        "InvocationType": "SYNCHRONOUS",
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "get_agent_preferred_name",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "set_contact_attributes",
+        "Errors": [
+          {
+            "NextAction": "set_contact_attributes",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "EventHooks": {
+          "DefaultAgentUI": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/contact-flow/aa5ae1c5-cd7e-4321-9ab7-bc674ae3ca3a"
+        }
+      },
+      "Identifier": "set_disposition_codes",
+      "Type": "UpdateContactEventHooks",
+      "Transitions": {
+        "NextAction": "complete_outbound",
+        "Errors": [
+          {
+            "NextAction": "complete_outbound",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "CallerId": {
+          "Number": "+12138773853"
+        }
+      },
+      "Identifier": "complete_outbound",
+      "Type": "CompleteOutboundCall",
+      "Transitions": {
+        "NextAction": "37b29664-bf26-408b-949f-67e5646e84a7"
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-get-prompts",
+        "InvocationTimeLimitSeconds": "3",
+        "InvocationType": "SYNCHRONOUS",
+        "LambdaInvocationAttributes": {
+          "flow_name": "Direct Dial Outbound"
+        },
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "c96971ba-356f-45a2-85f8-0f2cad40b262",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "2941ebe4-d224-4906-be6d-b05085155cae",
+        "Errors": [
+          {
+            "NextAction": "2941ebe4-d224-4906-be6d-b05085155cae",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowAttributes": {
+          "callback_disclaimer_msg": {
+            "Value": "$.External.callback_disclaimer_msg"
+          }
+        }
+      },
+      "Identifier": "2941ebe4-d224-4906-be6d-b05085155cae",
+      "Type": "UpdateFlowAttributes",
+      "Transitions": {
+        "NextAction": "d32416e9-3cad-444f-b591-d62124cf7a69",
+        "Errors": [
+          {
+            "NextAction": "d32416e9-3cad-444f-b591-d62124cf7a69",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ComparisonValue": "$.InitiationMethod"
+      },
+      "Identifier": "37b29664-bf26-408b-949f-67e5646e84a7",
+      "Type": "Compare",
+      "Transitions": {
+        "NextAction": "end_flow",
+        "Conditions": [
+          {
+            "NextAction": "c96971ba-356f-45a2-85f8-0f2cad40b262",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "CALLBACK"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "end_flow",
+            "ErrorType": "NoMatchingCondition"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "SSML": "$.FlowAttributes.callback_disclaimer_msg"
+      },
+      "Identifier": "d32416e9-3cad-444f-b591-d62124cf7a69",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "end_flow",
+        "Errors": [
+          {
+            "NextAction": "end_flow",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "end_flow",
+      "Type": "EndFlowExecution",
+      "Transitions": {}
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "95edb4de-a846-4ba0-987c-05cf5c83302d",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": 40,
+      "y": 40
+    },
+    "ActionMetadata": {
+      "efb7a78e-a16a-4d4f-87ac-1884b15b6812": {
+        "position": {
+          "x": 609.6,
+          "y": -5.6
+        }
+      },
+      "95edb4de-a846-4ba0-987c-05cf5c83302d": {
+        "position": {
+          "x": 292.8,
+          "y": -8
+        }
+      }
+    },
+    "Annotations": []
+  },
+  "Actions": [
+    {
+      "Parameters": {},
+      "Identifier": "efb7a78e-a16a-4d4f-87ac-1884b15b6812",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "SSML": "We are closed at this time and not able to assist you in person. \n\nGeneral information including current tax rates, forms and publications are available on our website at C.D.T.F.A, dot C.A, dot G.O.V. \n\nIf you need to speak to a customer service representative, please call us again, Monday through Friday, seven-thirty AM to four-thirty PM, Pacific Time, excluding State holidays.  \n\nThank you for calling the California Department of Tax and Fee Administration. Goodbye."
+      },
+      "Identifier": "95edb4de-a846-4ba0-987c-05cf5c83302d",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "efb7a78e-a16a-4d4f-87ac-1884b15b6812",
+        "Errors": [
+          {
+            "NextAction": "efb7a78e-a16a-4d4f-87ac-1884b15b6812",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ]
+}

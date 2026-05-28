@@ -1,0 +1,84 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "5453a8d2-2c81-4782-928e-4afeae8147c0",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": 74.4,
+      "y": 20
+    },
+    "ActionMetadata": {
+      "95dc2179-0f18-4646-8e15-15377c9cbb29": {
+        "position": {
+          "x": 800.8,
+          "y": 124
+        }
+      },
+      "222caecc-c107-4553-87fc-85a74c34bb06": {
+        "position": {
+          "x": 529.6,
+          "y": 127.2
+        }
+      },
+      "5453a8d2-2c81-4782-928e-4afeae8147c0": {
+        "position": {
+          "x": 250.4,
+          "y": 138.4
+        },
+        "parameters": {
+          "FlowModuleId": {
+            "displayName": "Queue Whisper Mapping",
+            "Alias": {
+              "displayName": "$LATEST"
+            }
+          }
+        },
+        "contactFlowModuleName": "Queue Whisper Mapping"
+      }
+    },
+    "Annotations": []
+  },
+  "Actions": [
+    {
+      "Parameters": {},
+      "Identifier": "95dc2179-0f18-4646-8e15-15377c9cbb29",
+      "Type": "EndFlowExecution",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "SSML": "$.Attributes.agent_whisper"
+      },
+      "Identifier": "222caecc-c107-4553-87fc-85a74c34bb06",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "95dc2179-0f18-4646-8e15-15377c9cbb29",
+        "Errors": [
+          {
+            "NextAction": "95dc2179-0f18-4646-8e15-15377c9cbb29",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowModuleId": "fa86c8f1-5542-43b2-9859-db3ba55cc3c1:$LATEST"
+      },
+      "Identifier": "5453a8d2-2c81-4782-928e-4afeae8147c0",
+      "Type": "InvokeFlowModule",
+      "Transitions": {
+        "NextAction": "222caecc-c107-4553-87fc-85a74c34bb06",
+        "Errors": [
+          {
+            "NextAction": "222caecc-c107-4553-87fc-85a74c34bb06",
+            "ErrorType": "NoMatchingCondition"
+          },
+          {
+            "NextAction": "222caecc-c107-4553-87fc-85a74c34bb06",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ]
+}

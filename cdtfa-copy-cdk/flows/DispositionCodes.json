@@ -1,0 +1,451 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "enable_logging",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": 40,
+      "y": 40
+    },
+    "ActionMetadata": {
+      "816353be-c500-4543-abd0-20c292aa2225": {
+        "position": {
+          "x": 1849.6,
+          "y": 44
+        },
+        "parameters": {
+          "ViewResource": {
+            "Id": {
+              "displayName": "Detail"
+            }
+          },
+          "InvocationTimeLimitSeconds": {
+            "unit": 60
+          },
+          "ViewData": {
+            "AttributeBar": {
+              "useJson": true
+            }
+          }
+        }
+      },
+      "enable_logging": {
+        "position": {
+          "x": 160,
+          "y": 40
+        },
+        "isFriendlyName": true
+      },
+      "set_contact_info": {
+        "position": {
+          "x": 400,
+          "y": 40
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "Attributes": {
+            "dialed_number": {
+              "useDynamic": true
+            },
+            "customer_number": {
+              "useDynamic": true
+            },
+            "contact_id": {
+              "useDynamic": true
+            }
+          }
+        },
+        "dynamicParams": [
+          "dialed_number",
+          "customer_number",
+          "contact_id"
+        ]
+      },
+      "set_disposition": {
+        "position": {
+          "x": 1309.6,
+          "y": 68
+        },
+        "isFriendlyName": true,
+        "dynamicParams": []
+      },
+      "disconnect": {
+        "position": {
+          "x": 2149.6,
+          "y": 36.8
+        }
+      },
+      "show_confirmation": {
+        "position": {
+          "x": 1560,
+          "y": 40
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "ViewResource": {
+            "Id": {
+              "displayName": "Confirmation"
+            }
+          },
+          "InvocationTimeLimitSeconds": {
+            "unit": 1
+          },
+          "ViewData": {
+            "AttributeBar": {
+              "useJson": true
+            },
+            "Graphic": {
+              "useJson": true
+            },
+            "Next": {
+              "useJson": true
+            }
+          }
+        }
+      },
+      "get_disposition_codes": {
+        "position": {
+          "x": 680,
+          "y": 40
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "flow-get-disposition-codes"
+          }
+        },
+        "dynamicMetadata": {}
+      },
+      "show_form": {
+        "position": {
+          "x": 960,
+          "y": 40
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "ViewResource": {
+            "Id": {
+              "displayName": "Form"
+            }
+          },
+          "InvocationTimeLimitSeconds": {
+            "unit": 60
+          },
+          "ViewData": {
+            "AttributeBar": {
+              "useJson": true
+            },
+            "Cancel": {
+              "useJson": true
+            }
+          }
+        }
+      }
+    },
+    "Annotations": []
+  },
+  "Actions": [
+    {
+      "Parameters": {
+        "SensitiveDataConfiguration": {
+          "HideResponseOn": [
+            "TRANSCRIPT"
+          ]
+        },
+        "ViewResource": {
+          "Id": "arn:aws:connect:us-west-2:aws:view/detail:1"
+        },
+        "InvocationTimeLimitSeconds": "5940",
+        "ViewData": {
+          "AttributeBar": [
+            {
+              "Label": "Queue Name",
+              "Value": "$.Attributes.queueName"
+            },
+            {
+              "Label": "Customer Number",
+              "Value": "$.Attributes.customer_number"
+            },
+            {
+              "Label": "Dialed Number",
+              "Value": "$.Attributes.dialed_number"
+            },
+            {
+              "Label": "Contact ID",
+              "Value": "$.Attributes.contact_id"
+            },
+            {
+              "Label": "Call Type",
+              "Value": "$.Attributes.call_type"
+            },
+            {
+              "Label": "Account ID",
+              "Value": "$.Attributes.AccountId"
+            },
+            {
+              "Label": "Authenticated",
+              "Value": "$.Attributes.Authenticated"
+            }
+          ]
+        }
+      },
+      "Identifier": "816353be-c500-4543-abd0-20c292aa2225",
+      "Type": "ShowView",
+      "Transitions": {
+        "NextAction": "disconnect",
+        "Conditions": [
+          {
+            "NextAction": "disconnect",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "ActionSelected"
+              ]
+            }
+          },
+          {
+            "NextAction": "show_confirmation",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "Back"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "disconnect",
+            "ErrorType": "NoMatchingCondition"
+          },
+          {
+            "NextAction": "disconnect",
+            "ErrorType": "NoMatchingError"
+          },
+          {
+            "NextAction": "disconnect",
+            "ErrorType": "TimeLimitExceeded"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowLoggingBehavior": "Enabled"
+      },
+      "Identifier": "enable_logging",
+      "Type": "UpdateFlowLoggingBehavior",
+      "Transitions": {
+        "NextAction": "set_contact_info"
+      }
+    },
+    {
+      "Parameters": {
+        "Attributes": {
+          "dialed_number": "$.SystemEndpoint.Address",
+          "customer_number": "$.CustomerEndpoint.Address",
+          "contact_id": "$.ContactId"
+        },
+        "TargetContact": "Current"
+      },
+      "Identifier": "set_contact_info",
+      "Type": "UpdateContactAttributes",
+      "Transitions": {
+        "NextAction": "get_disposition_codes",
+        "Errors": [
+          {
+            "NextAction": "get_disposition_codes",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "Attributes": {
+          "Disposition": "$.Views.ViewResultData.FormData.disposition.0",
+          "PostContactSurvey": "$.Views.ViewResultData.FormData.survey.0"
+        },
+        "TargetContact": "Related"
+      },
+      "Identifier": "set_disposition",
+      "Type": "UpdateContactAttributes",
+      "Transitions": {
+        "NextAction": "show_confirmation",
+        "Errors": [
+          {
+            "NextAction": "show_confirmation",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "disconnect",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "ViewResource": {
+          "Id": "arn:aws:connect:us-west-2:aws:view/confirmation:1",
+          "Version": "Latest"
+        },
+        "ViewData": {
+          "Heading": "Disposition set successfully",
+          "AttributeBar": "[]",
+          "Graphic": "{\"Include\":true}",
+          "Next": "{\"Label\":\"Done\"}"
+        },
+        "InvocationTimeLimitSeconds": "30"
+      },
+      "Identifier": "show_confirmation",
+      "Type": "ShowView",
+      "Transitions": {
+        "NextAction": "816353be-c500-4543-abd0-20c292aa2225",
+        "Conditions": [
+          {
+            "NextAction": "816353be-c500-4543-abd0-20c292aa2225",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "Next"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "816353be-c500-4543-abd0-20c292aa2225",
+            "ErrorType": "NoMatchingCondition"
+          },
+          {
+            "NextAction": "816353be-c500-4543-abd0-20c292aa2225",
+            "ErrorType": "NoMatchingError"
+          },
+          {
+            "NextAction": "816353be-c500-4543-abd0-20c292aa2225",
+            "ErrorType": "TimeLimitExceeded"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-west-2:797776209609:function:flow-get-disposition-codes",
+        "InvocationTimeLimitSeconds": "3",
+        "InvocationType": "SYNCHRONOUS",
+        "ResponseValidation": {
+          "ResponseType": "JSON"
+        }
+      },
+      "Identifier": "get_disposition_codes",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "show_form",
+        "Errors": [
+          {
+            "NextAction": "show_form",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ViewResource": {
+          "Id": "arn:aws:connect:us-west-2:aws:view/form:1"
+        },
+        "InvocationTimeLimitSeconds": "5940",
+        "ViewData": {
+          "Sections": "$.External.disposition_codes",
+          "AttributeBar": [
+            {
+              "Label": "Queue Name",
+              "Value": "$.Attributes.queueName"
+            },
+            {
+              "Label": "Customer Number",
+              "Value": "$.Attributes.customer_number"
+            },
+            {
+              "Label": "Dialed Number",
+              "Value": "$.Attributes.dialed_number"
+            },
+            {
+              "Label": "Contact ID",
+              "Value": "$.Attributes.contact_id"
+            },
+            {
+              "Label": "Call Type",
+              "Value": "$.Attributes.call_type"
+            },
+            {
+              "Label": "Account ID",
+              "Value": "$.Attributes.AccountId"
+            },
+            {
+              "Label": "Authenticated",
+              "Value": "$.Attributes.Authenticated"
+            },
+            {
+              "Label": "Email",
+              "Value": "$.Attributes.email"
+            }
+          ],
+          "Cancel": {
+            "Label": "Skip"
+          }
+        }
+      },
+      "Identifier": "show_form",
+      "Type": "ShowView",
+      "Transitions": {
+        "NextAction": "disconnect",
+        "Conditions": [
+          {
+            "NextAction": "show_confirmation",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "Back"
+              ]
+            }
+          },
+          {
+            "NextAction": "set_disposition",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "Next"
+              ]
+            }
+          },
+          {
+            "NextAction": "set_disposition",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "Step"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "disconnect",
+            "ErrorType": "NoMatchingCondition"
+          },
+          {
+            "NextAction": "disconnect",
+            "ErrorType": "NoMatchingError"
+          },
+          {
+            "NextAction": "disconnect",
+            "ErrorType": "TimeLimitExceeded"
+          }
+        ]
+      }
+    }
+  ]
+}

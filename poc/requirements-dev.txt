@@ -1,5 +1,0 @@
-pytest==6.2.5
-plotly
-argcomplete
-networkx
-boto3-stubs[full]

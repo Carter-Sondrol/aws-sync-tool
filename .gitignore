@@ -1,32 +1,29 @@
-# Dependencies
-node_modules/
-package-lock.json
+node_modules
+dist
+out
+.DS_Store
+.eslintcache
+*.log*
 
-# Build output
-dist/
-build/
+# Build artifacts
 *.tsbuildinfo
 
-# Secrets and credentials
-.env
-.env.local
-.env.*.local
-credentials.json
-*.pem
+# Generated CDK exports (regenerated anytime)
+exported/
+prodOut/
+CDTFAProd/
+build/bin/
+build/lib/
+build/flows/
+build/scripts/
+build/package-lock.json
+build/*.tsbuildinfo
 
-# OS
-.DS_Store
-Thumbs.db
+# Pi tooling state
+.pi/
+.awsync-data/
 
-# IDEs
-.vscode/
-.idea/
-
-# Python POC artifacts (keep source, ignore caches)
-poc/__pycache__/
-poc/*.pyc
-poc/.venv/
-
-# Temp
-tmp/
-temp/
+# Graph export dumps (local analysis artifacts)
+*-graph.json
+graphs.json
+environments.json

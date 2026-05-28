@@ -1,0 +1,154 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "fcd751d9-9772-4ee2-bfef-8f4e5e1f24d8",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": -221.6,
+      "y": 38.4
+    },
+    "ActionMetadata": {
+      "fcd751d9-9772-4ee2-bfef-8f4e5e1f24d8": {
+        "position": {
+          "x": -84.8,
+          "y": 41.6
+        }
+      },
+      "0cff15bc-3033-4478-ae40-18e047664818": {
+        "position": {
+          "x": 1219.2,
+          "y": 41.6
+        }
+      },
+      "97666540-b9ba-4cbd-b97a-f8f522c29219": {
+        "position": {
+          "x": 176.8,
+          "y": 37.6
+        },
+        "parameters": {
+          "EventHooks": {
+            "CustomerRemaining": {
+              "displayName": "Survey Disconnect Flow"
+            }
+          }
+        },
+        "contactFlow": {
+          "text": "Survey Disconnect Flow",
+          "id": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/contact-flow/45095ff7-3b18-482b-aa21-49c734491c7a"
+        }
+      },
+      "7c467579-857a-4ef3-a413-32b40202a2dd": {
+        "position": {
+          "x": 961.6,
+          "y": 40.8
+        }
+      },
+      "8fe77bdc-c2ec-47a7-a20b-91eb7f516d9a": {
+        "position": {
+          "x": 438.4,
+          "y": 40.8
+        }
+      },
+      "16ad63ce-75c7-42cc-9377-4206a0af7d70": {
+        "position": {
+          "x": 703.2,
+          "y": 40
+        },
+        "parameters": {
+          "QueueId": {
+            "displayName": "BasicQueue"
+          }
+        },
+        "queue": {
+          "text": "BasicQueue"
+        }
+      }
+    },
+    "Annotations": []
+  },
+  "Actions": [
+    {
+      "Parameters": {
+        "FlowLoggingBehavior": "Enabled"
+      },
+      "Identifier": "fcd751d9-9772-4ee2-bfef-8f4e5e1f24d8",
+      "Type": "UpdateFlowLoggingBehavior",
+      "Transitions": {
+        "NextAction": "97666540-b9ba-4cbd-b97a-f8f522c29219"
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "0cff15bc-3033-4478-ae40-18e047664818",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "EventHooks": {
+          "CustomerRemaining": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/contact-flow/45095ff7-3b18-482b-aa21-49c734491c7a"
+        }
+      },
+      "Identifier": "97666540-b9ba-4cbd-b97a-f8f522c29219",
+      "Type": "UpdateContactEventHooks",
+      "Transitions": {
+        "NextAction": "8fe77bdc-c2ec-47a7-a20b-91eb7f516d9a",
+        "Errors": [
+          {
+            "NextAction": "8fe77bdc-c2ec-47a7-a20b-91eb7f516d9a",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "7c467579-857a-4ef3-a413-32b40202a2dd",
+      "Type": "TransferContactToQueue",
+      "Transitions": {
+        "NextAction": "0cff15bc-3033-4478-ae40-18e047664818",
+        "Errors": [
+          {
+            "NextAction": "0cff15bc-3033-4478-ae40-18e047664818",
+            "ErrorType": "QueueAtCapacity"
+          },
+          {
+            "NextAction": "0cff15bc-3033-4478-ae40-18e047664818",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "Text": "You will now be disconnected."
+      },
+      "Identifier": "8fe77bdc-c2ec-47a7-a20b-91eb7f516d9a",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "16ad63ce-75c7-42cc-9377-4206a0af7d70",
+        "Errors": [
+          {
+            "NextAction": "16ad63ce-75c7-42cc-9377-4206a0af7d70",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "QueueId": "arn:aws:connect:us-west-2:797776209609:instance/bd754747-7bce-46be-890e-cd37bd7e0f17/queue/74d045a3-6217-4898-9cd7-123a1ce02549"
+      },
+      "Identifier": "16ad63ce-75c7-42cc-9377-4206a0af7d70",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "7c467579-857a-4ef3-a413-32b40202a2dd",
+        "Errors": [
+          {
+            "NextAction": "7c467579-857a-4ef3-a413-32b40202a2dd",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ]
+}
